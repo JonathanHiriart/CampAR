@@ -242,24 +242,27 @@ El escenario de Make ejecuta la arquitectura oficial de la Clase 40:
 
 ---
 
-### 4.2. Especificación de Actores de Apify
+### 4.2. Arquitectura del Actor Propio de Apify (Basado en `tarea_ejemplo_apify` de la Cátedra) y Actores Complementarios
 
-1. **Actor de Mercado Libre**:
-   * **ID en Store**: `karamelo/mercadolibre-scraper-espanol-castellano`
-   * **URL de Búsqueda**: `https://inmuebles.mercadolibre.com.ar/terrenos-lotes/cordoba/calamuchita/` y `.../punilla/`
-   * **Límites de Ejecución**: Configurar `maxItems: 600` por valle para un total de ~1.200 publicaciones, optimizando el consumo de créditos de Apify dentro de los USD 39/mes.
-2. **Actor de Google Maps**:
-   * **ID en Store**: `compass/crawler-google-places`
-   * **Términos de Búsqueda**: `"camping en Calamuchita"`, `"camping en Punilla"`, `"glamping cordoba"`.
-   * **Datos extraídos**: `placeId`, `title`, `totalScore`, `reviewsCount`, `reviewsDistribution`.
+Siguiendo el estándar dejado por la docente en `tarea_ejemplo_apify` (`my_actor/main.py`, `.actor/actor.json`, `.actor/input_schema.json`, `.actor/dataset_schema.json`), nuestra arquitectura del **Producto 1** combina extracción estructurada con nuestro propio **Actor Procesador y Normalizador en Python (`terrascout-georadar-actor`)**:
+
+1. **Extracción Primaria y Normalización Estructural (`httpx2` + `BeautifulSoup` + `re`)**:
+   * **Terrenos y Lotes (Mercado Libre)**: Búsqueda acotada a `Valle de Calamuchita` y `Valle de Punilla` (~950 a 1.200 registros limpios), extrayendo precio normalizado a USD y superficie en $\text{m}^2$ mediante expresiones regulares (`re`).
+   * **Campings y Complejos Turísticos (Google Maps Places)**: Reseñas de huéspedes ($1\star\text{ a }5\star$) y ubicación en un radio de 5 km de cada localidad para calcular el **NPS Proxy**.
+2. **Búsqueda Difusa con `RapidFuzz` (`SentenceIndex` + `fuzzy_count`)**:
+   * Reutiliza el motor de n-gramas y similitud difusa (`fuzz.WRatio` / `fuzz.ratio`, umbral `85`) de `tarea_ejemplo_apify` para:
+     * Unificar nombres de localidades serranas escritos con errores o abreviaturas (`"Sta Rosa"`, `"V. Gral. Belgrano"`, `"VCP"`) contra el catálogo oficial de 16 localidades (`barrio_localidad`).
+     * Detectar atributos de infraestructura en descripciones libres (`"agua corriente"`, `"luz electrica"`, `"escritura"`, `"arboleda"`, `"asfalto"`, `"inundable"`) calculando el `score_servicios` tolerando errores de tipeo.
+3. **Descubrimiento No Supervisado de Tópicos de Dolor con `scikit-learn` (`TfidfVectorizer` + `KMeans` + `silhouette_score`)**:
+   * Reutiliza la función `find_topics()` de `tarea_ejemplo_apify` sobre las oraciones de reseñas negativas ($1\star\text{–}3\star$) de los campings competidores.
+   * Selecciona automáticamente el número óptimo de clusters $k$ maximizando el **Silhouette Score** (con métrica coseno) y extrae los términos clave de cada centroide (`topic_terms`) junto con oraciones reales de ejemplo (demostrando empíricamente las quejas por *falta de sombra*, *acceso intransitable por lluvia/barro* y *servicios deficientes*).
 
 ---
 
-### 4.3. Capa Satelital Preprocesada (NASA SRTM 30m)
-Para mantener el flujo de Make liviano y sin transferir archivos pesados:
-* Se descarga una única vez el modelo de elevación digital SRTM 30m de NASA Earthdata para la cuadrícula `S32W065` y `S33W065` (Córdoba).
-* Con un script en Python usando `geopandas` y `rasterio`, se calculan las estadísticas zonales por polígono de barrio o radio de centroide.
-* El resultado se consolida en un archivo estático liviano `data/aux_topografia_cordoba.csv` que el pipeline cruza mediante una clave alfanumérica (`barrio_localidad`).
+### 4.3. Capa Satelital Preprocesada en Corte Transversal (NASA SRTM 30m + MODIS NDVI + IGN)
+Siguiendo los lineamientos metodológicos de [`proyecto_satelital_sin_series_temporales.md`](./proyecto_satelital_sin_series_temporales.md), el **Fenómeno 2** se modela como un **diagnóstico espacial de corte transversal (foto estática por localidad, sin series temporales)** para mantener el flujo de Make liviano, explicable y libre de archivos pesados:
+* **Nota Técnica de Teledetección**: El vigor de la vegetación y cobertura de sombra arbórea (**NDVI medio de verano**) no se extrae de la radiancia cruda, sino de la reflectancia en las bandas **Rojo e Infrarrojo Cercano (MODIS/VIIRS)**. La **pendiente media ($^\circ$)** y **altitud ($\text{m s.n.m.}$)** se calculan a partir del Modelo Digital de Elevación **NASA SRTM de 30 metros** para la cuadrícula de las Sierras de Córdoba (`S32W065` y `S33W065`), cruzado con la distancia métrica a cursos de agua permanentes de la **Red Hídrica del IGN**.
+* El resultado se consolida en un archivo estático auditado `data/aux_topografia_cordoba.csv` que el Actor y el pipeline ETL unen mediante la clave normalizada `barrio_localidad`.
 
 ---
 
@@ -290,7 +293,43 @@ Para cumplir con los estándares exigidos por los voluntarios de Samsung, ningú
 
 ---
 
-## 5. Cronograma de Ejecución y Reparto de Responsabilidades
+## 5. Cronograma de Ejecución y Reparto de Responsabilidades por Rol
+
+> Para el detalle operativo paso a paso del **Producto 1**, checklists de cierre técnico y adaptación del Actor de Apify de la cátedra (`tarea_ejemplo_apify`), consultar el documento complementario: [**`plan_implementacion_producto_1_terrascout_ai.md`**](./plan_implementacion_producto_1_terrascout_ai.md).
+
+### 5.1. División Detallada de Tareas por Rol para el Producto 1
+
+#### A. Business Analyst (BIZ) — Estrategia Comercial, ROI, Excel Oficial y Dashboard
+1. **Cierre del Excel Oficial (`capstone_project_cronograma_alumnos.xlsx`)**:
+   * Completar pestañas `Resumen`, `Guía Business` (tabla de 5 ideas de brainstorming con criterios de poda), `Alcance servicio`, `Presupuesto` (USD 1.850 one-off + USD 65/mes operativo; ROI Año 1 de +411% y recupero en 2,34 meses) y `Seguimiento cliente`.
+2. **Diseño y Construcción del Dashboard en Looker Studio**:
+   * Conectar Looker Studio a la hoja consolidada de Google Sheets (`TerraScout_AI_Master_DB`) para responder en 3 vistas: **¿Qué vender/intermediar?** (Mapa de aptitud y demanda turística insatisfecha), **¿A qué precio?** (Tabla de oportunidades de arbitraje con descuento $\ge 20\%$ y riesgo bajo) y **¿Cuándo promocionar / qué destacar?** (Tópicos de quejas KMeans y NPS Proxy de campings competidores).
+3. **Gestión de Alcance ante los 3 Pedidos Sorpresa de Diana (12/11)**:
+   * Entregar clasificación y justificación comercial de los 3 pedidos (Ventas reales $\to$ *Fuera de alcance, reemplazado por Índice Proxy de Absorción*; NPS competidores $\to$ *Imprescindible vía NPS Proxy de reseñas públicas*; Monitoreo diario de toda la provincia $\to$ *Reducción de alcance por Pareto 80/20 a Calamuchita y Punilla para cuidar su tope de USD 150/mes*).
+
+#### B. Data Analyst / Data Scientist (DS) — Datos Satelitales, ETL, EDA y Modelado
+1. **Construcción del Dataset Auxiliar Satelital (`data/aux_topografia_cordoba.csv`)**:
+   * Consolidar en corte transversal las métricas por localidad serrana: `pendiente_media_grados` (NASA SRTM 30m), `ndvi_sombra_verano` (reflectancia rojo/NIR MODIS), `distancia_rio_m` (Red Hídrica IGN) y `riesgo_inundacion` (`BAJO`, `MEDIO`, `ALTO`).
+2. **Pipeline de Limpieza, Normalización y Cruce Espacial (`notebooks/01_etl_y_eda.ipynb`)**:
+   * Ejecutar limpieza de nulos, deduplicación de lotes repetidos entre inmobiliarias, filtrado de outliers ($500\text{ m}^2\text{ a }20.000\text{ m}^2$), conversión monetaria a USD y unión espacial (`JOIN`) para consolidar entre **950 y 1.200 registros limpios** con **11–12 features**.
+3. **Análisis Exploratorio de Datos (EDA) con Correlaciones Lineales y No Lineales**:
+   * Calcular y graficar correlación lineal de **Pearson ($r$)** (`superficie_m2` vs. `precio_usd`) y correlación no lineal de **Spearman ($\rho$)** (`pendiente_media_grados` vs. `precio_m2_usd`, demostrando el desplome no lineal de valor cuando la pendiente supera los $12^\circ$, y relación entre sombra NDVI y NPS Proxy).
+   * Documentar explícitamente los supuestos y limitaciones metodológicas (foto transversal sin series temporales, NPS Proxy basado en reseñas y alcance no sustitutivo de estudio de títulos).
+
+#### C. Líder Técnico / Software & Solution Engineer (SE) — Apify Actor, Make, Configuración y GitHub
+1. **Adaptación del Actor de Apify Oficial (`tarea_ejemplo_apify` $\to$ `terrascout-georadar-actor`)**:
+   * Implementar `my_actor/main.py` y los esquemas `.actor/input_schema.json` y `.actor/dataset_schema.json` integrando:
+     * Extracción con `httpx2` + `BeautifulSoup` + `re` (superficie en $\text{m}^2$ y moneda).
+     * Búsqueda difusa con `RapidFuzz` (`SentenceIndex` + `fuzzy_count`) para normalizar localidades y puntuar servicios (`agua`, `luz`, `escritura`, `arboleda`, `asfalto`).
+     * Clustering de texto con `scikit-learn` (`TfidfVectorizer` + `KMeans` + `silhouette_score`) para extraer automáticamente los tópicos de quejas en reseñas de campings ($1\star\text{–}3\star$).
+2. **Separación de Código y Reglas de Negocio (`config/business_rules.json` + `.env`)**:
+   * Desacoplar todos los umbrales de negocio, tipos de cambio y credenciales para superar la auditoría técnica de los voluntarios de Samsung del 17/11.
+3. **Orquestación Automatizada en Make.com**:
+   * Construir y demostrar el escenario `Trigger -> Apify Run Actor -> Get Dataset Items -> Filtro Anti-Rotura HTML -> Google Sheets -> Looker Studio / Alerta Telegram`.
+
+---
+
+### 5.2. Hitos del Cronograma Oficial
 
 | Fecha / Hito | Responsable | Entregable Concreto |
 | :--- | :---: | :--- |
