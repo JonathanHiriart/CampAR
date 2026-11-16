@@ -1,0 +1,139 @@
+{
+    "$schema": "https://apify.com/schemas/v1/dataset.ide.json",
+    "actorSpecification": 1,
+    "fields": {
+        "id_publicacion": {
+            "type": "string",
+            "description": "Identificador único de la publicación en Mercado Libre (ej. MLA1473773319)."
+        },
+        "fecha_extraccion": {
+            "type": "string",
+            "description": "Fecha ISO en la que se realizó la extracción (YYYY-MM-DD)."
+        },
+        "valle_corredor": {
+            "type": "string",
+            "description": "Valle geográfico de la provincia de Córdoba (Valle de Calamuchita o Valle de Punilla)."
+        },
+        "localidad_raw": {
+            "type": "string",
+            "description": "Localidad y dirección tal como figura en la publicación original."
+        },
+        "titulo_publicacion": {
+            "type": "string",
+            "description": "Título oficial de la publicación."
+        },
+        "moneda_raw": {
+            "type": "string",
+            "description": "Moneda original publicada (USD, ARS, $ o U$S)."
+        },
+        "precio_raw": {
+            "type": "number",
+            "description": "Monto publicado en la moneda original."
+        },
+        "superficie_raw_texto": {
+            "type": "string",
+            "description": "Cadena de texto original que describe la superficie (ej. '1.047 - 1.409 m² totales')."
+        },
+        "superficie_m2_extraida": {
+            "type": "number",
+            "description": "Superficie estandarizada en metros cuadrados (m²)."
+        },
+        "vendedor_nombre": {
+            "type": "string",
+            "description": "Nombre de la inmobiliaria, desarrolladora o vendedor particular."
+        },
+        "es_tienda_oficial": {
+            "type": "boolean",
+            "description": "Indica si el vendedor es una tienda oficial o inmobiliaria verificada en Mercado Libre."
+        },
+        "tipo_aviso": {
+            "type": "string",
+            "description": "Tipo de aviso (ej. EMPRENDIMIENTO, CLASICO)."
+        },
+        "url_publicacion": {
+            "type": "string",
+            "description": "Enlace directo permanente a la publicación en Mercado Libre."
+        },
+        "fuente_extraccion": {
+            "type": "string",
+            "description": "Fuente de datos de extracción ('MercadoLibre Córdoba')."
+        },
+        "score_servicios": {
+            "type": "integer",
+            "description": "Cantidad de servicios e infraestructura detectados mediante búsqueda difusa."
+        },
+        "servicios_detectados": {
+            "type": "array",
+            "description": "Lista de servicios/infraestructura detectados en el texto (agua, luz, etc.)."
+        }
+    },
+    "views": {
+        "overview": {
+            "title": "Overview",
+            "transformation": {
+                "fields": [
+                    "id_publicacion",
+                    "valle_corredor",
+                    "localidad_raw",
+                    "titulo_publicacion",
+                    "moneda_raw",
+                    "precio_raw",
+                    "superficie_m2_extraida",
+                    "vendedor_nombre",
+                    "tipo_aviso",
+                    "score_servicios",
+                    "url_publicacion"
+                ]
+            },
+            "display": {
+                "component": "table",
+                "properties": {
+                    "id_publicacion": {
+                        "label": "ID Publicación",
+                        "format": "text"
+                    },
+                    "valle_corredor": {
+                        "label": "Valle / Corredor",
+                        "format": "text"
+                    },
+                    "localidad_raw": {
+                        "label": "Localidad",
+                        "format": "text"
+                    },
+                    "titulo_publicacion": {
+                        "label": "Título",
+                        "format": "text"
+                    },
+                    "moneda_raw": {
+                        "label": "Moneda",
+                        "format": "text"
+                    },
+                    "precio_raw": {
+                        "label": "Precio Crudo",
+                        "format": "number"
+                    },
+                    "superficie_m2_extraida": {
+                        "label": "Superficie (m²)",
+                        "format": "number"
+                    },
+                    "vendedor_nombre": {
+                        "label": "Vendedor",
+                        "format": "text"
+                    },
+                    "tipo_aviso": {
+                        "label": "Tipo Aviso",
+                        "format": "text"
+                    },
+                    "score_servicios": {
+                        "label": "Score Servicios",
+                        "format": "number"
+                    },
+                    "url_publicacion": {
+                        "label": "URL",
+                        "format": "link"
+                    }
+                }
+            }
+        }
+    }
+}

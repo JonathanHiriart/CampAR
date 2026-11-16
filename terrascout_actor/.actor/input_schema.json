@@ -1,0 +1,206 @@
+{
+    "$schema": "https://apify.com/schemas/v1/input.ide.json",
+    "title": "TerraScout AI — Scraper de Terrenos & Análisis NLP de Servicios",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "calamuchita_url": {
+            "title": "URL Mercado Libre Calamuchita",
+            "type": "string",
+            "description": "URL base de búsqueda de terrenos en Valle de Calamuchita.",
+            "editor": "textfield",
+            "default": "https://inmuebles.mercadolibre.com.ar/terrenos-lotes/cordoba/calamuchita/"
+        },
+        "punilla_url": {
+            "title": "URL Mercado Libre Punilla",
+            "type": "string",
+            "description": "URL base de búsqueda de terrenos en Valle de Punilla.",
+            "editor": "textfield",
+            "default": "https://inmuebles.mercadolibre.com.ar/terrenos-lotes/cordoba/punilla/"
+        },
+        "url": {
+            "title": "URL Base de Búsqueda Alternativa",
+            "type": "string",
+            "description": "URL alternativa opcional para Mercado Libre Inmuebles en Córdoba.",
+            "editor": "textfield",
+            "default": "https://inmuebles.mercadolibre.com.ar/terrenos-lotes/cordoba/"
+        },
+        "corredores": {
+            "title": "Valles / Corredores a procesar",
+            "type": "array",
+            "description": "Corredores geográficos objetivo.",
+            "editor": "stringList",
+            "default": [
+                "Valle de Calamuchita",
+                "Valle de Punilla"
+            ]
+        },
+        "max_items_per_valley": {
+            "title": "Máximo de publicaciones por valle",
+            "type": "integer",
+            "description": "Cantidad máxima de publicaciones reales a extraer por cada valle.",
+            "editor": "number",
+            "default": 800
+        },
+        "max_pages_per_valley": {
+            "title": "Máximo de páginas por valle",
+            "type": "integer",
+            "description": "Cantidad máxima de páginas a paginar por valle (48 items por página).",
+            "editor": "number",
+            "default": 20
+        },
+        "apify_token_env": {
+            "title": "Variable de entorno de Apify Token",
+            "type": "string",
+            "description": "Nombre de la variable de entorno que contiene el token de Apify para actores auxiliares.",
+            "editor": "textfield",
+            "default": "APIFY_TOKEN"
+        },
+        "gmaps_search_queries": {
+            "title": "Búsquedas de campings en Google Maps",
+            "type": "array",
+            "description": "Consultas para extracción de campings y reseñas en Google Maps.",
+            "editor": "stringList",
+            "default": [
+                "campings en Calamuchita Córdoba",
+                "campings en Punilla Córdoba"
+            ]
+        },
+        "tipo_cambio_ars_usd": {
+            "title": "Tipo de Cambio ARS / USD",
+            "type": "number",
+            "description": "Tipo de cambio de referencia para conversión monetaria.",
+            "editor": "number",
+            "default": 1280.0
+        },
+        "pendiente_maxima_grados": {
+            "title": "Pendiente máxima apta (°)",
+            "type": "number",
+            "description": "Umbral de pendiente límite para aptitud constructiva.",
+            "editor": "number",
+            "default": 12.0
+        },
+        "words": {
+            "sectionCaption": "Heurística Difusa de Infraestructura (RapidFuzz)",
+            "title": "Palabras clave de servicios e infraestructura",
+            "type": "array",
+            "description": "Términos a buscar difusamente en descripciones y títulos.",
+            "editor": "stringList",
+            "default": [
+                "agua",
+                "luz",
+                "escritura",
+                "arboleda",
+                "asfalto",
+                "rio"
+            ]
+        },
+        "threshold": {
+            "title": "Umbral de similitud difusa",
+            "type": "integer",
+            "description": "Puntaje mínimo (0-100) para coincidencia difusa.",
+            "editor": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 85
+        },
+        "scorer": {
+            "title": "Algoritmo de similitud",
+            "type": "string",
+            "description": "Función de RapidFuzz usada para comparar cadenas.",
+            "editor": "select",
+            "enum": [
+                "ratio",
+                "partial_ratio",
+                "token_sort_ratio",
+                "token_set_ratio",
+                "WRatio"
+            ],
+            "enumTitles": [
+                "ratio — similitud total (palabras sueltas)",
+                "partial_ratio — búsqueda contenida en el texto",
+                "token_sort_ratio — frases sin importar el orden",
+                "token_set_ratio — frases sin orden ni repetidas",
+                "WRatio — combinación ponderada"
+            ],
+            "default": "ratio"
+        },
+        "top_topics": {
+            "sectionCaption": "Tópicos de Quejas Turísticas (TF-IDF + KMeans)",
+            "title": "Cantidad de tópicos principales",
+            "type": "integer",
+            "description": "Cantidad de clusters temáticos a reportar.",
+            "editor": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 3
+        },
+        "n_clusters": {
+            "title": "Clusters de KMeans",
+            "type": "integer",
+            "description": "Cantidad de clusters (0 = selección automática por silhouette score).",
+            "editor": "number",
+            "minimum": 0,
+            "maximum": 50,
+            "default": 0
+        },
+        "n_terms": {
+            "title": "Términos por tópico",
+            "type": "integer",
+            "description": "Cantidad de términos TF-IDF característicos de cada centroide.",
+            "editor": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 5
+        },
+        "n_examples": {
+            "title": "Oraciones de ejemplo por tópico",
+            "type": "integer",
+            "description": "Oraciones más representativas de cada cluster.",
+            "editor": "number",
+            "minimum": 0,
+            "maximum": 20,
+            "default": 3
+        },
+        "stop_words": {
+            "title": "Stop words de lenguaje",
+            "type": "string",
+            "description": "Diccionario de palabras vacías a filtrar.",
+            "editor": "select",
+            "enum": [
+                "spanish",
+                "english",
+                "none"
+            ],
+            "enumTitles": [
+                "Español (TerraScout stopwords)",
+                "Inglés (scikit-learn)",
+                "Ninguna"
+            ],
+            "default": "spanish"
+        },
+        "extra_stop_words": {
+            "title": "Stop words adicionales",
+            "type": "array",
+            "description": "Palabras extra a ignorar en reseñas.",
+            "editor": "stringList",
+            "default": [
+                "camping",
+                "lugar",
+                "cordoba",
+                "muy",
+                "mas",
+                "anos",
+                "hace",
+                "dia",
+                "dias",
+                "bueno",
+                "buena",
+                "bien"
+            ]
+        }
+    },
+    "required": [
+        "url"
+    ]
+}

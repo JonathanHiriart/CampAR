@@ -1,0 +1,286 @@
+{
+  "version": "1.0.0",
+  "proyecto": "TerraScout AI",
+  "tipo_cambio_ars_usd": 1280.0,
+  "filtros_terreno": {
+    "superficie_minima_m2": 500.0,
+    "superficie_maxima_m2": 20000.0,
+    "pendiente_alerta_grados": 12.0,
+    "pendiente_critica_grados": 18.0,
+    "distancia_segura_rio_m": 80.0
+  },
+  "arbitraje": {
+    "umbral_descuento_minimo_pct": 0.20,
+    "excluir_riesgo_alto": true
+  },
+  "nlp_params": {
+    "fuzzy_threshold": 85,
+    "fuzzy_scorer": "WRatio",
+    "top_topics": 4,
+    "n_clusters": 0,
+    "n_terms": 5,
+    "n_examples": 3
+  },
+  "palabras_clave_servicios": [
+    "agua corriente",
+    "luz electrica",
+    "escritura",
+    "arboleda",
+    "asfalto",
+    "gas natural",
+    "alambrado",
+    "rio",
+    "inundable"
+  ],
+  "stop_words_es": [
+    "de",
+    "la",
+    "que",
+    "el",
+    "en",
+    "y",
+    "a",
+    "los",
+    "del",
+    "se",
+    "las",
+    "por",
+    "un",
+    "para",
+    "con",
+    "no",
+    "una",
+    "su",
+    "al",
+    "lo",
+    "como",
+    "mas",
+    "pero",
+    "sus",
+    "le",
+    "ya",
+    "o",
+    "este",
+    "si",
+    "porque",
+    "esta",
+    "entre",
+    "cuando",
+    "muy",
+    "sin",
+    "sobre",
+    "también",
+    "me",
+    "hasta",
+    "hay",
+    "donde",
+    "quien",
+    "desde",
+    "todo",
+    "nos",
+    "durante",
+    "todos",
+    "uno",
+    "les",
+    "ni",
+    "contra",
+    "otros",
+    "ese",
+    "eso",
+    "ante",
+    "ellos",
+    "e",
+    "esto",
+    "mi",
+    "antes",
+    "algunos",
+    "que",
+    "unos",
+    "yo",
+    "otro",
+    "otras",
+    "otra",
+    "el",
+    "tanto",
+    "esa",
+    "estos",
+    "mucho",
+    "quienes",
+    "nada",
+    "muchos",
+    "cual",
+    "poco",
+    "ella",
+    "estar",
+    "estas",
+    "algunas",
+    "algo",
+    "nosotros"
+  ],
+  "localidades_catalogo": {
+    "Santa Rosa de Calamuchita": {
+      "id_localidad": "CAL-01",
+      "valle_corredor": "Valle de Calamuchita",
+      "precio_base_m2_usd": 32.0,
+      "alias": [
+        "Santa Rosa",
+        "Santa Rosa De Calamuchita",
+        "Sta Rosa",
+        "Sta. Rosa de Calamuchita",
+        "Sta Rosa Calamuchita"
+      ]
+    },
+    "Villa General Belgrano": {
+      "id_localidad": "CAL-02",
+      "valle_corredor": "Valle de Calamuchita",
+      "precio_base_m2_usd": 42.0,
+      "alias": [
+        "VGB",
+        "Villa Gral Belgrano",
+        "Villa Gral. Belgrano",
+        "V. Gral Belgrano",
+        "General Belgrano"
+      ]
+    },
+    "La Cumbrecita": {
+      "id_localidad": "CAL-03",
+      "valle_corredor": "Valle de Calamuchita",
+      "precio_base_m2_usd": 48.0,
+      "alias": [
+        "Cumbrecita",
+        "La Cumbrecita Cordoba",
+        "Cumbrecita Calamuchita"
+      ]
+    },
+    "Villa Rumipal": {
+      "id_localidad": "CAL-04",
+      "valle_corredor": "Valle de Calamuchita",
+      "precio_base_m2_usd": 24.0,
+      "alias": [
+        "Rumipal",
+        "V. Rumipal",
+        "Villa Rumipal Calamuchita"
+      ]
+    },
+    "Villa del Dique": {
+      "id_localidad": "CAL-05",
+      "valle_corredor": "Valle de Calamuchita",
+      "precio_base_m2_usd": 25.0,
+      "alias": [
+        "Villa Del Dique",
+        "V. Del Dique",
+        "V. del Dique",
+        "Villa Dique"
+      ]
+    },
+    "Embalse": {
+      "id_localidad": "CAL-06",
+      "valle_corredor": "Valle de Calamuchita",
+      "precio_base_m2_usd": 22.0,
+      "alias": [
+        "Embalse Rio Tercero",
+        "Embalse Calamuchita",
+        "Embalse de Rio Tercero"
+      ]
+    },
+    "Los Reartes": {
+      "id_localidad": "CAL-07",
+      "valle_corredor": "Valle de Calamuchita",
+      "precio_base_m2_usd": 35.0,
+      "alias": [
+        "Reartes",
+        "Los Reartes Calamuchita",
+        "Villa Los Reartes"
+      ]
+    },
+    "Villa Yacanto": {
+      "id_localidad": "CAL-08",
+      "valle_corredor": "Valle de Calamuchita",
+      "precio_base_m2_usd": 26.0,
+      "alias": [
+        "Yacanto",
+        "Yacanto de Calamuchita",
+        "Villa Yacanto de Calamuchita",
+        "V. Yacanto"
+      ]
+    },
+    "Villa Carlos Paz": {
+      "id_localidad": "PUN-01",
+      "valle_corredor": "Valle de Punilla",
+      "precio_base_m2_usd": 48.0,
+      "alias": [
+        "Carlos Paz",
+        "VCP",
+        "Villa Carlos Paz Centro",
+        "V. Carlos Paz"
+      ]
+    },
+    "Cosquin": {
+      "id_localidad": "PUN-02",
+      "valle_corredor": "Valle de Punilla",
+      "precio_base_m2_usd": 25.0,
+      "alias": [
+        "Cosquín",
+        "Cosquin Punilla",
+        "Ciudad de Cosquin"
+      ]
+    },
+    "La Falda": {
+      "id_localidad": "PUN-03",
+      "valle_corredor": "Valle de Punilla",
+      "precio_base_m2_usd": 32.0,
+      "alias": [
+        "Falda",
+        "La Falda Punilla",
+        "Villa La Falda"
+      ]
+    },
+    "Villa Giardino": {
+      "id_localidad": "PUN-04",
+      "valle_corredor": "Valle de Punilla",
+      "precio_base_m2_usd": 30.0,
+      "alias": [
+        "Giardino",
+        "V. Giardino",
+        "Villa Giardino Punilla"
+      ]
+    },
+    "La Cumbre": {
+      "id_localidad": "PUN-05",
+      "valle_corredor": "Valle de Punilla",
+      "precio_base_m2_usd": 38.0,
+      "alias": [
+        "Cumbre",
+        "La Cumbre Punilla"
+      ]
+    },
+    "Capilla del Monte": {
+      "id_localidad": "PUN-06",
+      "valle_corredor": "Valle de Punilla",
+      "precio_base_m2_usd": 27.0,
+      "alias": [
+        "Capilla Del Monte",
+        "Capilla Monte",
+        "Uritorco Capilla del Monte"
+      ]
+    },
+    "Tanti": {
+      "id_localidad": "PUN-07",
+      "valle_corredor": "Valle de Punilla",
+      "precio_base_m2_usd": 24.0,
+      "alias": [
+        "Tanti Punilla",
+        "Villa Tanti"
+      ]
+    },
+    "Huerta Grande": {
+      "id_localidad": "PUN-08",
+      "valle_corredor": "Valle de Punilla",
+      "precio_base_m2_usd": 23.0,
+      "alias": [
+        "Huerta Grande Punilla",
+        "La Huerta Grande"
+      ]
+    }
+  }
+}

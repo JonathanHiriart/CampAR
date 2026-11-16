@@ -1,0 +1,414 @@
+{
+  "metadata": {
+    "fecha_extraccion": "2026-11-15T23:34:26.062855",
+    "algoritmo": "TF-IDF + KMeans + SentenceIndex (scikit-learn / rapidfuzz / difflib)",
+    "fuentes_utilizadas": [
+      "MercadoLibre Inmuebles Córdoba",
+      "OpenStreetMap Overpass",
+      "Directorio SoloCampings Córdoba"
+    ],
+    "total_publicaciones_ml": 1200,
+    "total_campings_reales": 296,
+    "total_reviews_reales": 0,
+    "total_oraciones_corpus": 1720,
+    "gmaps_status": "APIFY_TOKEN no configurado ni se detectó archivo JSON local. No se generaron reseñas sintéticas (ZERO DUMMY DATA policy)."
+  },
+  "n_clusters": 9,
+  "silhouette": 0.042,
+  "n_sentences": 1292,
+  "topics": [
+    {
+      "rank": 1,
+      "size": 540,
+      "share": 0.418,
+      "terms": [
+        "terreno",
+        "venta",
+        "lote",
+        "m2",
+        "villa"
+      ],
+      "sentences": [
+        "| 31°53´55.2",
+        "Venta Terreno 425 M2.",
+        "Venta Terreno 2200 M2."
+      ]
+    },
+    {
+      "rank": 2,
+      "size": 259,
+      "share": 0.2,
+      "terms": [
+        "lote",
+        "venta",
+        "calamuchita",
+        "yacanto",
+        "villa"
+      ],
+      "sentences": [
+        "Lote En Venta - Villa Yacanto",
+        "Lote En Venta.",
+        "Lote En Venta | Yacanto De Calamuchita"
+      ]
+    },
+    {
+      "rank": 3,
+      "size": 173,
+      "share": 0.134,
+      "terms": [
+        "camping",
+        "osm",
+        "municipal",
+        "club",
+        "sol"
+      ],
+      "sentences": [
+        "Camping OSM #1997549536",
+        "Camping OSM #1997580907",
+        "Camping OSM #2077031586"
+      ]
+    },
+    {
+      "rank": 4,
+      "size": 113,
+      "share": 0.087,
+      "terms": [
+        "terreno venta",
+        "reartes",
+        "altos",
+        "corral",
+        "lote"
+      ],
+      "sentences": [
+        "Terreno En Venta !!",
+        "Terreno En Venta!",
+        "Terreno En Venta."
+      ]
+    }
+  ],
+  "fuzzy_counts": {
+    "agua corriente": {
+      "count": 1,
+      "sentences": [
+        "Lote Venta Villa Amancay 751 M2 Escritura Luz Electrica Agua Corriente Ubicacion Exclusiva Vistas"
+      ],
+      "variants": {
+        "agua corriente": {
+          "count": 1,
+          "score": 100.0
+        }
+      }
+    },
+    "luz electrica": {
+      "count": 1,
+      "sentences": [
+        "Lote Venta Villa Amancay 751 M2 Escritura Luz Electrica Agua Corriente Ubicacion Exclusiva Vistas"
+      ],
+      "variants": {
+        "luz electrica": {
+          "count": 1,
+          "score": 100.0
+        }
+      }
+    },
+    "escritura": {
+      "count": 104,
+      "sentences": [
+        "Villa General Belgrano - Lote De 1 Hectárea - Con Escritura - Sierras De Córdoba",
+        "2 Lotes Venta Los Reartes B° Capilla Vieja A 100 Metros Del Rio Luz Agua Escritura Lugar Exclusivo Vistas Sierras Grandes",
+        "Tres 3 Hectáreas En Villa Berna - La Cumbrecita - Sierras De Córdoba C/escritura",
+        "Lotes Con Escritura Usd10.000",
+        "Oportunidad Lote Con Escritura, Los Reartes",
+        "Terreno En Esquina 600 M2 Con Escritura, Vista A Las Sierras - El Vergel, Los Reartes",
+        "Lote En Venta En El Durazno - Villa Yacanto - Santa Rosa De Calamuchita _ Córdoba - Escritura Inmediata - Tomo Vehículo En Parte De Pago!!",
+        "Escritura Perfecta Alambrado Y Amojonado.",
+        "Lotes En Calamuchita, Escritura, Financiación",
+        "Venta Lote De 5.055 M2 En B° Consolidado Villa Berna, Con Seguridad, Escritura, Agua Y Electricidad",
+        "Con Vertiente Y Escritura.",
+        "Con Escritura.",
+        "390m2 Escritura.",
+        "Lote En Venta En El Cedrón- Villa Ciudad Parque | 853 M2 | Escritura | Plano De Vivienda | Vista A Las Sierras",
+        "Terreno 2000 M2 En Altos Del Corral Los Reartes.escritura.gas Natural",
+        "Valle Dorado: 3 Lotes Colindantes, Escritura, Vista Al Lago, Se Venden Juntos O Separados.",
+        "Terreno Con Vistas A Las Sierras| Yacanto |escritura Inmediata",
+        "Escritura - Costa De Río - Recibe Menor - Los Reartes - 17 Has - Venta - Terreno",
+        "Escritura - Costa De Río - Recibe Menor - Los Reartes - 17 Has - Venta - Terreno",
+        "Oportunidad Unica | Villa Yacanto 2.5 Ha | Escritura Inmediata",
+        "Finca De 3 Hectareas Con Dos Cabañas, Escriturable.",
+        "Lotes De 1 Hectárea En Lomas De Berna, Villa Berna, Con Luz, Agua Y Escritura",
+        "Oportunidad En Villa Del Dique Bo La Sierrita Escritura A Metros De Ruta 5",
+        "Lote Venta 1.000 M² Los Reartes A 50 Metros Del Rio Ubicacion Privilegiada Parques Autoctonos Y Forestados Apto Construccion Familiar O Comercial Luz Agua Escritura",
+        "Lotes Con Escritura Villa Del Dique La Sierrita",
+        "Lote Céntrico Gas Natural Escritura Vdd",
+        "Rumipal Lote 799m2 C/escritura!!",
+        "Lote En Venta Con Escritura Inmediata | Solar De Los Molinos",
+        "Venta Terreno 534 M2 Embalse Calamuchita Escritura",
+        "Lote Venta Villa Amancay 751 M2 Escritura Luz Electrica Agua Corriente Ubicacion Exclusiva Vistas",
+        "Lote Con Escritura Zona Residencial B 635m Totales Excelente Entorno",
+        "Campo 10ha Con Bajada A Río San Miguel - Escritura",
+        "Villa Naturaleza Oportunidad Lote 375m Escritura Y Amojonamiento Precio Con Gastos Incluidos",
+        "Villa Naturaleza Lote De 403m Totales Con Escritura",
+        "Exclusivo Lote Esquina C/escritura Y Vista Al Lago En San Ignacio  Valle De Calamuchita",
+        "1137m2 Escritura",
+        "Lote En Venta Con Escritura Zona H Villa Rumipal",
+        "Terreno En Los Reartes: Venta C/ Escritura.",
+        "Lote Venta Villa Calmayo 1299 M² Ubicacion Exclusiva Grandes Vistas Luz Agua Escritura Facil Acceso",
+        "Lote Venta Villa Amancay A 70 Metros Centro 450 M² Ubicacion Sector Exclusivo Escritura Luz Y Agua En La Puerta",
+        "Terreno En El Durazno, Escritura Inmediata Y Excelente Ubicación!",
+        "Vivi Frente Al Rio Los Reartes, Lotes Con Escritura",
+        "Lote Zona A, Precio Final Honorarios Incluidos, Escritura, Vista Perpetua Al Lago",
+        "Gran Lote Con Escritura En Villa Yacanto - Ideal Para Proyecto De Cabañas",
+        "Terrenolote | 700 M² | Esquina | Escritura | Vista Panorámica A Las Sierras | Villa Rumipal",
+        "Lote - Potrero De Garay - 700 M2 - Escritura Inmediata",
+        "Rucalhue Terreno Apto 6 Cabañas 1,2 Ha Escritura Oportuni...",
+        "Rucalhue 12.800m2 Escritura Apto 6 Cabañas Recibo Vehiculo",
+        "Rucalhue Terreno Apto 6 Cabañas 1,2 Ha Escritura Oportuni...",
+        "Escritura Perfecta.",
+        "Lote De 10 X 45 - Con Vista A Las Sierras - Le Pasan Servicios De Luz Y Agua - Escritura Perfecta - Villan Yacanto.",
+        "Tu Lote En Villa Yacanto - En Barrio El Sereno - Con Escritura.",
+        "Accede A 6 Lotes A Un Valor Unico - Cuentan Con Escritura Perfecta - Sobre El Camino A San Miguel De Los Rios - Villa Yacanto .",
+        "Terrenolote | 700 M² | Esquina | Escritura | Vista Panorámica A Las Sierras | Villa Rumipal",
+        "Venta Lote Escritura Santa Monica Calamuchita",
+        "Yacanto De Calamuchita: Vendo Lote 5000m2  Antes Del Primer Arroyoc/escritura!!",
+        "Venta Lote Villa Del Dique Escritura En Cuotas",
+        "Lote - Potrero De Garay - 700 M2 - Escritura Inmediata",
+        "Venta Lote En Villa Yacanto 900 M2 Con Escritura",
+        "Terreno En Venta De 400 M2 En Villa Yacanto, Córdoba | Escritura Inmediata Y Acceso A Todos Los Servicios",
+        "Yacanto De Calamuchita: Vendo Lote 5000m2  Antes Del Primer Arroyoc/escritura!!",
+        "Venta Lote 600m2 Centrica En Yacanto Escritura",
+        "Venta Lote En Yacanto 400 M2 Escritura Vistas",
+        "Lote Para Inversion  - 10 X 30 Con Escritura - Barrio En Crecimiento - Villa Yacanto - Excelente Entorno - Muy Buena Oportunidad.",
+        "Venta Lote 400 M2 Yacanto Calamuchita Escritura",
+        "Venta Lote En Villa Rumipal 619 M2 Escritura",
+        "Oportunidad Financiación Lote Con Escritura - Terrazas De La Falda 2 - Terrenos Financiados",
+        "Lote Escriturado Casa Grande Desde 1140m2",
+        "Venta 3 Lotes Contiguos Sobre Ruta 38 - Venta Individual O En Bloque - Escritura Inmediata",
+        "Escriturado.",
+        "Terreno En Las Jarillas 1510 Mt2 Servicios Y Escritura",
+        "Lote Escriturado En Venta En Villa Giardino",
+        "Financiación 100% Lote Con Escritura En Venta La Falda - Lote Con Escritura Y Excelentes Vistas!!",
+        "Terreno En Venta La Falda - Lote Con Escritura En Las Sierras De Córdoba - Lotes Financiados",
+        "Lote Fondo Golf Premium, Pendiente Negativa, Próximo A Escriturar, Obra De Gas Natural Y Cloacas",
+        "5.017 M² En Charbonier-santa Isabel Con Escritura, Monte Nativo Y Proyecto Ecológico Iniciado",
+        "Terreno En Venta Plano Cercado Y Con Escritura En Mayu Sumaj",
+        "Con Escritura.",
+        "Terreno De 1 Ha En Charbonier - Con Escritura",
+        "Con Escritura.",
+        "(cruz Grande/ Cruz Chica) Terreno 3200 Mts Con Escritura",
+        "Vendo Lote Central Chacras La Josefina Villa Giardino Cordoba  Listo Escritura !!!!",
+        "Escritura.",
+        "Venta Lote 1997m2 En Tanti Con Escritura",
+        "Venta Lote Tanti 752 Metros Con Escritura",
+        "Lote En Venta Paso De Piedra Falda Del Carmen Escritura Y Posesion",
+        "Escriturado.-",
+        "Terreno En Venta En La Cumbre, Con Escritura.",
+        "Venta Terreno 609m2 S A Arredondo Vistas Escritura",
+        "Venta Lote 564m Siquiman Escritura Y Cercado",
+        "Terreno En Venta La Cumbre, Escritura- Agua Y Luz.",
+        "En Venta Terreno En La Cumbre, Escritura.",
+        "Venta Terreno 680 M2 E Vieja Carlos Paz Escritura",
+        "Escritura, Electricidad Y Agua.",
+        "Hermoso Terreno Con Vista Al Dique Portecelo, Villa Giardino - 1290m - Titulo Perfecto, Escritura",
+        "Terreno En Venta En La Cumbre- Escritura.",
+        "Venta Lote Plano  798 M2 Parque Siquiman Escritura",
+        "Lote En Venta En Cabalango 580 M2 Con Escritura Y Servicios",
+        "Vendo Lote Con Escritura Y Servicios En Santa Cruz Del Lago",
+        "Barrio Santa Isabel, Charbonier (capilla Del Monte)  Venta De 2 Lotes De 800 M² Con Escritura",
+        "Lote En Venta En Capilla Del Monte Con Escritura",
+        "Gran Oportunidad En Capilla Del Monte  Lote En Barrio Las Gemelas - Escritura",
+        "Lote Alambrado C/ Escritura."
+      ],
+      "variants": {
+        "escritura": {
+          "count": 98,
+          "score": 100.0
+        },
+        "escriturar": {
+          "count": 1,
+          "score": 94.7
+        },
+        "escriturable": {
+          "count": 1,
+          "score": 90.0
+        },
+        "escriturado": {
+          "count": 4,
+          "score": 90.0
+        }
+      }
+    },
+    "arboleda": {
+      "count": 3,
+      "sentences": [
+        "Venta Terreno 1.390m² Con Contenedor Y Arboleda Centenaria  Villa Samaritana, Casa Grande  Córdoba",
+        "Lote En Reserva Arbol De Piedra",
+        "El Arbol"
+      ],
+      "variants": {
+        "arboleda": {
+          "count": 1,
+          "score": 100.0
+        },
+        "arbol": {
+          "count": 2,
+          "score": 90.0
+        }
+      }
+    },
+    "asfalto": {
+      "count": 7,
+      "sentences": [
+        "Lote, Alto Del Corral, Los Reartes",
+        "Alto Y Amplia Superficie.",
+        "Dos Lotes Colindantes En Venta Sobre Boulevard Asfaltado En Villa Ciudad Parque- Usd 22.500 Cada Uno!",
+        "Venta Lote Alto El Durazno Tanti",
+        "Vendo Alto Lote De Terreno Con Pirca En Huerta Grande, Córdoba.",
+        "Vendo Amplio Y Alto Lote De Terreno En Valle Hermoso, Córdoba.",
+        "Terreno En Venta Con Gas Natural Y Asfalto En Villa Giardino, Córdoba."
+      ],
+      "variants": {
+        "asfalto": {
+          "count": 1,
+          "score": 100.0
+        },
+        "alto": {
+          "count": 5,
+          "score": 90.0
+        },
+        "asfaltado": {
+          "count": 1,
+          "score": 87.5
+        }
+      }
+    },
+    "gas natural": {
+      "count": 10,
+      "sentences": [
+        "Terreno 2000 M2 En Altos Del Corral Los Reartes.escritura.gas Natural",
+        "Lote Céntrico Gas Natural Escritura Vdd",
+        "Se Vende  Lote En La Cumbre Barrio Golf Con Gas Natural",
+        "Del Golf De La Cumbre, Gas Na...",
+        "Terreno En La Cumbre Con Gas Natural A Dos Cuadras Del Go...",
+        "Se Vende Terreno En La Cumbre  La Loma  Con Gas Natural",
+        "Lote Fondo Golf Premium, Pendiente Negativa, Próximo A Escriturar, Obra De Gas Natural Y Cloacas",
+        "Venta Terreno En Cabalango 624 M2 Gas Natural",
+        "Terreno En Venta Con Gas Natural Y Asfalto En Villa Giardino, Córdoba."
+      ],
+      "variants": {
+        "gas natural": {
+          "count": 8,
+          "score": 100.0
+        },
+        "gas na": {
+          "count": 1,
+          "score": 90.0
+        },
+        "natural a": {
+          "count": 1,
+          "score": 85.5
+        }
+      }
+    },
+    "alambrado": {
+      "count": 3,
+      "sentences": [
+        "Escritura Perfecta Alambrado Y Amojonado.",
+        "Venta Lote Tanti 1178 M2 Alambrado Vista Panoram.",
+        "Lote Alambrado C/ Escritura."
+      ],
+      "variants": {
+        "alambrado": {
+          "count": 3,
+          "score": 100.0
+        }
+      }
+    },
+    "rio": {
+      "count": 71,
+      "sentences": [
+        "2 Lotes Venta Los Reartes B° Capilla Vieja A 100 Metros Del Rio Luz Agua Escritura Lugar Exclusivo Vistas Sierras Grandes",
+        "Lotes Exclusivos De 1000m2 En El Durazno A 50m Del Río",
+        "Terrenos En Venta En El Durazno, Cercanos Al Rio, Cordoba",
+        "Oportunidad Terreno A Pocas Cuadras Del Rio En Los Reartes",
+        "Lote A La Venta En Villa Ciudad Parque, A Cuadras Del Rio",
+        "Loteo Francisco - Rio De Los Sauces",
+        "Villa Rumipal | Lote En Altos De La Riviera, Barrio Abierto Cerca Del Embalse Y Del Río Ambay",
+        "Rio De Los Sauces - Terrenos",
+        "Venta De Fracciones  Con Costa De Rio Intiyaco - Calamuchita (cod 3108.)",
+        "Lote Con Costa De Rio En  Estancia Las Cañitas",
+        "4 Lotes A Una Cuadra Del Río Los Reartes",
+        "Terrenos Con Costa De Rio En La Cumbrecita",
+        "Escritura - Costa De Río - Recibe Menor - Los Reartes - 17 Has - Venta - Terreno",
+        "Escritura - Costa De Río - Recibe Menor - Los Reartes - 17 Has - Venta - Terreno",
+        "Teroportunidad Unica Lote En Venta Frente Al Rio| Bº Santa Monica| Santa Rosa De Calamuchitareno",
+        "Ultimos Lotes 1 Hectarea Costa De Rio Atos Pampa",
+        "Terreno A Pocas Cuadras Del Rio En Barrio Gutierrez, Los Reartes",
+        "Macrolote Esquina  A 100m Del Río A La Venta|bº El Torreón| Villa Rumipal",
+        "Lote Venta 1.000 M² Los Reartes A 50 Metros Del Rio Ubicacion Privilegiada Parques Autoctonos Y Forestados Apto Construccion Familiar O Comercial Luz Agua Escritura",
+        "Campo 10ha Con Bajada A Río San Miguel - Escritura",
+        "Lote Frente Al Rio Los Reartes, Calamuchita",
+        "Vivi Frente Al Rio Los Reartes, Lotes Con Escritura",
+        "Lotes 1ha, Costa De Rio: Usd 10k + Saldo En Cuotas",
+        "Dos Terrenos En Venta A Metros Del Río!!!",
+        "Venta   Encuentro Park 1    - Paraje   El Durazno   Condominio Privado-3 Unidades En Preventa-  Casas Frente Al Río El Durazno.oportunidad Hasta El Mes De Octubre",
+        "2 Terrenos 1.000m2 C/u A Metros Del Río.",
+        "Hermoso Terreno A 2 Cuadras Del Río.",
+        "Oportunidad 1.2 Hectáreas Con Vista Panorámica, Domo Geodésico Y Departamento A 6 Cuadras Del Río",
+        "Terreno 778m2 Muy Cerquita Del Río",
+        "Terreno Campo En Venta Sobre Rio Yuspe",
+        "Próximo Al Río Y Al Mnumento Del Indio Bamba",
+        "Venta Terreno A Metros Del Rio - Cabalango - Cordoba",
+        "Vend Terr(sierras-río)san Esteban, Córdoba-a 2km Los Cocos-a 8km Dique.",
+        "Espectacular Terreno/campo De 50.000 Mts² Con Costa De Río En Parque Siquiman",
+        "B&s Group Vende: Lote En Estancia Vieja  A Dos Cuadras Del Rio!!",
+        "Terreno En Venta  Más De 2 Hectáreas Con Frente A Ruta Y Salida Al Río | Villa Parque Siquiman, Punilla",
+        "Con Bajada Al Río",
+        "Lotes En Venta Sobre Rio Yuspe - En San José  Valle De Punilla",
+        "Terreno En Estancia Vieja La Mejor Zona Cerca Al Rio",
+        "Venta Casa Principal Y 4 Casas Sobre 7.965m2 - Pileta Y Salida Directa Al Río - Tanti - Cordoba",
+        "Casa Grande | Fracción De 12.208 M² Con Salida A Dos Calles, A 100 M Del Río Grande De Punilla",
+        "Terreno En Venta Con Costa De Rio",
+        "Vendo Lotes 742 Y 743 Con Costa Al Río.",
+        "Oportunidad Lote En Tanti Con Costa Al Río.",
+        "La Cumbre Campo De 205 Has Con Titulos En Rio Pintos",
+        "A Mt Del Rio",
+        "Terreno En  Venta En San Antonio Cerca Del Rio",
+        "Venta Terreno, San Antonio De Arredondo A Una Cuadra Del Rio, Vista, A Minutos De Villa Carlos Paz",
+        "Terreno En Venta En Tanti, Frente Al Rio.",
+        "Terreno En San Antonio A Metros Del Rio",
+        "Lote En Barrio La Toma A Una Cuadra Del Río Calabalumba",
+        "Terreno Campo En Venta Sobre Rio Yuspe",
+        "Terreno En Venta En Cabalango - 2.240 M2 Con Bajada Al Río Y Proyecto De Casa Incluído!",
+        "Vendo Lotes Con Costa Al Río, Electricidad Y Agua.",
+        "Dos Terrenos En Venta A 3 Cuadras Del Rio En Mayu Sumaj, Cordoba",
+        "Terreno En Las Moradas, A Metros Del Rio, Excelente Ubicación",
+        "Extenso Terreno C/acesso Al Rio.",
+        "Reserva Natural 3 Piletas del Rio Quilpo",
+        "Río Grande",
+        "Camping Rio Cosquin",
+        "Camping Sol y Río",
+        "Sol y Río",
+        "Camping Comunal Río Grande",
+        "Puente Río de La Suela",
+        "Bajada al río De La Suela.",
+        "Camping Sol y Río",
+        "Camping Río Quilpo",
+        "Camping Municipal Río Grande",
+        "Campamentos Embalse Río III",
+        "Balneario Río Camping",
+        "Río Los Sauces Camping"
+      ],
+      "variants": {
+        "rio": {
+          "count": 71,
+          "score": 100.0
+        }
+      }
+    },
+    "inundable": {
+      "count": 0,
+      "sentences": [],
+      "variants": {}
+    }
+  }
+}

@@ -122,7 +122,7 @@ El cronograma estipula que la gerente leerá un mensaje de Diana con 3 pedidos d
 
 ## 3. Guía para el Data Analyst / Data Scientist (DS): Datos, EDA y Machine Learning
 
-### 3.1. Cumplimiento de la Infografía Oficial ([`criterios_seleccion_dataset.webp`](file:///home/yoni/samsung/campstone%20project/criterios_seleccion_dataset.webp))
+### 3.1. Cumplimiento de la Infografía Oficial (`criterios_seleccion_dataset.webp`)
 
 | Criterio Exigido por Cátedra | Exigencia | Implementación en TerraScout AI |
 | :--- | :--- | :--- |

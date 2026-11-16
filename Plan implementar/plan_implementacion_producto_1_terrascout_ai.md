@@ -7,7 +7,7 @@
 > **Referencias Base del Curso**:  
 > - Propuesta Base: [`propuesta_terrascout_ai_georadar_inmobiliario_turistico.md`](./propuesta_terrascout_ai_georadar_inmobiliario_turistico.md)  
 > - Marco Satelital sin Series Temporales: [`proyecto_satelital_sin_series_temporales.md`](./proyecto_satelital_sin_series_temporales.md)  
-> - Plantilla Oficial de Actor Apify de la Cátedra: `/home/yoni/samsung/tarea_ejemplo_apify`  
+> - Plantilla Oficial de Actor Apify de la Cátedra: `tarea_ejemplo_apify` (adaptada en `./terrascout_actor/`)  
 > - Escalera TDD de Herramientas (Clase 42): `TDD_re_a_MCP_observatorio_precios.ipynb`  
 > - Cronograma y Rúbrica Docente: `capstone_project_cronograma_profe.xlsx` y `criterios_seleccion_dataset.webp`
 
@@ -37,10 +37,10 @@ La infografía `criterios_seleccion_dataset.webp` y el documento [`proyecto_sate
 
 ### 1.3. Cierre #3: Diccionario Normalizado de Localidades (`barrio_localidad`)
 El problema técnico #1 cuando DS y SE intentan unir (`JOIN`) datos de Mercado Libre con datos satelitales es que en Mercado Libre escriben `"Sta. Rosa de Calamuchita"`, `"Santa Rosa"`, `"V. Gral Belgrano"` o `"Villa Carlos Paz Centro"`.
-* **Qué cerramos**: Definir un **Catálogo Maestro de 16 Localidades Serranas** (8 en Calamuchita y 8 en Punilla) y usar **`unicodedata` + `RapidFuzz` (`WRatio` / `token_set_ratio`, umbral 85)** —exactamente como en `/home/yoni/samsung/tarea_ejemplo_apify/my_actor/main.py`— para mapear cualquier variante de texto al `id_localidad` canónico antes de hacer el `JOIN` con `aux_topografia_cordoba.csv`.
+* **Qué cerramos**: Definir un **Catálogo Maestro de 16 Localidades Serranas** (8 en Calamuchita y 8 en Punilla) y usar **`unicodedata` + `RapidFuzz` (`WRatio` / `token_set_ratio`, umbral 85)** —exactamente como en `tarea_ejemplo_apify/my_actor/main.py`— para mapear cualquier variante de texto al `id_localidad` canónico antes de hacer el `JOIN` con `aux_topografia_cordoba.csv`.
 
-### 1.4. Cierre #4: Cómo Aprovechar el Ejemplo de la Profe (`/home/yoni/samsung/tarea_ejemplo_apify`)
-La profesora nos dejó en `/home/yoni/samsung/tarea_ejemplo_apify` un Actor de Apify en Python sumamente completo que **debemos reutilizar como arquitectura base de nuestro Actor del Producto 1**.
+### 1.4. Cierre #4: Cómo Aprovechar el Ejemplo de la Profe (`tarea_ejemplo_apify`)
+La profesora nos dejó en `tarea_ejemplo_apify` un Actor de Apify en Python sumamente completo que **debemos reutilizar como arquitectura base de nuestro Actor del Producto 1**.
 Mirá lo que ya tiene `tarea_ejemplo_apify/my_actor/main.py` y cómo encaja 100% con TerraScout AI:
 
 | Componente en `tarea_ejemplo_apify` | Qué hace en el ejemplo (`mcgee-scraper`) | Cómo lo adaptamos en **TerraScout AI (Producto 1)** |
@@ -138,7 +138,7 @@ A continuación se detalla qué debe hacer exactamente cada integrante del equip
   - Crear `.gitignore` (excluyendo `.env`, `.venv/`, `storage/`, `__pycache__/`) y `.env.example` con `APIFY_TOKEN=` y `MAKE_WEBHOOK_URL=`.
 - [ ] **SE-2. Crear el Archivo de Reglas de Negocio Desacoplado (`config/business_rules.json`)**:
   - Externalizar `tipo_cambio_ars_usd` (`1280.0`), umbrales de superficie (`500` a `20000`), `pendiente_alerta_grados` (`12.0`), `distancia_segura_rio_m` (`80.0`), `umbral_descuento_arbitraje_pct` (`0.20`), catálogo de las 16 localidades de Calamuchita/Punilla y diccionarios de palabras clave para `RapidFuzz`.
-- [ ] **SE-3. Adaptar el Actor de Apify de la Profe (`/home/yoni/samsung/tarea_ejemplo_apify`) a `terrascout-actor`**:
+- [ ] **SE-3. Adaptar el Actor de Apify de la Profe (`tarea_ejemplo_apify`) a `terrascout-actor`**:
   - Configurar `.actor/actor.json`, `.actor/input_schema.json` y `.actor/dataset_schema.json` validando con `apify validate-schema`.
   - Adaptar `my_actor/main.py` manteniendo las funciones probadas de la cátedra:
     - `normalize()`, `tokenize()`, `SentenceIndex` y `fuzzy_count()` (con `rapidfuzz`) para detectar menciones de `agua`, `luz`, `escritura`, `asfalto`, `arboleda` en las publicaciones y normalizar `barrio_localidad`.
@@ -207,10 +207,10 @@ A continuación se detalla qué debe hacer exactamente cada integrante del equip
 
 ## 4. Hoja de Ruta Técnica Paso a Paso para Vos (Líder Técnico / SE)
 
-Como sos el **Líder Técnico**, estos son los pasos exactos que tenés que ejecutar en tu máquina (`/home/yoni/samsung/Capstone`) para dejar la infraestructura del Producto 1 funcionando:
+Como sos el **Líder Técnico**, estos son los pasos exactos que tenés que ejecutar en tu máquina (`Capstone/`) para dejar la infraestructura del Producto 1 funcionando:
 
 ### Paso 1: Copiar la Base del Actor de la Profesora al Repositorio del Proyecto
-Podés traer la estructura probada de `/home/yoni/samsung/tarea_ejemplo_apify` dentro de una carpeta `terrascout_actor/` en `/home/yoni/samsung/Capstone`:
+Podés traer la estructura probada de `tarea_ejemplo_apify` dentro de una carpeta `terrascout_actor/` en `Capstone/`:
 1. `.actor/actor.json`: Cambiar `"name": "terrascout-georadar-actor"` y `"title": "TerraScout AI — GeoRadar Inmobiliario & NLP Turístico"`.
 2. `.actor/input_schema.json`: Mantener los parámetros que ya armó la profe (`url`, `words`, `threshold`, `scorer`, `top_topics`, `n_clusters`, `stop_words`, `extra_stop_words`) y agregar:
    - `corredor`: `["Calamuchita", "Punilla"]`

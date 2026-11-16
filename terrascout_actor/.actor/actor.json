@@ -1,0 +1,19 @@
+{
+    "$schema": "https://apify.com/schemas/v1/actor.ide.json",
+    "actorSpecification": 1,
+    "name": "terrascout-georadar-actor",
+    "title": "TerraScout AI — GeoRadar Inmobiliario & NLP Turístico",
+    "description": "Scraper y procesador NLP para terrenos en Córdoba (Calamuchita y Punilla) y reseñas de campings con fuzzy matching y tópicos KMeans.",
+    "version": "0.1",
+    "buildTag": "latest",
+    "meta": {
+        "templateId": "python-start",
+        "generatedBy": "terrascout-ai"
+    },
+    "inputSchema": "./input_schema.json",
+    "outputSchema": "./output_schema.json",
+    "storages": {
+        "dataset": "./dataset_schema.json"
+    },
+    "dockerfile": "../Dockerfile"
+}
