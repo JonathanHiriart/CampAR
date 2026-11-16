@@ -27,6 +27,15 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "terrascout_actor"))
 
+# Auto-detectar entorno virtual local (.venv en repo o carpeta padre) si falta scikit-learn
+try:
+    import sklearn  # noqa: F401
+except ImportError:
+    for venv_root in (REPO_ROOT / ".venv", REPO_ROOT.parent / ".venv"):
+        for sp in venv_root.glob("lib/python*/site-packages"):
+            if sp.is_dir():
+                sys.path.append(str(sp))
+
 from terrascout_actor.my_actor.camping_scraper import scrape_all_real_campings
 from terrascout_actor.my_actor.main import (
     SentenceIndex,
@@ -46,6 +55,7 @@ logger = logging.getLogger("run_scraper_node")
 DATA_RAW_DIR = REPO_ROOT / "data" / "raw"
 ML_CSV_PATH = DATA_RAW_DIR / "mercadolibre_terrenos_calamuchita_punilla_raw.csv"
 CAMPINGS_CSV_PATH = DATA_RAW_DIR / "campings_zona_real_raw.csv"
+GMAPS_PLACES_CSV_PATH = DATA_RAW_DIR / "google_maps_campings_places_raw.csv"
 GMAPS_CSV_PATH = DATA_RAW_DIR / "google_maps_campings_reviews_raw.csv"
 TOPICOS_JSON_PATH = DATA_RAW_DIR / "topicos_nlp_real_raw.json"
 CONFIG_RULES_PATH = REPO_ROOT / "config" / "business_rules.json"
@@ -110,6 +120,8 @@ def run_scraper_pipeline(
     gmaps_json_path: str | Path | None = None,
     apify_token: str | None = None,
     skip_ml_details: bool = False,
+    gmaps_only: bool = False,
+    nlp_only: bool = False,
 ) -> dict[str, Any]:
     """Ejecuta el pipeline completo de extracción real y NLP sin datos sintéticos."""
     os.makedirs(DATA_RAW_DIR, exist_ok=True)
@@ -127,133 +139,198 @@ def run_scraper_pipeline(
         logger.info("Ruta JSON local Google Maps: %s", gmaps_json_path)
 
     # 1. Extracción de Publicaciones Reales de Mercado Libre
-    logger.info(">>> Paso 1: Scrapeando Mercado Libre Inmuebles Córdoba...")
-    ml_listings = scrape_all_mercadolibre_valleys(
-        max_items_per_valley=max_items_per_valley,
-        max_pages_per_valley=max_pages_per_valley,
-    )
-    logger.info("Mercado Libre: %d publicaciones base extraídas.", len(ml_listings))
-
-    if not skip_ml_details:
-        logger.info(">>> Paso 1.5: Enriqueciendo %d publicaciones con detalles individuales...", len(ml_listings))
-        ml_listings = enrich_listings_with_details(ml_listings, max_workers=10)
+    if (gmaps_only or nlp_only) and ML_CSV_PATH.exists():
+        logger.info(">>> Paso 1: Reutilizando %s existente (--gmaps-only/--nlp-only activo)...", ML_CSV_PATH)
+        with open(ML_CSV_PATH, mode="r", encoding="utf-8") as f:
+            ml_listings = list(csv.DictReader(f))
+        logger.info("Mercado Libre cargado desde disco: %d publicaciones.", len(ml_listings))
     else:
-        logger.info(">>> Paso 1.5: Omitiendo enriquecimiento de detalles ML (--skip-ml-details activo).")
-        for item in ml_listings:
-            if not item.get("localidad_raw"):
-                item["localidad_raw"] = f"{item.get('valle_corredor', 'Sierras')}, Córdoba"
-            item.setdefault("latitud", None)
-            item.setdefault("longitud", None)
-            item.setdefault("descripcion_completa", "")
-            item.setdefault("telefono_en_descripcion", "")
-            item.setdefault("url_vendedor", "")
-            item.setdefault("url_busqueda", "")
-            if not item.get("url_google_maps"):
-                loc = item["localidad_raw"]
-                item["url_google_maps"] = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote_plus(loc + ', Córdoba, Argentina')}"
+        logger.info(">>> Paso 1: Scrapeando Mercado Libre Inmuebles Córdoba...")
+        ml_listings = scrape_all_mercadolibre_valleys(
+            max_items_per_valley=max_items_per_valley,
+            max_pages_per_valley=max_pages_per_valley,
+        )
+        logger.info("Mercado Libre: %d publicaciones base extraídas.", len(ml_listings))
 
-    # Guardar CSV de Mercado Libre
-    ml_fieldnames = [
-        "id_publicacion",
-        "fecha_extraccion",
-        "valle_corredor",
-        "localidad_raw",
-        "titulo_publicacion",
-        "moneda_raw",
-        "precio_raw",
-        "superficie_raw_texto",
-        "superficie_m2_extraida",
-        "latitud",
-        "longitud",
-        "descripcion_completa",
-        "telefono_en_descripcion",
-        "vendedor_nombre",
-        "url_vendedor",
-        "es_tienda_oficial",
-        "tipo_aviso",
-        "url_busqueda",
-        "url_publicacion",
-        "url_google_maps",
-        "fuente_extraccion",
-    ]
-    with open(ML_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=ml_fieldnames)
-        writer.writeheader()
-        writer.writerows(ml_listings)
-    logger.info("Archivo escrito: %s (%d filas)", ML_CSV_PATH, len(ml_listings))
+        if not skip_ml_details:
+            logger.info(">>> Paso 1.5: Enriqueciendo %d publicaciones con detalles individuales...", len(ml_listings))
+            ml_listings = enrich_listings_with_details(ml_listings, max_workers=10)
+        else:
+            logger.info(">>> Paso 1.5: Omitiendo enriquecimiento de detalles ML (--skip-ml-details activo).")
+            for item in ml_listings:
+                if not item.get("localidad_raw"):
+                    item["localidad_raw"] = f"{item.get('valle_corredor', 'Sierras')}, Córdoba"
+                item.setdefault("latitud", None)
+                item.setdefault("longitud", None)
+                item.setdefault("descripcion_completa", "")
+                item.setdefault("telefono_en_descripcion", "")
+                item.setdefault("url_vendedor", "")
+                item.setdefault("url_busqueda", "")
+                if not item.get("url_google_maps"):
+                    loc = item["localidad_raw"]
+                    item["url_google_maps"] = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote_plus(loc + ', Córdoba, Argentina')}"
 
-    # 2. Extracción de Campings y Reseñas Reales
-    logger.info(">>> Paso 2: Scrapeando Campings Reales (OSM + SoloCampings + Apify GMaps)...")
-    campings_res = scrape_all_real_campings(
-        aux_csv_path=AUX_TOPO_PATH if AUX_TOPO_PATH.exists() else None,
-        apify_token=token,
-        gmaps_json_path=gmaps_json_path,
-    )
-    campings = campings_res.get("campings", [])
-    gmaps_reviews = campings_res.get("gmaps_reviews", [])
-    gmaps_status = campings_res.get("gmaps_status", "")
-    logger.info("Campings reales obtenidos: %d", len(campings))
-    logger.info("Reseñas reales Google Maps obtenidas: %d (%s)", len(gmaps_reviews), gmaps_status)
-
-    # Guardar CSV de Campings Reales
-    camping_fieldnames = [
-        "osm_id",
-        "nombre_camping",
-        "latitud",
-        "longitud",
-        "localidad_raw",
-        "localidad_asignada",
-        "ubicacion_completa",
-        "valle_corredor",
-        "distancia_centroide_km",
-        "tiene_electricidad",
-        "tiene_agua_potable",
-        "acepta_casas_rodantes",
-        "website",
-        "telefono",
-        "operador",
-        "horario",
-        "descripcion_tags",
-        "url_busqueda_google_maps",
-        "url_osm",
-        "fuente_extraccion",
-    ]
-    with open(CAMPINGS_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=camping_fieldnames)
-        writer.writeheader()
-        writer.writerows(campings)
-    logger.info("Archivo escrito: %s (%d filas)", CAMPINGS_CSV_PATH, len(campings))
-
-    # Guardar CSV de Reseñas de Google Maps si hay reseñas reales
-    if gmaps_reviews:
-        gmaps_fieldnames = [
-            "id_review",
-            "place_id",
-            "nombre_camping",
+        # Guardar CSV de Mercado Libre
+        ml_fieldnames = [
+            "id_publicacion",
+            "fecha_extraccion",
             "valle_corredor",
             "localidad_raw",
-            "estrellas_rating",
-            "fecha_reseña",
-            "texto_reseña",
+            "titulo_publicacion",
+            "moneda_raw",
+            "precio_raw",
+            "superficie_raw_texto",
+            "superficie_m2_extraida",
+            "latitud",
+            "longitud",
+            "descripcion_completa",
+            "telefono_en_descripcion",
+            "vendedor_nombre",
+            "url_vendedor",
+            "es_tienda_oficial",
+            "tipo_aviso",
+            "url_busqueda",
+            "url_publicacion",
+            "url_google_maps",
+            "fuente_extraccion",
         ]
-        with open(GMAPS_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=gmaps_fieldnames)
+        with open(ML_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=ml_fieldnames)
             writer.writeheader()
-            writer.writerows(gmaps_reviews)
-        logger.info("Archivo escrito: %s (%d reseñas reales)", GMAPS_CSV_PATH, len(gmaps_reviews))
-    else:
-        # Si no hay reseñas reales, limpiar archivo dummy si existía
+            writer.writerows(ml_listings)
+        logger.info("Archivo escrito: %s (%d filas)", ML_CSV_PATH, len(ml_listings))
+
+    # 2. Extracción de Campings y Reseñas Reales
+    if nlp_only and CAMPINGS_CSV_PATH.exists():
+        logger.info(">>> Paso 2: Reutilizando campings y reseñas existentes en disco (--nlp-only activo)...")
+        with open(CAMPINGS_CSV_PATH, mode="r", encoding="utf-8") as f:
+            campings = list(csv.DictReader(f))
+        gmaps_places = []
+        if GMAPS_PLACES_CSV_PATH.exists():
+            with open(GMAPS_PLACES_CSV_PATH, mode="r", encoding="utf-8") as f:
+                gmaps_places = list(csv.DictReader(f))
+        gmaps_reviews = []
         if GMAPS_CSV_PATH.exists():
-            try:
-                GMAPS_CSV_PATH.unlink()
-                logger.info("Eliminado archivo dummy previo de reseñas Google Maps: %s", GMAPS_CSV_PATH)
-            except Exception as exc:
-                logger.warning("No se pudo eliminar archivo dummy previo: %s", exc)
-        logger.info(
-            "[AVISO GMAPS] Para activar reseñas reales de Google Maps:\n"
-            "  1. Exportar JSON de Apify compass/crawler-google-places y pasar '--gmaps-json <ruta.json>'\n"
-            "  2. O agregar 'APIFY_TOKEN=tu_token' en el archivo .env o variable de entorno."
+            with open(GMAPS_CSV_PATH, mode="r", encoding="utf-8") as f:
+                gmaps_reviews = list(csv.DictReader(f))
+        gmaps_status = f"Cargadas {len(gmaps_reviews)} reseñas reales desde disco ({len(gmaps_places)} lugares)."
+    else:
+        logger.info(">>> Paso 2: Scrapeando Campings Reales (OSM + SoloCampings + Apify GMaps)...")
+        campings_res = scrape_all_real_campings(
+            aux_csv_path=AUX_TOPO_PATH if AUX_TOPO_PATH.exists() else None,
+            apify_token=token,
+            gmaps_json_path=gmaps_json_path,
         )
+        campings = campings_res.get("campings", [])
+        gmaps_places = campings_res.get("gmaps_places", [])
+        gmaps_reviews = campings_res.get("gmaps_reviews", [])
+        gmaps_status = campings_res.get("gmaps_status", "")
+        logger.info("Campings reales obtenidos: %d", len(campings))
+        logger.info("Reseñas reales Google Maps obtenidas: %d (%s)", len(gmaps_reviews), gmaps_status)
+
+        # Resiliencia ante caída temporal de OSM Overpass: no perder filas OSM ya validadas
+        osm_now = sum(1 for c in campings if "Overpass" in str(c.get("fuente_extraccion", "")))
+        if osm_now == 0 and CAMPINGS_CSV_PATH.exists():
+            try:
+                with open(CAMPINGS_CSV_PATH, mode="r", encoding="utf-8") as f:
+                    prev_campings = list(csv.DictReader(f))
+                prev_osm = [c for c in prev_campings if "Overpass" in str(c.get("fuente_extraccion", ""))]
+                if prev_osm:
+                    from terrascout_actor.my_actor.camping_scraper import merge_campings_deduplicated
+                    logger.warning(
+                        "OSM Overpass falló (0 items). Conservando %d campings OSM previos para no perder datos.",
+                        len(prev_osm),
+                    )
+                    campings = merge_campings_deduplicated(prev_osm, campings)
+            except Exception as exc:
+                logger.warning("No se pudo fusionar respaldo OSM previo: %s", exc)
+
+        # Guardar CSV de Campings Reales
+        camping_fieldnames = [
+            "osm_id",
+            "nombre_camping",
+            "latitud",
+            "longitud",
+            "localidad_raw",
+            "localidad_asignada",
+            "ubicacion_completa",
+            "valle_corredor",
+            "distancia_centroide_km",
+            "tiene_electricidad",
+            "tiene_agua_potable",
+            "acepta_casas_rodantes",
+            "website",
+            "telefono",
+            "operador",
+            "horario",
+            "descripcion_tags",
+            "url_busqueda_google_maps",
+            "url_osm",
+            "fuente_extraccion",
+        ]
+        with open(CAMPINGS_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=camping_fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(campings)
+        logger.info("Archivo escrito: %s (%d filas)", CAMPINGS_CSV_PATH, len(campings))
+
+        # Guardar CSV de Lugares de Google Maps si hay resultados reales
+        if gmaps_places:
+            places_fieldnames = [
+                "place_id",
+                "nombre_camping",
+                "valle_corredor",
+                "localidad_raw",
+                "latitud",
+                "longitud",
+                "total_score",
+                "reviews_count",
+                "stars_1",
+                "stars_2",
+                "stars_3",
+                "stars_4",
+                "stars_5",
+                "nps_proxy",
+                "telefono",
+                "website",
+                "url_google_maps",
+            ]
+            with open(GMAPS_PLACES_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=places_fieldnames, extrasaction="ignore")
+                writer.writeheader()
+                writer.writerows(gmaps_places)
+            logger.info("Archivo escrito: %s (%d lugares reales)", GMAPS_PLACES_CSV_PATH, len(gmaps_places))
+
+        # Guardar CSV de Reseñas de Google Maps si hay reseñas reales
+        if gmaps_reviews:
+            gmaps_fieldnames = [
+                "id_review",
+                "place_id",
+                "nombre_camping",
+                "valle_corredor",
+                "localidad_raw",
+                "estrellas_rating",
+                "fecha_reseña",
+                "texto_reseña",
+            ]
+            with open(GMAPS_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=gmaps_fieldnames)
+                writer.writeheader()
+                writer.writerows(gmaps_reviews)
+            logger.info("Archivo escrito: %s (%d reseñas reales)", GMAPS_CSV_PATH, len(gmaps_reviews))
+        else:
+            # Si no hay reseñas reales, limpiar archivo dummy si existía
+            if GMAPS_CSV_PATH.exists():
+                try:
+                    GMAPS_CSV_PATH.unlink()
+                    logger.info("Eliminado archivo dummy previo de reseñas Google Maps: %s", GMAPS_CSV_PATH)
+                except Exception as exc:
+                    logger.warning("No se pudo eliminar archivo dummy previo: %s", exc)
+            logger.info(
+                "[AVISO GMAPS] Para activar reseñas reales de Google Maps:\n"
+                "  1. Exportar JSON de Apify compass/crawler-google-places y pasar '--gmaps-json <ruta.json>'\n"
+                "  2. O agregar 'APIFY_TOKEN=tu_token' en el archivo .env o variable de entorno."
+            )
 
     # 3. Procesamiento de NLP y Conteo Difuso sobre Corpus 100% Real
     logger.info(">>> Paso 3: Análisis NLP no supervisado sobre el corpus real...")
@@ -313,6 +390,28 @@ def run_scraper_pipeline(
             extra_stop_words=stop_words_es[:40] if stop_words_es else None,
         )
 
+    # Tópicos específicos de quejas en reseñas Google Maps (1-3 estrellas)
+    quejas_sentences: list[str] = []
+    for r in gmaps_reviews:
+        try:
+            stars = float(r.get("estrellas_rating") or 5)
+        except (TypeError, ValueError):
+            stars = 5.0
+        if stars <= 3.0 and r.get("texto_reseña"):
+            quejas_sentences.extend(split_sentences([str(r["texto_reseña"])]))
+
+    gmaps_quejas_topics: dict[str, Any] = {}
+    if len(quejas_sentences) >= 4:
+        gmaps_quejas_topics = find_topics(
+            sentences=quejas_sentences,
+            top_n=min(4, top_topics),
+            n_clusters=3 if len(quejas_sentences) >= 6 else 2,
+            n_terms=n_terms,
+            n_examples=n_examples,
+            stop_words="spanish",
+            extra_stop_words=(stop_words_es[:40] if stop_words_es else []) + ["camping", "lugar", "muy"],
+        )
+
     # Conteo difuso sobre infraestructura y servicios en el corpus real
     sentence_idx = SentenceIndex(corpus_sentences)
     fuzzy_counts: dict[str, Any] = {}
@@ -343,6 +442,7 @@ def run_scraper_pipeline(
         "silhouette": topics_res.get("silhouette"),
         "n_sentences": topics_res.get("n_sentences", len(corpus_sentences)),
         "topics": topics_res.get("items", []),
+        "topics_quejas_gmaps": gmaps_quejas_topics,
         "fuzzy_counts": fuzzy_counts,
     }
 
@@ -418,6 +518,18 @@ def main() -> None:
         default=False,
         help="Omitir enriquecimiento individual de detalles en Mercado Libre (por defecto: ejecuta enriquecimiento)",
     )
+    parser.add_argument(
+        "--gmaps-only",
+        action="store_true",
+        default=False,
+        help="Reutiliza el CSV de Mercado Libre existente y ejecuta solo la extracción de campings / Google Maps",
+    )
+    parser.add_argument(
+        "--nlp-only",
+        action="store_true",
+        default=False,
+        help="Recalcula los tópicos NLP y fuzzy counts desde los CSVs existentes en data/raw/ sin scrapear la web",
+    )
 
     args = parser.parse_args()
 
@@ -429,6 +541,8 @@ def main() -> None:
         max_pages_per_valley=args.max_pages_per_valley,
         gmaps_json_path=args.gmaps_json,
         skip_ml_details=args.skip_ml_details,
+        gmaps_only=args.gmaps_only,
+        nlp_only=args.nlp_only,
     )
 
 

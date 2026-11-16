@@ -1,91 +1,150 @@
 {
   "metadata": {
-    "fecha_extraccion": "2026-11-16T13:36:25.868977",
+    "fecha_extraccion": "2026-11-16T14:52:25.056849",
     "algoritmo": "TF-IDF + KMeans + SentenceIndex (scikit-learn / rapidfuzz / difflib)",
     "fuentes_utilizadas": [
       "MercadoLibre Inmuebles Córdoba",
       "OpenStreetMap Overpass",
-      "Directorio SoloCampings Córdoba"
+      "Directorio SoloCampings Córdoba",
+      "Google Maps Places via Apify"
     ],
     "total_publicaciones_ml": 1200,
-    "total_campings_reales": 317,
-    "total_reviews_reales": 0,
-    "total_oraciones_corpus": 12288,
-    "gmaps_status": "APIFY_TOKEN no configurado ni se detectó archivo JSON local. No se generaron reseñas sintéticas (ZERO DUMMY DATA policy)."
+    "total_campings_reales": 288,
+    "total_reviews_reales": 347,
+    "total_oraciones_corpus": 13044,
+    "gmaps_status": "Cargadas 347 reseñas reales desde disco (35 lugares)."
   },
   "n_clusters": 10,
-  "silhouette": 0.016,
-  "n_sentences": 8660,
+  "silhouette": 0.015,
+  "n_sentences": 9285,
   "topics": [
     {
       "rank": 1,
-      "size": 5100,
-      "share": 0.589,
+      "size": 5676,
+      "share": 0.611,
       "terms": [
-        "terreno",
         "camping",
-        "lote",
-        "metros",
-        "lotes"
+        "m2",
+        "superficie",
+        "terreno",
+        "metros"
       ],
       "sentences": [
-        "u$s 7.000 ????",
-        "6988 C.P.I.",
-        "c) F.M.N."
+        "c) F.M.N.",
+        "b) F.O.T.",
+        "M.P 4916"
       ]
     },
     {
       "rank": 2,
-      "size": 1102,
-      "share": 0.127,
+      "size": 880,
+      "share": 0.095,
       "terms": [
-        "entorno",
-        "sierras",
-        "excelente",
-        "natural",
-        "oportunidad"
+        "venta",
+        "lote",
+        "terreno",
+        "m2",
+        "reartes"
       ],
       "sentences": [
-        "Cuenta con vistas abiertas a las sierras, entorno natural y una ubicación ideal tanto para vivienda permanente, casa de fin de semana o proyecto turístico.",
-        "Entorno natural tranquilo.",
-        "++Muy buen entorno."
+        "Lote en venta.",
+        "Lote En Venta.",
+        "Terreno En Venta !!"
       ]
     },
     {
       "rank": 3,
-      "size": 721,
-      "share": 0.083,
+      "size": 579,
+      "share": 0.062,
       "terms": [
-        "lote",
         "villa",
         "venta",
-        "calamuchita",
-        "parque"
+        "lote",
+        "parque",
+        "terreno"
       ],
       "sentences": [
-        "Lote En Venta.",
-        "Lote en venta.",
-        "Lote En Venta - Villa Yacanto"
+        "Lote En Venta | Villa Ciudad Parque | Calamuchita | Córdoba",
+        "Terreno En Venta En Villa Giardino",
+        "Terreno En Venta  En Villa Giardino"
       ]
     },
     {
       "rank": 4,
-      "size": 388,
-      "share": 0.045,
+      "size": 542,
+      "share": 0.058,
       "terms": [
-        "agua",
-        "luz",
-        "servicios",
-        "corriente",
-        "cuenta"
+        "oportunidad",
+        "inversion",
+        "ideal",
+        "casa",
+        "vivienda"
       ],
       "sentences": [
-        "Servicios de luz y agua corriente.",
-        "Servicios de Luz y agua corriente.",
-        "SERVICIOS: Luz y agua."
+        "Ideal tanto para vivienda permanente como para casa de descanso o inversión.",
+        "Ideal para vivienda permanente, casa de descanso o inversión.",
+        "EXCELENTE OPORTUNIDAD DE INVERSIÓN!"
       ]
     }
   ],
+  "topics_quejas_gmaps": {
+    "n_clusters": 3,
+    "silhouette": 0.006,
+    "n_sentences": 139,
+    "items": [
+      {
+        "rank": 1,
+        "size": 96,
+        "share": 0.691,
+        "terms": [
+          "desastre",
+          "verdad",
+          "fotos",
+          "acampar",
+          "caro"
+        ],
+        "sentences": [
+          "No hay nada",
+          "Todo sucio la verdad q no es lo q se ve en fotos.",
+          "El lugar en si para acampar esta bien pero deja que desear, proveeduría algo cara y los baños bastante decentes 01/03/25 $5mil por persona y $5mil por la carpa que se paga 1 sola vez"
+        ]
+      },
+      {
+        "rank": 2,
+        "size": 34,
+        "share": 0.245,
+        "terms": [
+          "br",
+          "experiencia",
+          "mala",
+          "fuimos",
+          "precio"
+        ],
+        "sentences": [
+          "ESTO ES LABURAR MAL!!!<br><br>Quienes planeábamos ir al Cosquin Rock y encontramos este camping, pensando que era un golazo (la cercanía y el precio), fuimos defraudados por una pésima gestión y en posterior una “mala leche” de parte de la jefa de este camping.",
+          "27/01/26 Mi experiencia muy mala!!",
+          "La publicidad y el discurso que venden no coinciden en absoluto con la experiencia real.<br><br>No lo recomendaría."
+        ]
+      },
+      {
+        "rank": 3,
+        "size": 9,
+        "share": 0.065,
+        "terms": [
+          "dia",
+          "pasar",
+          "nunca",
+          "valor",
+          "supo excelente"
+        ],
+        "sentences": [
+          "no para pasar todo el día.",
+          "Para ir a pasar el dia que valor tiene?",
+          "Supo ser un excelente lugar para pasar el día."
+        ]
+      }
+    ]
+  },
   "fuzzy_counts": {
     "agua corriente": {
       "count": 175,
@@ -1230,7 +1289,7 @@
       }
     },
     "arboleda": {
-      "count": 48,
+      "count": 52,
       "sentences": [
         "CAMPO EXCLUSIVA 56 HECTáREAS A 2KM DE MOLVENTO Villa Ciudad Parque Los Reartes Valle de Calamuchita Córdoba Campo de 56 ha con casa principal y casa de huéspedes, arboledas añejas y vistas panorámicas a las Sierras Grandes y al lago Los Molinos.",
         "Ficha técnica -Superficie: 56 ha 5.826 m2 (mensura 2026, coincidente con título) -Frente pavimentado: 103 m sobre RP 5 -Construido: 579 m2 casa principal + casa de huéspedes, con pileta -Agua propia: vertiente con servidumbre constituida + pozo -Cota máxima 1.092 m: vistas al valle, las Sierras Grandes y el lago -Zonificación C2 (frente) y R4 (fondo), apta para fraccionamiento -Topografía relevada, traza de camino proyectada Familias Residencia de campo lista para habitar: dos casas entre arboledas de décadas, pileta, agua de vertiente y 56 hectáreas de privacidad absoluta, a 15 minutos de Villa General Belgrano y su calidad de vida serrana.",
@@ -1279,11 +1338,15 @@
         "Con una superficie total de 704 m2, este lote se encuentra dentro de Árbol de Piedra, una reserva natural colectiva que ostenta la clasificación de \"Área protegida con uso sostenible de los recursos naturales\" según la Unión Internacional de Conservación de la Naturaleza.",
         "La reserva de Árbol de Piedra es administrada por una asociación civil sin fines de lucro, dedicada a promover el bien común, la sustentabilidad ecológica, social y económica a través de la preservación y gestión de este espacio natural colectivo.",
         "Sumérgete en la serenidad de la naturaleza en este terreno en Árbol de Piedra, donde la armonía entre la conservación y el bienestar colectivo se fusionan en un escenario incomparable.",
-        "El Arbol"
+        "El Arbol",
+        "Los mejor de todo su CASITA DEL ARBOL PARA LOS NIÑOS...",
+        "El Camping Los Álamos destaca por su arboleda inigualable y majestuosa, que no solo ofrece sombra y frescura, sino también una conexión única con la naturaleza.",
+        "Un lujo que dispongan de semejante pileta y arboleda frente al río y que tengan tantas actividades accesibles para la comunidad durante el año.",
+        "Camping Santa Fe ,Santa Rosa de Calamuchita, Córdoba, 14,000 por persona 8000 la camioneta y la rodante ,lindo parque de facil acceso ,arboleda abundante ,posee WiFi, baños amplios limpios agua caliente las 24 hs,salon con mesas parrillas piletas de lavado, por si llueve, frente al río<br>Recomendable rodanteros"
       ],
       "variants": {
         "arboleda": {
-          "count": 25,
+          "count": 28,
           "score": 100.0
         },
         "arboledas": {
@@ -1291,7 +1354,7 @@
           "score": 94.1
         },
         "arbol": {
-          "count": 6,
+          "count": 7,
           "score": 90.0
         },
         "leda": {
@@ -1305,7 +1368,7 @@
       }
     },
     "asfalto": {
-      "count": 76,
+      "count": 77,
       "sentences": [
         "Lote, Alto Del Corral, Los Reartes",
         "Es de facil acceso, 5 km desde que finaliza el asfalto, el entorno y la calidad de construcciones cercanas es muy bueno.",
@@ -1382,7 +1445,8 @@
         "CARACTERÍSTICAS PRINCIPALES Ubicación estratégica en Barrio Flor Serrana, zona de alto valor paisajístico Superficie total de terrenos: 2.506 m² Posibilidad de venta conjunta o individual de 4 lotes Pendiente positiva que favorece construcciones Servicios disponibles de electricidad y agua DESCRIPCIÓN DE LOS LOTES Lote 1: 532 m² Lote 2: 587 m² Lote 3: 587 m² Lote 4: 800 m², ubicado a una cuadra de distancia ENTORNO Y BENEFICIOS Zona rodeada de naturaleza y paisajes serranos Ambiente de tranquilidad ideal para descanso Excelente potencial para construcción de vivienda de fin de semana Óptima conexión con entorno natural Terrenos con pendiente que permite diseños arquitectónicos versátiles INFORMACIÓN TÉCNICA Estado: A estrenar Servicios confirmados: Electricidad y agua Zona: Residencial Topografía: Terreno con pendiente positiva Oportunidad de inversión única para quienes valoran espacios naturales y buscan un proyecto inmobiliario con potencial de valorización.",
         "Posee frente sobre asfalto, un arroyo pluvial en su interior que aporta belleza natural, y una pendiente negativa hacia el contrafrente que brinda posibilidades de diseño.",
         "Terreno En Venta Con Gas Natural Y Asfalto En Villa Giardino, Córdoba.",
-        "Servicios de Agua, Asfalto, Luz, Servicio urbano y GAS NATURAL."
+        "Servicios de Agua, Asfalto, Luz, Servicio urbano y GAS NATURAL.",
+        "El valor es un poquito más alto que la medía de los cámping...a mi criterio,  los servicios que ofrecen es lógico que sea un poquito más caro...."
       ],
       "variants": {
         "asfalto": {
@@ -1390,7 +1454,7 @@
           "score": 100.0
         },
         "alto": {
-          "count": 50,
+          "count": 51,
           "score": 90.0
         },
         "asfaltado": {
@@ -1696,7 +1760,7 @@
       }
     },
     "rio": {
-      "count": 491,
+      "count": 542,
       "sentences": [
         "2 Lotes Venta Los Reartes B° Capilla Vieja A 100 Metros Del Rio Luz Agua Escritura Lugar Exclusivo Vistas Sierras Grandes",
         "- SUPERFICIE: Plana, con desnivel de 30 grados hacia el rio .",
@@ -2160,13 +2224,63 @@
         "Campamentos Embalse Río III",
         "Balneario Río Camping",
         "Río Los Sauces Camping",
-        "Camping Río Cosquín  Ver más info &raquo;",
-        "Camping Río TerceroVer más info &raquo;",
-        "Camping Costa Río  Ver más info &raquo;"
+        "Camping Río Tercero",
+        "Camping Del Río",
+        "Camping Costa Río",
+        "Atención impecable, baños super limpios, quincho equipadisimo, parcelas con tomacorrientes, asadores cerca de cada parcela, bajada al rio hermosa, súper tranquilo",
+        "Excelente camping, buena comodidad, duchas y baños super junto a todos los puntos de camping, parcelas con luz y electricidad, vista con accesibilidad al rio, es de un espacio chico pero valido.",
+        "Cuenta con bajada al río.",
+        "Excelente lugar, con bajada  al Río , baños impecables, quincho cerrado con asadores , heladeras y cocina ,espacio recreativo para niños y sobre todo gente maravillosa !❤️❤️ SUPER !!",
+        "Y ni hablar de la BAJADA AL RIO...",
+        "Quincho en común con heladeras, los acampantes pueden utilizar las mismas sin cargo...parcelas generosas...luz ..salida directa al río....// Hay una pequeña proveeduría (bebida y hielo)...// El cámping está alejado del centro..no hay súper cerca....",
+        "$5500 por persona por noche, si se eligen las parcelas hacia el río, $2000 más, baño privado $3000 más ...",
+        "La presencia de una bajada al río eleva la experiencia, permitiendo a los visitantes disfrutar de momentos serenos junto al agua.",
+        "El camping tiene salida al río, un salón de espacio en común con living-comedor-cocina y además los asadores cuentan con parrilla.",
+        "Espaciosas sombras, cerca del río, todas las comodidades.<br>Super limpio, impecable 👌<br>Excelente atención!",
+        "Muy cerca del rio<br>RECOMENDADISIMO !!!<br>Para volver una y mil veces.",
+        "Hermoso lugar en cuanto a sombra,río y paisajes,muy amable el señor de recepción, lo único Q no me gustó fue Q no tenes agua para lavar los platos tenes Q sacar de las pileta de baño, lo demás excelente y sin duda voy a volver",
+        "La bajada al río es hermosa también, se puede caminar un poco y ir a distintas partes de rio para estar tranquilo.",
+        "Los dueños nos recibieron muy bien, fueron muy amables, y estuvieron muy atentos, el lugar es muy tranquilo, hay mucho espacio y tenés el río a menos de dos cuadras.",
+        "A MEDIA CUADRA DEL RÍO...",
+        "Cabañas terrazas del río , excelente!!!",
+        "Tienen enchufes y parrillas , dormis,  baños con agua bien calentita ,comedor y agua potable.<br>Además esta al lado del río!<br>Super recomiendo 😊",
+        "Se lo ve limpio lindo y con una zona del río muy buena tranquila para pasar el día",
+        "Tiene salida al río y preciosa vista.volveremos.",
+        "Salida al río y cerca del centro!",
+        "Hermosooooo el camping, asadores, baños limpios y con el río al lado, lo mejor su gente y el personal super amables y predispuestos ❤️",
+        "Lugar muy lindo tranqui y cuidado y con guarda vidas todo el día, es ideal para ir en familia comer algo o tomar unos mates disfrutando del paisaje y el río!",
+        "Lejos del centro y rio, fuimos el feriado de carnavales, estaba explotado de gente y metían hasta a arriba de las plantas, las parcelas no estaban marcadas",
+        "La verdad...caro y lejos del río.",
+        "Estas a metros del rio tiene pileta y todo siempre limpio.",
+        "Hermoso el río para la familia y los niños",
+        "Lo recomiendo en días lindos , nosotros fuimos apurados al camping con alerta de lluvia y la tormenta inundó toda la carpa y ropa ect , pero el cámping es lindo , con baño estables , zona de mesas , parrillas un comedor grande para cuando hay shows o otras cosas y alfrente está el río",
+        "bien organizado y con bajada al río.",
+        "Hermoso el río y su entorno natural!",
+        "Me pareció un Río con zonas muy lindas para disfrutar,  en el pueblo homónimo, la playa es muy linda, tranquila, muchos espacios verdes, sombras,  cerca de la ciudad, eso sí es de muy poca profundidad por lo que estimo en época de sequías, el paisaje puede variar bastante.",
+        "A metros tenés kioscos y algún supermercado y lugares para tomar y comer algo observando el río, muy tranquilo y familiar.",
+        "Un lujo que dispongan de semejante pileta y arboleda frente al río y que tengan tantas actividades accesibles para la comunidad durante el año.",
+        "Muy buena ubicación, frente al río.",
+        "Excelente lugar cerca del río, y espectacular atención.",
+        "10/10 lo que buscas lo encontras ahí mismo, enfrente está el río, muy hermoso🤩🤩",
+        "Este año 2026 estuvimos una semana ,la pasamos genial ,súper limpio y cómodos los Dormis con baño .Cruzas la calle y está el río ,aguas cristalinas y calentitas .cerca do todo y mucha seguridad .lo recomiendo 👏👏",
+        "Muy linda experiencia, muy tranquilo, sin ruidos molestos, los chico encargados unos genios, lo baños limpios, lo importante tenés sombra todo el día y está justo al frente del río y a un km del centro para ir caminando...",
+        "Un lugar tranquilo con mucha sombra y cerca del río.",
+        "Tenés todo cerca, el río, el centro, la peatonal, negocios.",
+        "El camping tiene un abuena ubicación frente la rio y unas cuadras del centro.",
+        "Lo único lindo es el río enfrente",
+        "Agua caliente las 24 horas, frente al rio, comercios cerca, el lugar con sombra.<br>Es un camping de la vieja escuela.",
+        "CERCA DEL RIO, HERMOSAS CABAÑAS Y DISPONIBILIDADES PARA CASILLAS O CARPAS!!",
+        "Mí nombre es Alberto Cardozo, integrante del Movimiento Cultural Santiagueño en Córdoba, hoy domingo 15 de Marzo Vinimos de Picnic con 21 integrantes del Movimiento, un lugar súper Cómodo, el Quincho , los baños , todo en muy buenas condiciones, al frente el Río una maravilla, lo recomiendo mil veces!!",
+        "muy cerca del centro y cruzando la calle,el río..",
+        "Excelente lugar frente al río, súper tranquilo, el precio inmejorable y la atención por parte de los administradores es para destacar, pienso volver.",
+        "Muy recomendable y económico baños lindos y frente al rio",
+        "Buena atencion, baños limpios, parcelas amplias con electricidad , quincho con mesas y bancos , parrillas bajo techo, El Rio esta cruzando la calle!",
+        "Camping Santa Fe ,Santa Rosa de Calamuchita, Córdoba, 14,000 por persona 8000 la camioneta y la rodante ,lindo parque de facil acceso ,arboleda abundante ,posee WiFi, baños amplios limpios agua caliente las 24 hs,salon con mesas parrillas piletas de lavado, por si llueve, frente al río<br>Recomendable rodanteros",
+        "El camping superó por lejos nuestras expectativas.<br>El lugar es muy cómodo para ir en carpa, las parcelas son bastante grandes, todas cuentan con tomacorrientes y están cerca de los baños, quincho, merendero, etc.<br>La proveeduría bastante completa y precios accesibles.<br>Los costos para quedarse también bastante accesible para quedarse unos días.<br>Se encuentra exactamente frente al río y a una cuadra tenés una ferretería por si te falta algo de equipamiento para camping.<br>El dueño muy buena atención y buena predisposición para todo, agua caliente las 24hs.<br>La ubicación es un punto muy a favor, queda cerca de muchos balnearios y pueblos aledaños para ir a conocer.<br>Sin duda, volveremos para vacaciones posteriores!"
       ],
       "variants": {
         "rio": {
-          "count": 491,
+          "count": 542,
           "score": 100.0
         }
       }

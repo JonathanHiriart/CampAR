@@ -604,16 +604,19 @@ def fetch_google_maps_via_apify(
     # Caso A: Si se proporciona un dataset_id existente con resultados ya recolectados
     if ds_id and token:
         logger.info("Obteniendo items del dataset Apify existente: %s ...", ds_id)
-        url = f"https://api.apify.com/v2/datasets/{ds_id}/items?token={token}&format=json"
+        url = f"https://api.apify.com/v2/datasets/{ds_id}/items?format=json"
         try:
-            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            req = urllib.request.Request(
+                url,
+                headers={"Accept": "application/json", "Authorization": f"Bearer {token}"},
+            )
             with urllib.request.urlopen(req, timeout=60) as resp:
                 if resp.status == 200:
                     raw_items = json.loads(resp.read().decode("utf-8"))
                     logger.info("Recuperados %d items desde el dataset Apify %s.", len(raw_items), ds_id)
                     return raw_items
         except Exception as e:
-            logger.error("Error consultando dataset Apify %s: %s", ds_id, e)
+            logger.error("Error consultando dataset Apify %s: %s", ds_id, e.__class__.__name__)
             return []
 
     # Caso B: Ejecutar sincrónicamente el actor compass/crawler-google-places
@@ -622,10 +625,7 @@ def fetch_google_maps_via_apify(
             "Iniciando ejecución sincrónica de compass/crawler-google-places con %d queries...",
             len(search_queries),
         )
-        run_url = (
-            f"https://api.apify.com/v2/acts/compass~crawler-google-places/run-sync-get-dataset-items"
-            f"?token={token}"
-        )
+        run_url = "https://api.apify.com/v2/acts/compass~crawler-google-places/run-sync-get-dataset-items"
         payload = {
             "searchStringsArray": search_queries,
             "maxCrawledPlacesPerSearch": max_crawled_places_per_search,
@@ -637,7 +637,11 @@ def fetch_google_maps_via_apify(
             req = urllib.request.Request(
                 run_url,
                 data=data_bytes,
-                headers={"Content-Type": "application/json", "Accept": "application/json"},
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Authorization": f"Bearer {token}",
+                },
             )
             with urllib.request.urlopen(req, timeout=300) as resp:
                 if resp.status in (200, 201):
@@ -802,8 +806,43 @@ def scrape_all_real_campings(
             c["url_osm"] = f"https://www.openstreetmap.org/{c['osm_id']}" if c.get("osm_id") else ""
 
     # 5. Obtener reseñas de Google Maps vía Apify o JSON local
+    gmaps_places: list[dict[str, Any]] = []
     gmaps_reviews: list[dict[str, Any]] = []
     gmaps_status: str
+
+    def _extract_place_summary(place_item: dict[str, Any]) -> dict[str, Any]:
+        p_title = place_item.get("title") or place_item.get("name") or "Camping"
+        p_id = place_item.get("placeId") or place_item.get("cid") or place_item.get("dataId") or p_title
+        p_city = place_item.get("city") or place_item.get("address") or ""
+        p_valle = "Valle de Calamuchita" if "calamuchita" in (p_city + " " + p_title).lower() else "Valle de Punilla"
+        loc_obj = place_item.get("location") or {}
+        dist = place_item.get("reviewsDistribution") or {}
+        s1 = int(dist.get("oneStar") or 0)
+        s2 = int(dist.get("twoStar") or 0)
+        s3 = int(dist.get("threeStar") or 0)
+        s4 = int(dist.get("fourStar") or 0)
+        s5 = int(dist.get("fiveStar") or 0)
+        tot_dist = s1 + s2 + s3 + s4 + s5
+        nps_proxy = round(((s5 - (s1 + s2 + s3)) / tot_dist) * 100.0, 2) if tot_dist > 0 else None
+        return {
+            "place_id": p_id,
+            "nombre_camping": p_title,
+            "valle_corredor": p_valle,
+            "localidad_raw": p_city,
+            "latitud": loc_obj.get("lat") if isinstance(loc_obj, dict) else None,
+            "longitud": loc_obj.get("lng") if isinstance(loc_obj, dict) else None,
+            "total_score": place_item.get("totalScore") or place_item.get("rating"),
+            "reviews_count": place_item.get("reviewsCount"),
+            "stars_1": s1,
+            "stars_2": s2,
+            "stars_3": s3,
+            "stars_4": s4,
+            "stars_5": s5,
+            "nps_proxy": nps_proxy,
+            "telefono": place_item.get("phone") or place_item.get("phoneUnformatted") or "",
+            "website": place_item.get("website") or "",
+            "url_google_maps": place_item.get("url") or "",
+        }
 
     # Evaluar si hay archivo JSON local especificado o en data/raw/
     candidate_json_paths = []
@@ -825,7 +864,7 @@ def scrape_all_real_campings(
             break
 
     if found_json:
-        _, gmaps_reviews = load_apify_gmaps_json(found_json)
+        gmaps_places, gmaps_reviews = load_apify_gmaps_json(found_json)
         gmaps_status = f"Cargadas {len(gmaps_reviews)} reseñas reales desde archivo local: {found_json}"
     else:
         # Intentar API de Apify si el token está disponible
@@ -837,13 +876,19 @@ def scrape_all_real_campings(
                 "camping Santa Rosa de Calamuchita",
                 "camping Villa Carlos Paz",
             ]
-            raw_places = fetch_google_maps_via_apify(search_queries=search_queries, api_token=token)
+            raw_places = fetch_google_maps_via_apify(
+                search_queries=search_queries,
+                api_token=token,
+                max_crawled_places_per_search=15,
+                max_reviews=20,
+            )
             for place in raw_places:
+                gmaps_places.append(_extract_place_summary(place))
                 p_reviews = place.get("reviews") or place.get("reviewsData") or []
                 p_title = place.get("title") or place.get("name") or "Camping"
                 p_id = place.get("placeId") or place.get("cid") or p_title
                 p_city = place.get("city") or place.get("address") or ""
-                p_valle = "Valle de Calamuchita" if "calamuchita" in p_city.lower() else "Valle de Punilla"
+                p_valle = "Valle de Calamuchita" if "calamuchita" in (p_city + " " + p_title).lower() else "Valle de Punilla"
                 for r in p_reviews:
                     if isinstance(r, dict) and (r.get("text") or r.get("textTranslated")):
                         gmaps_reviews.append({
@@ -874,9 +919,11 @@ def scrape_all_real_campings(
 
     return {
         "campings": campings,
+        "gmaps_places": gmaps_places,
         "gmaps_reviews": gmaps_reviews,
         "gmaps_status": gmaps_status,
         "total_campings": len(campings),
+        "total_places_gmaps": len(gmaps_places),
         "total_reviews": len(gmaps_reviews),
     }
 
