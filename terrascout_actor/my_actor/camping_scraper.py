@@ -20,6 +20,7 @@ import logging
 import math
 import os
 import re
+import time
 import unicodedata
 import urllib.error
 import urllib.parse
@@ -578,17 +579,203 @@ def merge_campings_deduplicated(
 # 3. Google Maps Apify Connector (compass/crawler-google-places)
 # ---------------------------------------------------------------------------
 
+class ApifyQuotaExceededError(RuntimeError):
+    """Se lanza cuando la cuenta de Apify alcanza su límite mensual o créditos."""
+
+
+def resolve_valle_corredor(
+    city_or_address: str,
+    title: str = "",
+    lat: float | None = None,
+    lon: float | None = None,
+    localities: list[dict[str, Any]] | None = None,
+) -> str:
+    """Determina el valle ('Valle de Calamuchita' o 'Valle de Punilla') con catálogo y GPS."""
+    combined = normalize_text(f"{city_or_address} {title}")
+    if "calamuchita" in combined:
+        return "Valle de Calamuchita"
+    if "punilla" in combined:
+        return "Valle de Punilla"
+
+    if localities:
+        for loc in localities:
+            loc_name = normalize_text(loc.get("barrio_localidad", ""))
+            if loc_name and loc_name in combined:
+                return str(loc.get("valle_corredor", "Valle de Punilla"))
+
+        if lat is not None and lon is not None:
+            try:
+                lat_f, lon_f = float(lat), float(lon)
+                best_loc = min(
+                    localities,
+                    key=lambda loc: haversine_distance_km(
+                        lat_f, lon_f, loc["latitud_centroide"], loc["longitud_centroide"]
+                    ),
+                )
+                return str(best_loc.get("valle_corredor", "Valle de Punilla"))
+            except (TypeError, ValueError):
+                pass
+
+    return "Valle de Punilla"
+
+
+def _extract_place_summary(
+    place_item: dict[str, Any],
+    localities: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Normaliza un item de Google Places crawler a esquema tabular limpio."""
+    p_title = place_item.get("title") or place_item.get("name") or "Camping"
+    p_id = place_item.get("placeId") or place_item.get("cid") or place_item.get("dataId") or p_title
+    p_city = place_item.get("city") or place_item.get("address") or ""
+    loc_obj = place_item.get("location") or {}
+    p_lat = loc_obj.get("lat") if isinstance(loc_obj, dict) else None
+    p_lon = loc_obj.get("lng") if isinstance(loc_obj, dict) else None
+    p_valle = resolve_valle_corredor(p_city, p_title, p_lat, p_lon, localities)
+
+    dist = place_item.get("reviewsDistribution") or {}
+    s1 = int(dist.get("oneStar") or 0)
+    s2 = int(dist.get("twoStar") or 0)
+    s3 = int(dist.get("threeStar") or 0)
+    s4 = int(dist.get("fourStar") or 0)
+    s5 = int(dist.get("fiveStar") or 0)
+    tot_dist = s1 + s2 + s3 + s4 + s5
+    nps_proxy = round(((s5 - (s1 + s2 + s3)) / tot_dist) * 100.0, 2) if tot_dist > 0 else None
+    return {
+        "place_id": p_id,
+        "nombre_camping": p_title,
+        "valle_corredor": p_valle,
+        "localidad_raw": p_city,
+        "latitud": p_lat,
+        "longitud": p_lon,
+        "total_score": place_item.get("totalScore") or place_item.get("rating"),
+        "reviews_count": place_item.get("reviewsCount"),
+        "stars_1": s1,
+        "stars_2": s2,
+        "stars_3": s3,
+        "stars_4": s4,
+        "stars_5": s5,
+        "nps_proxy": nps_proxy,
+        "telefono": place_item.get("phone") or place_item.get("phoneUnformatted") or "",
+        "website": place_item.get("website") or "",
+        "url_google_maps": place_item.get("url") or "",
+    }
+
+
+def is_within_sierras_bbox(lat: Any, lon: Any) -> bool:
+    """Verifica si una coordenada pertenece a la región Sierras de Córdoba (Calamuchita/Punilla)."""
+    try:
+        lat_f = float(lat)
+        lon_f = float(lon)
+        return -32.65 <= lat_f <= -30.55 and -65.15 <= lon_f <= -64.05
+    except (TypeError, ValueError):
+        return False
+
+
+def parse_raw_gmaps_items(
+    raw_places: list[dict[str, Any]],
+    localities: list[dict[str, Any]] | None = None,
+    enforce_bbox: bool = True,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Convierte items crudos de Apify `compass/crawler-google-places` en (places, reviews)."""
+    places: list[dict[str, Any]] = []
+    reviews: list[dict[str, Any]] = []
+    for place in raw_places:
+        if not isinstance(place, dict):
+            continue
+        summary = _extract_place_summary(place, localities=localities)
+        if enforce_bbox and summary.get("latitud") is not None and summary.get("longitud") is not None:
+            if not is_within_sierras_bbox(summary["latitud"], summary["longitud"]):
+                logger.info(
+                    "Descartando lugar fuera de Sierras de Córdoba: %s (%s, %s)",
+                    summary["nombre_camping"], summary["latitud"], summary["longitud"],
+                )
+                continue
+        places.append(summary)
+        p_reviews = place.get("reviews") or place.get("reviewsData") or []
+        for r in p_reviews:
+            if isinstance(r, dict) and (r.get("text") or r.get("textTranslated")):
+                reviews.append({
+                    "id_review": r.get("id") or r.get("reviewId") or f"REV-{len(reviews)+1:05d}",
+                    "place_id": summary["place_id"],
+                    "nombre_camping": summary["nombre_camping"],
+                    "valle_corredor": summary["valle_corredor"],
+                    "localidad_raw": summary["localidad_raw"],
+                    "estrellas_rating": r.get("stars") or r.get("rating"),
+                    "fecha_reseña": r.get("publishedAtDate") or r.get("date"),
+                    "texto_reseña": r.get("text") or r.get("textTranslated"),
+                })
+    return places, reviews
+
+
+def merge_gmaps_places_and_reviews(
+    existing_places: list[dict[str, Any]],
+    existing_reviews: list[dict[str, Any]],
+    new_places: list[dict[str, Any]],
+    new_reviews: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Fusiona lugares y reseñas de Google Maps sin duplicados ni pérdida de datos."""
+    places_by_id: dict[str, dict[str, Any]] = {}
+    for p in existing_places + new_places:
+        pid = str(p.get("place_id") or "").strip()
+        if not pid:
+            continue
+        prev = places_by_id.get(pid)
+        if not prev:
+            places_by_id[pid] = dict(p)
+        else:
+            merged = dict(prev)
+            for k, v in p.items():
+                if v not in (None, "", "None") and merged.get(k) in (None, "", "None"):
+                    merged[k] = v
+            try:
+                if int(p.get("reviews_count") or 0) > int(prev.get("reviews_count") or 0):
+                    merged.update({k: v for k, v in p.items() if v not in (None, "")})
+            except (TypeError, ValueError):
+                pass
+            places_by_id[pid] = merged
+
+    reviews_by_key: dict[str, dict[str, Any]] = {}
+    for r in existing_reviews + new_reviews:
+        rid = str(r.get("id_review") or "").strip()
+        txt = str(r.get("texto_reseña") or "").strip()
+        pid = str(r.get("place_id") or "").strip()
+        key = rid if rid and not rid.startswith("REV-") else f"{pid}::{txt[:100]}"
+        if key and key not in reviews_by_key:
+            reviews_by_key[key] = dict(r)
+
+    return list(places_by_id.values()), list(reviews_by_key.values())
+
+
+def get_apify_remaining_usd(api_token: str) -> float | None:
+    """Consulta el saldo mensual restante en USD de la cuenta Apify (None si falla)."""
+    try:
+        req = urllib.request.Request(
+            "https://api.apify.com/v2/users/me/limits",
+            headers={"Authorization": f"Bearer {api_token}", "Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8")).get("data", {})
+        max_usd = float((data.get("limits") or {}).get("maxMonthlyUsageUsd") or 0.0)
+        cur_usd = float((data.get("current") or {}).get("monthlyUsageUsd") or 0.0)
+        return max(0.0, round(max_usd - cur_usd, 4))
+    except Exception:
+        return None
+
+
 def fetch_google_maps_via_apify(
     search_queries: list[str],
     api_token: str | None = None,
     dataset_id: str | None = None,
     max_crawled_places_per_search: int = 25,
     max_reviews: int = 20,
+    use_async: bool = True,
+    max_wait_seconds: int = 900,
 ) -> list[dict[str, Any]]:
     """Extrae lugares y reseñas reales desde Apify Google Places Crawler.
 
-    Usa `compass/crawler-google-places`. Requiere APIFY_TOKEN en variables de entorno
-    o pasado por parámetro. Cumple con la política ZERO DUMMY DATA.
+    Usa `compass/crawler-google-places` (modo asincrónico con polling para evitar
+    cortes por timeout y rescatar resultados parciales si se agota el crédito).
+    Requiere APIFY_TOKEN en variables de entorno o parámetro. ZERO DUMMY DATA policy.
     """
     token = api_token or os.getenv("APIFY_TOKEN")
     ds_id = dataset_id or os.getenv("APIFY_GMAPS_DATASET_ID")
@@ -604,7 +791,7 @@ def fetch_google_maps_via_apify(
     # Caso A: Si se proporciona un dataset_id existente con resultados ya recolectados
     if ds_id and token:
         logger.info("Obteniendo items del dataset Apify existente: %s ...", ds_id)
-        url = f"https://api.apify.com/v2/datasets/{ds_id}/items?format=json"
+        url = f"https://api.apify.com/v2/datasets/{ds_id}/items?format=json&clean=true"
         try:
             req = urllib.request.Request(
                 url,
@@ -619,7 +806,88 @@ def fetch_google_maps_via_apify(
             logger.error("Error consultando dataset Apify %s: %s", ds_id, e.__class__.__name__)
             return []
 
-    # Caso B: Ejecutar sincrónicamente el actor compass/crawler-google-places
+    if token and use_async:
+        logger.info(
+            "Iniciando ejecución asincrónica de compass/crawler-google-places (%d queries, maxPlaces=%d, maxReviews=%d)...",
+            len(search_queries),
+            max_crawled_places_per_search,
+            max_reviews,
+        )
+        start_url = "https://api.apify.com/v2/acts/compass~crawler-google-places/runs"
+        payload = {
+            "searchStringsArray": search_queries,
+            "maxCrawledPlacesPerSearch": max_crawled_places_per_search,
+            "maxReviews": max_reviews,
+            "language": "es",
+        }
+        try:
+            req = urllib.request.Request(
+                start_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Authorization": f"Bearer {token}",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=45) as resp:
+                run_data = json.loads(resp.read().decode("utf-8")).get("data", {})
+        except urllib.error.HTTPError as e:
+            body = ""
+            try:
+                body = e.read().decode("utf-8", errors="ignore")[:300]
+            except Exception:
+                pass
+            if e.code in (402, 403):
+                raise ApifyQuotaExceededError(f"Apify HTTP {e.code}: límite de uso alcanzado ({body})") from e
+            logger.error("Error iniciando run Apify HTTP %d: %s", e.code, body)
+            return []
+        except Exception as e:
+            logger.error("Error iniciando actor Apify: %s", e)
+            return []
+
+        run_id = run_data.get("id")
+        run_dataset_id = run_data.get("defaultDatasetId")
+        status = run_data.get("status", "RUNNING")
+        elapsed = 0
+        while run_id and status in ("READY", "RUNNING") and elapsed < max_wait_seconds:
+            time.sleep(8)
+            elapsed += 8
+            poll_url = f"https://api.apify.com/v2/actor-runs/{run_id}"
+            try:
+                poll_req = urllib.request.Request(
+                    poll_url,
+                    headers={"Accept": "application/json", "Authorization": f"Bearer {token}"},
+                )
+                with urllib.request.urlopen(poll_req, timeout=30) as presp:
+                    p_data = json.loads(presp.read().decode("utf-8")).get("data", {})
+                    status = p_data.get("status", status)
+                    run_dataset_id = p_data.get("defaultDatasetId") or run_dataset_id
+                    logger.info("Apify run %s -> estado=%s (%ds)", run_id, status, elapsed)
+            except Exception as exc:
+                logger.warning("Fallo consultando estado run %s: %s", run_id, exc)
+
+        if run_dataset_id:
+            items_url = f"https://api.apify.com/v2/datasets/{run_dataset_id}/items?format=json&clean=true"
+            try:
+                items_req = urllib.request.Request(
+                    items_url,
+                    headers={"Accept": "application/json", "Authorization": f"Bearer {token}"},
+                )
+                with urllib.request.urlopen(items_req, timeout=90) as iresp:
+                    raw_items = json.loads(iresp.read().decode("utf-8"))
+                    logger.info(
+                        "Actor Apify (%s) recuperó %d lugares desde dataset %s.",
+                        status,
+                        len(raw_items),
+                        run_dataset_id,
+                    )
+                    return raw_items
+            except Exception as exc:
+                logger.error("Error descargando items del dataset %s: %s", run_dataset_id, exc)
+                return []
+
+    # Caso B: Fallback sincrónico
     if token:
         logger.info(
             "Iniciando ejecución sincrónica de compass/crawler-google-places con %d queries...",
@@ -810,40 +1078,6 @@ def scrape_all_real_campings(
     gmaps_reviews: list[dict[str, Any]] = []
     gmaps_status: str
 
-    def _extract_place_summary(place_item: dict[str, Any]) -> dict[str, Any]:
-        p_title = place_item.get("title") or place_item.get("name") or "Camping"
-        p_id = place_item.get("placeId") or place_item.get("cid") or place_item.get("dataId") or p_title
-        p_city = place_item.get("city") or place_item.get("address") or ""
-        p_valle = "Valle de Calamuchita" if "calamuchita" in (p_city + " " + p_title).lower() else "Valle de Punilla"
-        loc_obj = place_item.get("location") or {}
-        dist = place_item.get("reviewsDistribution") or {}
-        s1 = int(dist.get("oneStar") or 0)
-        s2 = int(dist.get("twoStar") or 0)
-        s3 = int(dist.get("threeStar") or 0)
-        s4 = int(dist.get("fourStar") or 0)
-        s5 = int(dist.get("fiveStar") or 0)
-        tot_dist = s1 + s2 + s3 + s4 + s5
-        nps_proxy = round(((s5 - (s1 + s2 + s3)) / tot_dist) * 100.0, 2) if tot_dist > 0 else None
-        return {
-            "place_id": p_id,
-            "nombre_camping": p_title,
-            "valle_corredor": p_valle,
-            "localidad_raw": p_city,
-            "latitud": loc_obj.get("lat") if isinstance(loc_obj, dict) else None,
-            "longitud": loc_obj.get("lng") if isinstance(loc_obj, dict) else None,
-            "total_score": place_item.get("totalScore") or place_item.get("rating"),
-            "reviews_count": place_item.get("reviewsCount"),
-            "stars_1": s1,
-            "stars_2": s2,
-            "stars_3": s3,
-            "stars_4": s4,
-            "stars_5": s5,
-            "nps_proxy": nps_proxy,
-            "telefono": place_item.get("phone") or place_item.get("phoneUnformatted") or "",
-            "website": place_item.get("website") or "",
-            "url_google_maps": place_item.get("url") or "",
-        }
-
     # Evaluar si hay archivo JSON local especificado o en data/raw/
     candidate_json_paths = []
     if gmaps_json_path:
@@ -882,25 +1116,7 @@ def scrape_all_real_campings(
                 max_crawled_places_per_search=15,
                 max_reviews=20,
             )
-            for place in raw_places:
-                gmaps_places.append(_extract_place_summary(place))
-                p_reviews = place.get("reviews") or place.get("reviewsData") or []
-                p_title = place.get("title") or place.get("name") or "Camping"
-                p_id = place.get("placeId") or place.get("cid") or p_title
-                p_city = place.get("city") or place.get("address") or ""
-                p_valle = "Valle de Calamuchita" if "calamuchita" in (p_city + " " + p_title).lower() else "Valle de Punilla"
-                for r in p_reviews:
-                    if isinstance(r, dict) and (r.get("text") or r.get("textTranslated")):
-                        gmaps_reviews.append({
-                            "id_review": r.get("id") or r.get("reviewId") or f"REV-{len(gmaps_reviews)+1:04d}",
-                            "place_id": p_id,
-                            "nombre_camping": p_title,
-                            "valle_corredor": p_valle,
-                            "localidad_raw": p_city,
-                            "estrellas_rating": r.get("stars") or r.get("rating"),
-                            "fecha_reseña": r.get("publishedAtDate") or r.get("date"),
-                            "texto_reseña": r.get("text") or r.get("textTranslated"),
-                        })
+            gmaps_places, gmaps_reviews = parse_raw_gmaps_items(raw_places, localities=localities)
             gmaps_status = (
                 f"Extraídas {len(gmaps_reviews)} reseñas reales vía Apify Google Places API "
                 f"({len(raw_places)} lugares)."
@@ -926,6 +1142,181 @@ def scrape_all_real_campings(
         "total_places_gmaps": len(gmaps_places),
         "total_reviews": len(gmaps_reviews),
     }
+
+
+_GENERIC_CAMPING_TOKENS = {
+    "camping", "campamento", "municipal", "villa", "santa", "rosa", "del", "las", "los",
+    "san", "rio", "arroyo", "complejo", "cabanas", "parque", "cordoba", "club", "valle",
+    "el", "la", "de", "y", "con", "zona", "acampe", "osm", "general", "belgrano",
+}
+
+
+def _is_camping_matched_in_gmaps(
+    camping: dict[str, Any],
+    gmaps_places: list[dict[str, Any]],
+) -> bool:
+    """Verifica si un camping de OSM/SoloCampings ya está cubierto en gmaps_places."""
+    c_name = normalize_text(camping.get("nombre_camping", ""))
+    c_core = re.sub(r"\bcamping\b", "", c_name).strip()
+    c_tokens = {t for t in c_name.split() if len(t) > 2 and t not in _GENERIC_CAMPING_TOKENS}
+    try:
+        c_lat = float(camping["latitud"]) if camping.get("latitud") not in (None, "") else None
+        c_lon = float(camping["longitud"]) if camping.get("longitud") not in (None, "") else None
+    except (TypeError, ValueError):
+        c_lat, c_lon = None, None
+
+    for p in gmaps_places:
+        if c_lat is not None and c_lon is not None:
+            try:
+                p_lat = float(p["latitud"]) if p.get("latitud") not in (None, "") else None
+                p_lon = float(p["longitud"]) if p.get("longitud") not in (None, "") else None
+                if p_lat is not None and p_lon is not None:
+                    if haversine_distance_km(c_lat, c_lon, p_lat, p_lon) <= 0.50:
+                        return True
+            except (TypeError, ValueError):
+                pass
+        p_name = normalize_text(p.get("nombre_camping", ""))
+        p_core = re.sub(r"\bcamping\b", "", p_name).strip()
+        if len(c_core) >= 8 and len(p_core) >= 8 and (c_core in p_core or p_core in c_core):
+            return True
+        if len(c_tokens) >= 2:
+            p_tokens = {t for t in p_name.split() if len(t) > 2 and t not in _GENERIC_CAMPING_TOKENS}
+            if p_tokens and len(c_tokens & p_tokens) >= min(2, len(c_tokens)):
+                return True
+    return False
+
+
+def crawl_full_gmaps_campings(
+    campings: list[dict[str, Any]],
+    localities: list[dict[str, Any]],
+    api_token: str,
+    existing_places: list[dict[str, Any]] | None = None,
+    existing_reviews: list[dict[str, Any]] | None = None,
+    checkpoint_callback: Any = None,
+    max_reviews_per_place: int = 12,
+    places_per_locality: int = 35,
+    batch_size: int = 30,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
+    """Ejecuta extracción intensiva en Google Maps vía Apify para cubrir todas las localidades
+    y el catálogo completo de campings reales, guardando checkpoints tras cada lote."""
+    all_places = [
+        p for p in (existing_places or [])
+        if p.get("latitud") in (None, "") or is_within_sierras_bbox(p.get("latitud"), p.get("longitud"))
+    ]
+    valid_pids = {str(p.get("place_id") or "") for p in all_places}
+    all_reviews = [r for r in (existing_reviews or []) if str(r.get("place_id") or "") in valid_pids]
+
+    rem = get_apify_remaining_usd(api_token)
+    logger.info("[GMaps Full] Saldo Apify restante al iniciar: %s USD | Base válida en bbox: %d lugares, %d reseñas.",
+                f"${rem:.2f}" if rem is not None else "desconocido", len(all_places), len(all_reviews))
+
+    quota_exhausted = False
+    if len(all_places) < 120:
+        # Fase 1: Barrido por todas las localidades del catálogo + localidades observadas en campings
+        loc_names: list[str] = []
+        seen_norm: set[str] = set()
+        for name in (
+            ["Valle de Calamuchita", "Valle de Punilla"]
+            + [loc["barrio_localidad"] for loc in localities]
+            + [c.get("localidad_asignada", "") for c in campings]
+        ):
+            clean = str(name or "").strip()
+            norm = normalize_text(clean)
+            if clean and norm and norm not in {"desconocido", "sierras de cordoba"} and norm not in seen_norm:
+                seen_norm.add(norm)
+                loc_names.append(clean)
+
+        phase1_queries = [f"camping {loc} Cordoba Argentina" for loc in loc_names]
+        logger.info("[GMaps Full — Fase 1] Consultando %d zonas/localidades en Google Maps...", len(phase1_queries))
+        try:
+            raw_p1 = fetch_google_maps_via_apify(
+                search_queries=phase1_queries,
+                api_token=api_token,
+                max_crawled_places_per_search=places_per_locality,
+                max_reviews=max_reviews_per_place,
+                use_async=True,
+                max_wait_seconds=1200,
+            )
+            p1_places, p1_reviews = parse_raw_gmaps_items(raw_p1, localities=localities)
+            all_places, all_reviews = merge_gmaps_places_and_reviews(all_places, all_reviews, p1_places, p1_reviews)
+            if checkpoint_callback:
+                checkpoint_callback(all_places, all_reviews)
+            logger.info(
+                "[GMaps Full — Fase 1 lista] Acumulado: %d lugares únicos, %d reseñas.",
+                len(all_places), len(all_reviews),
+            )
+        except ApifyQuotaExceededError as exc:
+            logger.warning("[GMaps Full — Fase 1] Límite de Apify alcanzado: %s", exc)
+            quota_exhausted = True
+    else:
+        logger.info("[GMaps Full] Fase 1 ya cubierta en disco (%d lugares >= 120). Pasando directo a Fase 2...", len(all_places))
+
+    # Fase 2: Relleno dirigido por nombre para campings de campings_zona_real_raw.csv aún no cubiertos
+    if not quota_exhausted:
+        rem_after_p1 = get_apify_remaining_usd(api_token)
+        logger.info("[GMaps Full] Saldo Apify disponible para Fase 2: %s USD",
+                    f"${rem_after_p1:.2f}" if rem_after_p1 is not None else "desconocido")
+
+        missing_queries: list[str] = []
+        seen_q: set[str] = set()
+        generic_names = {"", "camping", "camping sin nombre", "campamento", "zona de acampe", "area de acampe"}
+        for c in campings:
+            c_raw_name = str(c.get("nombre_camping") or "").strip()
+            c_norm = normalize_text(c_raw_name)
+            if c_norm in generic_names or len(c_norm) < 4 or re.match(r"^camping\s+osm\s+#", c_norm):
+                continue
+            if _is_camping_matched_in_gmaps(c, all_places):
+                continue
+            loc_str = str(c.get("localidad_asignada") or c.get("localidad_raw") or "Cordoba").strip()
+            prefix = "" if "camp" in c_norm else "Camping "
+            q = f"{prefix}{c_raw_name} {loc_str} Cordoba Argentina"
+            q_norm = normalize_text(q)
+            if q_norm not in seen_q:
+                seen_q.add(q_norm)
+                missing_queries.append(q)
+
+        logger.info(
+            "[GMaps Full — Fase 2] Campings aún sin match directo: %d queries en lotes de %d.",
+            len(missing_queries), batch_size,
+        )
+
+        for start in range(0, len(missing_queries), batch_size):
+            rem_now = get_apify_remaining_usd(api_token)
+            if rem_now is not None and rem_now <= 0.05:
+                logger.warning("[GMaps Full — Fase 2] Saldo Apify agotado ($%.2f). Deteniendo limpiamente.", rem_now)
+                break
+            batch = missing_queries[start:start + batch_size]
+            batch_num = (start // batch_size) + 1
+            total_batches = (len(missing_queries) + batch_size - 1) // batch_size
+            logger.info("[GMaps Full — Fase 2] Ejecutando lote %d/%d (%d campings)...",
+                        batch_num, total_batches, len(batch))
+            try:
+                raw_b = fetch_google_maps_via_apify(
+                    search_queries=batch,
+                    api_token=api_token,
+                    max_crawled_places_per_search=1,
+                    max_reviews=max_reviews_per_place,
+                    use_async=True,
+                    max_wait_seconds=900,
+                )
+                b_places, b_reviews = parse_raw_gmaps_items(raw_b, localities=localities)
+                all_places, all_reviews = merge_gmaps_places_and_reviews(all_places, all_reviews, b_places, b_reviews)
+                if checkpoint_callback:
+                    checkpoint_callback(all_places, all_reviews)
+                logger.info(
+                    "[GMaps Full — Lote %d/%d] Acumulado: %d lugares únicos, %d reseñas.",
+                    batch_num, total_batches, len(all_places), len(all_reviews),
+                )
+            except ApifyQuotaExceededError as exc:
+                logger.warning("[GMaps Full — Lote %d] Límite Apify alcanzado: %s", batch_num, exc)
+                break
+
+    matched_count = sum(1 for c in campings if _is_camping_matched_in_gmaps(c, all_places))
+    status = (
+        f"Extracción completa GMaps vía Apify: {len(all_places)} lugares únicos, "
+        f"{len(all_reviews)} reseñas reales ({matched_count}/{len(campings)} campings OSM/SC cubiertos)."
+    )
+    return all_places, all_reviews, status
 
 
 if __name__ == "__main__":

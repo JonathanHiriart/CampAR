@@ -36,7 +36,11 @@ except ImportError:
             if sp.is_dir():
                 sys.path.append(str(sp))
 
-from terrascout_actor.my_actor.camping_scraper import scrape_all_real_campings
+from terrascout_actor.my_actor.camping_scraper import (
+    crawl_full_gmaps_campings,
+    load_localities_centroids,
+    scrape_all_real_campings,
+)
 from terrascout_actor.my_actor.main import (
     SentenceIndex,
     find_topics,
@@ -114,6 +118,58 @@ def clean_stale_dummy_files() -> None:
                 logger.warning("No se pudo eliminar %s: %s", p, exc)
 
 
+GMAPS_PLACES_FIELDNAMES = [
+    "place_id",
+    "nombre_camping",
+    "valle_corredor",
+    "localidad_raw",
+    "latitud",
+    "longitud",
+    "total_score",
+    "reviews_count",
+    "stars_1",
+    "stars_2",
+    "stars_3",
+    "stars_4",
+    "stars_5",
+    "nps_proxy",
+    "telefono",
+    "website",
+    "url_google_maps",
+]
+
+GMAPS_REVIEWS_FIELDNAMES = [
+    "id_review",
+    "place_id",
+    "nombre_camping",
+    "valle_corredor",
+    "localidad_raw",
+    "estrellas_rating",
+    "fecha_reseña",
+    "texto_reseña",
+]
+
+
+def write_gmaps_csvs(
+    gmaps_places: list[dict[str, Any]],
+    gmaps_reviews: list[dict[str, Any]],
+) -> None:
+    """Escribe/actualiza en disco los CSVs de lugares y reseñas reales de Google Maps."""
+    if gmaps_places:
+        with open(GMAPS_PLACES_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=GMAPS_PLACES_FIELDNAMES, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(gmaps_places)
+        logger.info("Archivo escrito: %s (%d lugares reales)", GMAPS_PLACES_CSV_PATH, len(gmaps_places))
+
+    if gmaps_reviews:
+        with open(GMAPS_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=GMAPS_REVIEWS_FIELDNAMES, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(gmaps_reviews)
+        logger.info("Archivo escrito: %s (%d reseñas reales)", GMAPS_CSV_PATH, len(gmaps_reviews))
+
+
 def run_scraper_pipeline(
     max_items_per_valley: int = 600,
     max_pages_per_valley: int = 15,
@@ -122,6 +178,7 @@ def run_scraper_pipeline(
     skip_ml_details: bool = False,
     gmaps_only: bool = False,
     nlp_only: bool = False,
+    gmaps_full: bool = False,
 ) -> dict[str, Any]:
     """Ejecuta el pipeline completo de extracción real y NLP sin datos sintéticos."""
     os.makedirs(DATA_RAW_DIR, exist_ok=True)
@@ -139,8 +196,8 @@ def run_scraper_pipeline(
         logger.info("Ruta JSON local Google Maps: %s", gmaps_json_path)
 
     # 1. Extracción de Publicaciones Reales de Mercado Libre
-    if (gmaps_only or nlp_only) and ML_CSV_PATH.exists():
-        logger.info(">>> Paso 1: Reutilizando %s existente (--gmaps-only/--nlp-only activo)...", ML_CSV_PATH)
+    if (gmaps_only or nlp_only or gmaps_full) and ML_CSV_PATH.exists():
+        logger.info(">>> Paso 1: Reutilizando %s existente (--gmaps-only/--nlp-only/--gmaps-full activo)...", ML_CSV_PATH)
         with open(ML_CSV_PATH, mode="r", encoding="utf-8") as f:
             ml_listings = list(csv.DictReader(f))
         logger.info("Mercado Libre cargado desde disco: %d publicaciones.", len(ml_listings))
@@ -214,6 +271,30 @@ def run_scraper_pipeline(
             with open(GMAPS_CSV_PATH, mode="r", encoding="utf-8") as f:
                 gmaps_reviews = list(csv.DictReader(f))
         gmaps_status = f"Cargadas {len(gmaps_reviews)} reseñas reales desde disco ({len(gmaps_places)} lugares)."
+    elif gmaps_full and CAMPINGS_CSV_PATH.exists() and token:
+        logger.info(">>> Paso 2 (--gmaps-full): Reutilizando %s y lanzando extracción completa Google Maps vía Apify...", CAMPINGS_CSV_PATH)
+        with open(CAMPINGS_CSV_PATH, mode="r", encoding="utf-8") as f:
+            campings = list(csv.DictReader(f))
+        existing_places: list[dict[str, Any]] = []
+        if GMAPS_PLACES_CSV_PATH.exists():
+            with open(GMAPS_PLACES_CSV_PATH, mode="r", encoding="utf-8") as f:
+                existing_places = list(csv.DictReader(f))
+        existing_reviews: list[dict[str, Any]] = []
+        if GMAPS_CSV_PATH.exists():
+            with open(GMAPS_CSV_PATH, mode="r", encoding="utf-8") as f:
+                existing_reviews = list(csv.DictReader(f))
+
+        localities = load_localities_centroids(AUX_TOPO_PATH if AUX_TOPO_PATH.exists() else None)
+        gmaps_places, gmaps_reviews, gmaps_status = crawl_full_gmaps_campings(
+            campings=campings,
+            localities=localities,
+            api_token=token,
+            existing_places=existing_places,
+            existing_reviews=existing_reviews,
+            checkpoint_callback=write_gmaps_csvs,
+        )
+        write_gmaps_csvs(gmaps_places, gmaps_reviews)
+        logger.info("Extracción completa GMaps finalizada: %s", gmaps_status)
     else:
         logger.info(">>> Paso 2: Scrapeando Campings Reales (OSM + SoloCampings + Apify GMaps)...")
         campings_res = scrape_all_real_campings(
@@ -274,51 +355,8 @@ def run_scraper_pipeline(
             writer.writerows(campings)
         logger.info("Archivo escrito: %s (%d filas)", CAMPINGS_CSV_PATH, len(campings))
 
-        # Guardar CSV de Lugares de Google Maps si hay resultados reales
-        if gmaps_places:
-            places_fieldnames = [
-                "place_id",
-                "nombre_camping",
-                "valle_corredor",
-                "localidad_raw",
-                "latitud",
-                "longitud",
-                "total_score",
-                "reviews_count",
-                "stars_1",
-                "stars_2",
-                "stars_3",
-                "stars_4",
-                "stars_5",
-                "nps_proxy",
-                "telefono",
-                "website",
-                "url_google_maps",
-            ]
-            with open(GMAPS_PLACES_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=places_fieldnames, extrasaction="ignore")
-                writer.writeheader()
-                writer.writerows(gmaps_places)
-            logger.info("Archivo escrito: %s (%d lugares reales)", GMAPS_PLACES_CSV_PATH, len(gmaps_places))
-
-        # Guardar CSV de Reseñas de Google Maps si hay reseñas reales
-        if gmaps_reviews:
-            gmaps_fieldnames = [
-                "id_review",
-                "place_id",
-                "nombre_camping",
-                "valle_corredor",
-                "localidad_raw",
-                "estrellas_rating",
-                "fecha_reseña",
-                "texto_reseña",
-            ]
-            with open(GMAPS_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=gmaps_fieldnames)
-                writer.writeheader()
-                writer.writerows(gmaps_reviews)
-            logger.info("Archivo escrito: %s (%d reseñas reales)", GMAPS_CSV_PATH, len(gmaps_reviews))
-        else:
+        write_gmaps_csvs(gmaps_places, gmaps_reviews)
+        if not gmaps_reviews:
             # Si no hay reseñas reales, limpiar archivo dummy si existía
             if GMAPS_CSV_PATH.exists():
                 try:
@@ -530,6 +568,12 @@ def main() -> None:
         default=False,
         help="Recalcula los tópicos NLP y fuzzy counts desde los CSVs existentes en data/raw/ sin scrapear la web",
     )
+    parser.add_argument(
+        "--gmaps-full",
+        action="store_true",
+        default=False,
+        help="Ejecuta extracción intensiva en Google Maps vía Apify (16+ localidades + campings faltantes) con checkpoints",
+    )
 
     args = parser.parse_args()
 
@@ -543,6 +587,7 @@ def main() -> None:
         skip_ml_details=args.skip_ml_details,
         gmaps_only=args.gmaps_only,
         nlp_only=args.nlp_only,
+        gmaps_full=args.gmaps_full,
     )
 
 

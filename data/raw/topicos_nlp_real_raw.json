@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "fecha_extraccion": "2026-11-16T14:52:25.056849",
+    "fecha_extraccion": "2026-11-16T16:48:04.068157",
     "algoritmo": "TF-IDF + KMeans + SentenceIndex (scikit-learn / rapidfuzz / difflib)",
     "fuentes_utilizadas": [
       "MercadoLibre Inmuebles Córdoba",
@@ -10,144 +10,144 @@
     ],
     "total_publicaciones_ml": 1200,
     "total_campings_reales": 288,
-    "total_reviews_reales": 347,
-    "total_oraciones_corpus": 13044,
-    "gmaps_status": "Cargadas 347 reseñas reales desde disco (35 lugares)."
+    "total_reviews_reales": 1754,
+    "total_oraciones_corpus": 16358,
+    "gmaps_status": "Extracción completa GMaps vía Apify: 237 lugares únicos, 1754 reseñas reales (221/288 campings OSM/SC cubiertos)."
   },
   "n_clusters": 10,
-  "silhouette": 0.015,
-  "n_sentences": 9285,
+  "silhouette": 0.012,
+  "n_sentences": 12095,
   "topics": [
     {
       "rank": 1,
-      "size": 5676,
-      "share": 0.611,
+      "size": 7464,
+      "share": 0.617,
       "terms": [
-        "camping",
         "m2",
-        "superficie",
+        "lote",
         "terreno",
+        "superficie",
         "metros"
       ],
       "sentences": [
-        "c) F.M.N.",
-        "b) F.O.T.",
-        "M.P 4916"
+        "u$s 7.000 ????",
+        "27/11/24",
+        "No hay nada"
       ]
     },
     {
       "rank": 2,
-      "size": 880,
-      "share": 0.095,
+      "size": 1065,
+      "share": 0.088,
       "terms": [
-        "venta",
-        "lote",
-        "terreno",
-        "m2",
-        "reartes"
+        "oportunidad",
+        "entorno",
+        "natural",
+        "ideal",
+        "inversion"
       ],
       "sentences": [
-        "Lote en venta.",
-        "Lote En Venta.",
-        "Terreno En Venta !!"
+        "- Excelente oportunidad de inversión.",
+        "EXCELENTE OPORTUNIDAD DE INVERSIÓN!",
+        "OPORTUNIDAD ÚNICA Esta propiedad representa una excelente oportunidad de inversión para construir la casa de tus sueños en un entorno natural privilegiado o para desarrollo turísticos."
       ]
     },
     {
       "rank": 3,
-      "size": 579,
-      "share": 0.062,
+      "size": 913,
+      "share": 0.075,
       "terms": [
-        "villa",
-        "venta",
-        "lote",
-        "parque",
-        "terreno"
+        "lugar",
+        "atencion",
+        "lindo",
+        "br",
+        "excelente"
       ],
       "sentences": [
-        "Lote En Venta | Villa Ciudad Parque | Calamuchita | Córdoba",
-        "Terreno En Venta En Villa Giardino",
-        "Terreno En Venta  En Villa Giardino"
+        "Muy bien lugar",
+        "Muy lindo el lugar y excelente la atención!",
+        "Excelente atención y muy lindo lugar"
       ]
     },
     {
       "rank": 4,
-      "size": 542,
-      "share": 0.058,
+      "size": 805,
+      "share": 0.067,
       "terms": [
-        "oportunidad",
-        "inversion",
-        "ideal",
-        "casa",
-        "vivienda"
+        "venta",
+        "lote",
+        "terreno",
+        "carlos paz",
+        "san"
       ],
       "sentences": [
-        "Ideal tanto para vivienda permanente como para casa de descanso o inversión.",
-        "Ideal para vivienda permanente, casa de descanso o inversión.",
-        "EXCELENTE OPORTUNIDAD DE INVERSIÓN!"
+        "Lote En Venta.",
+        "Lote en venta.",
+        "Terreno En Venta !!"
       ]
     }
   ],
   "topics_quejas_gmaps": {
     "n_clusters": 3,
-    "silhouette": 0.006,
-    "n_sentences": 139,
+    "silhouette": 0.005,
+    "n_sentences": 625,
     "items": [
       {
         "rank": 1,
-        "size": 96,
-        "share": 0.691,
+        "size": 469,
+        "share": 0.75,
         "terms": [
-          "desastre",
-          "verdad",
-          "fotos",
-          "acampar",
-          "caro"
+          "br",
+          "atencion",
+          "dia",
+          "mala",
+          "rio"
         ],
         "sentences": [
           "No hay nada",
-          "Todo sucio la verdad q no es lo q se ve en fotos.",
-          "El lugar en si para acampar esta bien pero deja que desear, proveeduría algo cara y los baños bastante decentes 01/03/25 $5mil por persona y $5mil por la carpa que se paga 1 sola vez"
+          "27/11/24",
+          "Muy mala atención de su dueña."
         ]
       },
       {
         "rank": 2,
-        "size": 34,
-        "share": 0.245,
+        "size": 129,
+        "share": 0.206,
         "terms": [
+          "banos",
+          "recomiendo",
+          "habia",
           "br",
-          "experiencia",
-          "mala",
-          "fuimos",
-          "precio"
+          "ir"
         ],
         "sentences": [
-          "ESTO ES LABURAR MAL!!!<br><br>Quienes planeábamos ir al Cosquin Rock y encontramos este camping, pensando que era un golazo (la cercanía y el precio), fuimos defraudados por una pésima gestión y en posterior una “mala leche” de parte de la jefa de este camping.",
-          "27/01/26 Mi experiencia muy mala!!",
-          "La publicidad y el discurso que venden no coinciden en absoluto con la experiencia real.<br><br>No lo recomendaría."
+          "Los baños sucios !",
+          "El lugar hermoso, el pasto corto y no había mugre, los baños horribles cero higiene, un desastre y no había suficiente lugar para poner el auto techado, cayó piedra y no nos dejaron entrar al salón y nos quedamos afuera ( les recomiendo no ir )",
+          "No lo recomiendo."
         ]
       },
       {
         "rank": 3,
-        "size": 9,
-        "share": 0.065,
+        "size": 27,
+        "share": 0.043,
         "terms": [
-          "dia",
-          "pasar",
-          "nunca",
-          "valor",
-          "supo excelente"
+          "lindo",
+          "rio",
+          "complejo",
+          "preparado",
+          "parcelas"
         ],
         "sentences": [
-          "no para pasar todo el día.",
-          "Para ir a pasar el dia que valor tiene?",
-          "Supo ser un excelente lugar para pasar el día."
+          "El lugar lindo..",
+          "Muy lindo lugar",
+          "Muy lindo camping."
         ]
       }
     ]
   },
   "fuzzy_counts": {
     "agua corriente": {
-      "count": 175,
+      "count": 177,
       "sentences": [
         "- SERVICIOS: de luz eléctrica provisto por la Cooperativa de Los Reartes; con agua corriente provista por la Comuna de Los Reartes.",
         "Los lotes cuentan con acceso de ripio y están equipados con servicios de agua corriente y electricidad, lo que los convierte en una opción atractiva y lista para construir.",
@@ -323,17 +323,23 @@
         "Todos los servicios pasan por la vereda: luz, alumbrado público, agua corriente y recolección de residuos.",
         "Además de su ubicación privilegiada, este terreno cuenta con servicios básicos como agua corriente y luz, lo que te brinda comodidad y facilidad para comenzar tu proyecto de construcción.",
         "-Disponibilidad de todos los servicios: agua corriente, electricidad, internet, cable y gas envasado.",
-        "El acceso al lote es de tierra, y cuenta con servicios esenciales como agua corriente y luz, lo que facilita el proceso de construcción."
+        "El acceso al lote es de tierra, y cuenta con servicios esenciales como agua corriente y luz, lo que facilita el proceso de construcción.",
+        "No dejes de visitarlos!!!!❣️<br>Nada más lindo que dormir con el ruidito del agua corriendo!!!",
+        "Llegamos al lugar, aclaro q es todo tierra, podían regar hasta con agua ya usada( para no utilizar agua corriente) se levantó viento, todo un asco llenos de tierra!"
       ],
       "variants": {
         "agua corriente": {
-          "count": 175,
+          "count": 176,
           "score": 100.0
+        },
+        "agua corriendo": {
+          "count": 1,
+          "score": 85.7
         }
       }
     },
     "luz electrica": {
-      "count": 36,
+      "count": 40,
       "sentences": [
         "- SERVICIOS: de luz eléctrica provisto por la Cooperativa de Los Reartes; con agua corriente provista por la Comuna de Los Reartes.",
         "LOTE en Venta en EL DURAZNO - Superficie 965 m2 - Con vista panorámica - Luz Eléctrica Escritura Inmediata - Ubicación Coordenadas: 32°10'13.8\"S 64°46'36.1\"W - L0TE 7 MANZANA 14 _ Tomo vehículo en parte de pago!",
@@ -370,19 +376,27 @@
         "CARACTERÍSTICAS PRINCIPALES Lote 1 - Esquina: 721 m² Lote 2 - Contiguo: 680 m² Superficie total combinada: 1.401 m² Estado: A estrenar Servicios disponibles: Luz y agua en el sector UBICACIÓN Y ENTORNO Zona de rápido crecimiento en Tanti Vistas panorámicas al cordón serrano Entorno natural privilegiado Ubicación estratégica en esquina POTENCIAL DE DESARROLLO Opciones de inversión: Construcción de vivienda permanente Casa de fin de semana Proyecto turístico Desarrollo inmobiliario SERVICIOS E INFRAESTRUCTURA Luz eléctrica disponible Conexión de agua en la zona Terreno apto para construcción inmediata CONDICIONES DE VENTA Posibilidad de compra individual o conjunta Precio competitivo según zona de expansión Ideal para inversores y desarrolladores Contacte para coordinar visita y obtener información detallada sobre estos lotes con potencial de valorización en Barrio Flor Serrana, Tanti.",
         "CARACTERÍSTICAS PRINCIPALES Lote 1 - Esquina: 721 m² Lote 2 - Contiguo: 680 m² Superficie total combinada: 1.401 m² Estado: A estrenar Servicios disponibles: Luz y agua en el sector UBICACIÓN Y ENTORNO Zona de rápido crecimiento en Tanti Vistas panorámicas al cordón serrano Entorno natural privilegiado Ubicación estratégica en esquina POTENCIAL DE DESARROLLO Opciones de inversión: Construcción de vivienda permanente Casa de fin de semana Proyecto turístico Desarrollo inmobiliario SERVICIOS E INFRAESTRUCTURA Luz eléctrica disponible Conexión de agua en la zona Terreno apto para construcción inmediata CONDICIONES DE VENTA Posibilidad de compra individual o conjunta Precio competitivo según zona de expansión Ideal para inversores y desarrolladores Contacte para coordinar visita y obtener información detallada sobre estos lotes con potencial de valorización en Barrio Flor Serrana, Tanti.",
         "Posee escritura y Servicios - El barrio cuenta con servicios subterráneos de, alumbrado público y luz eléctrica.",
-        "-Energía eléctrica (Luz)."
+        "-Energía eléctrica (Luz).",
+        "Tiene luz, electricidad, wifi disponible.",
+        "Cuenta con mesas, asadores, luz eléctrica, baños con ducha y proveeduría muy completa.",
+        "Tiene acceso al rio; Cuenta con despensa, parrillero individual, baños impecables,agua caliente, electricidad, luz individual y el área para acampar es techada; realmente muy muy lindo, 100% recomendable!!!",
+        "El lugar es excelente para acampar o pasar el día, el predio en excelente condiciones, limpio, con muchos espacios con asadores, sombra, enchufes, luz eléctrica."
       ],
       "variants": {
         "luz electrica": {
-          "count": 34,
+          "count": 36,
           "score": 100.0
         },
         "electrica luz": {
           "count": 1,
           "score": 95.0
         },
-        "electricidad luz": {
+        "luz electricidad": {
           "count": 1,
+          "score": 89.7
+        },
+        "electricidad luz": {
+          "count": 2,
           "score": 85.2
         }
       }
@@ -1289,7 +1303,7 @@
       }
     },
     "arboleda": {
-      "count": 52,
+      "count": 62,
       "sentences": [
         "CAMPO EXCLUSIVA 56 HECTáREAS A 2KM DE MOLVENTO Villa Ciudad Parque Los Reartes Valle de Calamuchita Córdoba Campo de 56 ha con casa principal y casa de huéspedes, arboledas añejas y vistas panorámicas a las Sierras Grandes y al lago Los Molinos.",
         "Ficha técnica -Superficie: 56 ha 5.826 m2 (mensura 2026, coincidente con título) -Frente pavimentado: 103 m sobre RP 5 -Construido: 579 m2 casa principal + casa de huéspedes, con pileta -Agua propia: vertiente con servidumbre constituida + pozo -Cota máxima 1.092 m: vistas al valle, las Sierras Grandes y el lago -Zonificación C2 (frente) y R4 (fondo), apta para fraccionamiento -Topografía relevada, traza de camino proyectada Familias Residencia de campo lista para habitar: dos casas entre arboledas de décadas, pileta, agua de vertiente y 56 hectáreas de privacidad absoluta, a 15 minutos de Villa General Belgrano y su calidad de vida serrana.",
@@ -1342,19 +1356,29 @@
         "Los mejor de todo su CASITA DEL ARBOL PARA LOS NIÑOS...",
         "El Camping Los Álamos destaca por su arboleda inigualable y majestuosa, que no solo ofrece sombra y frescura, sino también una conexión única con la naturaleza.",
         "Un lujo que dispongan de semejante pileta y arboleda frente al río y que tengan tantas actividades accesibles para la comunidad durante el año.",
-        "Camping Santa Fe ,Santa Rosa de Calamuchita, Córdoba, 14,000 por persona 8000 la camioneta y la rodante ,lindo parque de facil acceso ,arboleda abundante ,posee WiFi, baños amplios limpios agua caliente las 24 hs,salon con mesas parrillas piletas de lavado, por si llueve, frente al río<br>Recomendable rodanteros"
+        "Camping Santa Fe ,Santa Rosa de Calamuchita, Córdoba, 14,000 por persona 8000 la camioneta y la rodante ,lindo parque de facil acceso ,arboleda abundante ,posee WiFi, baños amplios limpios agua caliente las 24 hs,salon con mesas parrillas piletas de lavado, por si llueve, frente al río<br>Recomendable rodanteros",
+        "Acampamos en una kangoo, el lugar todo arbolada, luz en cada sector para acampar, Internet, comedor compartido con cocina y bacha.",
+        "Con una excelente arboleda que da mucha sombra, asadores (sin parrilla), mesas, etc.",
+        "A pocos metros de La Toma en Cosquin,lugar para descansar no tiene quincho comunitario,no hay buffet solo algunas cosas, lugares para carpas y autos delimitados ,buena arboleda muy buena atencion de sus dueños",
+        "Una excelente arboledas y un ambiente super familiar y natural, cero cemento.",
+        "Cuenta con mucha arboleda y espacio, tambien cuenta con asadores.<br>Los baños estan bien.",
+        "Si hay un vado con una cascadita y entorno muy bonito de arboleda.",
+        "Hermoso lugar para descansar, con una bella naturaleza rodeada de inmensa arboleda y arroyo.Te da mucha paz tranquilidad.Con excelente atención y servicio,ademas de contar con pileta baños,wifi,etc.Todo impecable,muchas gracias Belén, Daiana y demas personas que colaboran para que pasemos una buena y cómoda estadía.😀💪🫶👏👏",
+        "Excelente, limpio, ordenado, bien atendido, un hermoso y amplio predio con una arboleda admirable, con una pileta enorme.",
+        "Hermoso y muy cordial,<br>Proveeduría y Precios muy muy razonables, arboleda asadores y un río de los mejores<br>No te vas a arrepentir de visitarlo,",
+        "Un desastre, 15 mil para poner el auto bajo un árbol."
       ],
       "variants": {
         "arboleda": {
-          "count": 28,
+          "count": 35,
           "score": 100.0
         },
         "arboledas": {
-          "count": 2,
+          "count": 3,
           "score": 94.1
         },
         "arbol": {
-          "count": 7,
+          "count": 8,
           "score": 90.0
         },
         "leda": {
@@ -1362,13 +1386,13 @@
           "score": 90.0
         },
         "arbolada": {
-          "count": 14,
+          "count": 15,
           "score": 87.5
         }
       }
     },
     "asfalto": {
-      "count": 77,
+      "count": 84,
       "sentences": [
         "Lote, Alto Del Corral, Los Reartes",
         "Es de facil acceso, 5 km desde que finaliza el asfalto, el entorno y la calidad de construcciones cercanas es muy bueno.",
@@ -1446,7 +1470,14 @@
         "Posee frente sobre asfalto, un arroyo pluvial en su interior que aporta belleza natural, y una pendiente negativa hacia el contrafrente que brinda posibilidades de diseño.",
         "Terreno En Venta Con Gas Natural Y Asfalto En Villa Giardino, Córdoba.",
         "Servicios de Agua, Asfalto, Luz, Servicio urbano y GAS NATURAL.",
-        "El valor es un poquito más alto que la medía de los cámping...a mi criterio,  los servicios que ofrecen es lógico que sea un poquito más caro...."
+        "El valor es un poquito más alto que la medía de los cámping...a mi criterio,  los servicios que ofrecen es lógico que sea un poquito más caro....",
+        "Me faltó el respeto completamente.",
+        "No hace falta 4x4, solo que el auto sea mas bien alto.",
+        "La cabaña es hermosa una vista increíble y todas las comodidades.<br>Pero el camino no es apto para ingresar en auto y el dueño lo tendría q aclarar.<br>Aclaro q somos una familia que estamos acostumbrados a hospedarnos en lugares de montaña y caminos de ripio.<br>Pero sinceramente hay muchos riesgos de romper el vehículo una lastima xq la cabaña es realmente hermosa.<br>Entrar y salir era un sufrimiento (tengo una sandero stepway ) es un auto alto.",
+        "Por alguna mágica razón, el lugar llegó a nosotrxs y nosotrxs llegamos a el.<br>Razones que descubrimos mientras lo habitamos.<br><br>Si creen en la magia de lo comunitario y entienden la vida a partir de esa premisa, no se lo pierdan.<br><br>Luciana y Manuel son espíritus maestros que los cuidaran y guiarán en su paso por Casas Viejas, confíen.<br><br>Ahora si, más allá de la poesía que puede llevar varias hojas de creación, el lugar es un paraíso: lo alto de la montaña, los cóndores volando cerquita, la exclusividad de las parcelas, los senderos para recorrer, el agua caliente, los huevos directos del gallinero, la heladera comunitaria, el refugio.<br><br>Mucho amor de todos los colores.<br><br>No se olviden de dejar el lugar (o el mundo) mejor de lo que lo encontraron, acá y por donde sea que los haga caminar esta vida.<br><br>Buenas rutas.",
+        "Ahora fuimos nuevamente (2016), lamentablemente fue todo lo contrario, las piletas sucias y fuera de servicio, mucha basura, pasto alto, la proveeduría cerrada, los quinchos rotos.",
+        "Las parrillas le falta mantenimiento, y en algunos lugares el pasto muy alto.",
+        "Algo a mejorar es el tema de la música, ayer no se podia estar del volumen tan alto que cada grupo ponia en sus parlantes, al menos 7 parlantes a todo volumen escuchando diferente música."
       ],
       "variants": {
         "asfalto": {
@@ -1454,7 +1485,11 @@
           "score": 100.0
         },
         "alto": {
-          "count": 51,
+          "count": 57,
+          "score": 90.0
+        },
+        "falto": {
+          "count": 1,
           "score": 90.0
         },
         "asfaltado": {
@@ -1576,7 +1611,7 @@
       }
     },
     "alambrado": {
-      "count": 160,
+      "count": 161,
       "sentences": [
         "lote de 2000 mts con agua, luz y pronto gas natural, servicios subterráneos, amenitis: cancha de futbol, dos canchas de tenis, playground, gym cerrado con vestidores, sum con asadores y mobiliario, caballerizas, pileta con vistas a las sierras de córdoba, pórtico de ingreso con guardia las 24 hs, alambrado perimetral.",
         "- MEJORAS: alambrados, limpios de malezas, con luz y agua en la puerta.",
@@ -1734,7 +1769,8 @@
         "LOTE ALAMBRADO 600MT2 C/VISTA A LAS ALTAS CUMBRES Ubicado en el encantador entorno de Las Jarillas, Punilla, se presenta un lote excepcional que promete ser la base perfecta para el proyecto de tus sueños.",
         "Este terreno, ya alambrado y con acceso a todos los servicios, ofrece una oportunidad única para aquellos que buscan construir en una de las zonas más tranquilas y vistas espectaculares de la región.",
         "Alambrado C/ Escritura",
-        "ALAMBRADO C/ ESCRITURA Terreno en venta en Solares de Playas de Oro."
+        "ALAMBRADO C/ ESCRITURA Terreno en venta en Solares de Playas de Oro.",
+        "El camping está bueno, si es para mejorar siempre hay cosas para mejorar, por ej parcelas sin alumbrado, lo bueno que no t molesta la noche para dormir."
       ],
       "variants": {
         "alambrado": {
@@ -1754,13 +1790,13 @@
           "score": 88.9
         },
         "alumbrado": {
-          "count": 51,
+          "count": 52,
           "score": 88.9
         }
       }
     },
     "rio": {
-      "count": 542,
+      "count": 751,
       "sentences": [
         "2 Lotes Venta Los Reartes B° Capilla Vieja A 100 Metros Del Rio Luz Agua Escritura Lugar Exclusivo Vistas Sierras Grandes",
         "- SUPERFICIE: Plana, con desnivel de 30 grados hacia el rio .",
@@ -2276,11 +2312,209 @@
         "Muy recomendable y económico baños lindos y frente al rio",
         "Buena atencion, baños limpios, parcelas amplias con electricidad , quincho con mesas y bancos , parrillas bajo techo, El Rio esta cruzando la calle!",
         "Camping Santa Fe ,Santa Rosa de Calamuchita, Córdoba, 14,000 por persona 8000 la camioneta y la rodante ,lindo parque de facil acceso ,arboleda abundante ,posee WiFi, baños amplios limpios agua caliente las 24 hs,salon con mesas parrillas piletas de lavado, por si llueve, frente al río<br>Recomendable rodanteros",
-        "El camping superó por lejos nuestras expectativas.<br>El lugar es muy cómodo para ir en carpa, las parcelas son bastante grandes, todas cuentan con tomacorrientes y están cerca de los baños, quincho, merendero, etc.<br>La proveeduría bastante completa y precios accesibles.<br>Los costos para quedarse también bastante accesible para quedarse unos días.<br>Se encuentra exactamente frente al río y a una cuadra tenés una ferretería por si te falta algo de equipamiento para camping.<br>El dueño muy buena atención y buena predisposición para todo, agua caliente las 24hs.<br>La ubicación es un punto muy a favor, queda cerca de muchos balnearios y pueblos aledaños para ir a conocer.<br>Sin duda, volveremos para vacaciones posteriores!"
+        "El camping superó por lejos nuestras expectativas.<br>El lugar es muy cómodo para ir en carpa, las parcelas son bastante grandes, todas cuentan con tomacorrientes y están cerca de los baños, quincho, merendero, etc.<br>La proveeduría bastante completa y precios accesibles.<br>Los costos para quedarse también bastante accesible para quedarse unos días.<br>Se encuentra exactamente frente al río y a una cuadra tenés una ferretería por si te falta algo de equipamiento para camping.<br>El dueño muy buena atención y buena predisposición para todo, agua caliente las 24hs.<br>La ubicación es un punto muy a favor, queda cerca de muchos balnearios y pueblos aledaños para ir a conocer.<br>Sin duda, volveremos para vacaciones posteriores!",
+        "Bajada al rio, baños excelentes, duchas y agua caliente de 1930 a 22 hs, proveduria muy completa a precios razonables y un ambiente de paz para el disfrute pleno.",
+        "Tiene una proveeduría súper completa, con mercadería variada, bebidas con y sin alcohol, hielo y prácticamente todo lo que te pueda faltar o te hayas olvidado, también incluye comidas preparadas, como pizzas,pastas<br>Milanesas o algún que otro menú con un<br>Valor promedio de $14.000<br>También algo de carnes crudas.<br>También cuenta con 3 clases de desayunos a un precio promedio de $7000 por persona.<br>Cuenta con un gran salón con mesas y sillas tipo quincho, con asador cubierto de uso gral y de gran tamaño.<br>El quincho es de muy buena capacidad, con Tomás corriente para la carga de celulares, luces de emergencia etc.<br>Cuenta con un balcón, todo en madera, con mesas, sillas y sombrilla con una vista hacia las montañas y el río increíbles.<br>La zona de quincho es muy amplia y de Gran prolijidad, toda la vera del río.<br>En la zona de acampe no hay luz ni Tomás corriente.<br>Deberán llevarse luces de emergencia o algún tipo de iluminación.<br>Los asadores no tienen parrilla así que<br>Tienen que llevarse la propia.<br>El río es una belleza con zonas de arena, piedra, con ollas profundas y zonas de playa y bastante amplia.<br>Algo muy importante es el wi-fi de muy buena velocidad en la zona del quincho.<br>También en la misma zona encontramos zonas de juego canchas de bochas metegol y algún que otro entretenimiento.<br>Abonamos aproximadamente 17000 pesos por persona afines de febrero.<br>En la zona de camping hay iluminación solar.<br>Es extremadamente tranquilo en la fecha de febrero que fuimos, nadie molestó con musica ni ruidos raros, solo sonidos de la naturaleza.<br>Ese fin de semana tuvimos la suerte de poder participar en un curso<br>de preparacion de  SUSHI con un chef especialista, totalmente gratis.<br>Cuenta también con cabañas de diferentes capacidades.<br>Mucha sombra, parcelas con quincho y sin, todo al mismo precio.<br>Los baños son un lujo en dónde están siempre impecables de limpio.<br>La presión y temperatura caliente de las duchas es espectacular.<br>El agua caliente en los baños es de 19 a 23hs de la noche.<br>Cabe destacar la tremenda atención y amabilidad de sus propietarios.<br>El lugar es un sueño de mucha tranquilidad y muy recomendable para el que desea descansar y disfrutar de la naturaleza, se los súper recomiendo.<br>Quiero agradecer a todo el equipo de trabajo del camping por hacernos pasar una espléndida estadía.<br>Volveremos.",
+        "Nos quedamos 4 días en el camping Éramos 4 personas en dos carpas, y ocupamos dos parcelas con techo, algo muy cómodo para armar campamento.<br>El río pasa por el mismo camping, lo que lo hace ideal para caminarlo y encontrar pequeñas playitas donde pasar el día tranquilos.<br>La proveeduría es muy completa y además funciona como restaurante.",
+        "El rio excelente y unos cajones mejores todavia a 20 min de caminata.",
+        "Estuvimo en motorhome,el lugar tiene sombra y esta preparado con tomas de corrientes ,asadores ,iluminado.Todo muy prolijo y cuidado.<br>Pileta mediana con mesitas y sillas para desayunar  o merendar.<br>A metros del rio,solo cruzar la calle.Excelente recepción de su dueño.<br>Volvería siempre.",
+        "Muy buen complejo, ubicado frente al río Reartes.",
+        "Hermoso camping y tranquilo, cuenta con bajada al río, duchas y baños limpios y cómodos!",
+        "Bien ubicado, al frente del río.",
+        "Excelente atención, baños con ducha simples y limpias, lugar para lavar ropa, heladera a pública (solo para alimentos), parrilleros y mesas frente al río, electricidad para cargar teléfono gratis (si es para una resistencia o pava eléctrica se cobra aparte)",
+        "El pueblito es muy pintoresco y tiene un río que lo rodea.",
+        "Tienen parrilla, quincho, una viste preciosa y el río a pasitos.",
+        "Desde el lugar bien agreste, la atención de su dueño Roger y su familia, todo es perfecto, muy muy recomendable, ya van 2 años seguidos que voy a ese paraíso, no se pierdan caminar hasta el río 👏🫶",
+        "Lo bueno: Camping ubicado cerca del rio y del centro.",
+        "Si hay poca gente están limpios, pero con el correr de los días nadie jamás vino a limpiarlos (estuvimos 6 dias)<br>Espacio de acampe: pequeño, arbolado pero lejos de la bajada del río pública.<br>Quincho: tiene mesas y enchufes funcionales.",
+        "Está al frente del río, tiene una buena ubicación ya que se encuentra a unas pocas cuadras del centro del pueblo.",
+        "Muy lindo camping, queda muy cerca del río Los Reartes.",
+        "Los baños super limpios, agua caliente!<br>A metros del río y de un supermercado.",
+        "Espectacular el camping muy limpio y muy prolijo.<br>La atención de primera.<br>La ubicación excelente, a una cuadra del rio<br>La frutilla de la torta....los masajes, manos magicas<br>Volvería sin dudarlo",
+        "Cerquita del río.",
+        "Siempre atentos a todo, haciéndote sentir comoda.<br>Viajé sola con mi carpa y mochila, desde que llegué me cuidaron.<br>El lugar está rodeado de verde y animales, un sueño.<br>Ideal para quienes no quieren estar muy lejos del centro de Cosquin pero si desconectar de la ciudad.<br>Tenes provedurías cerca y salida al rio!<br>Un abrazo grande para ellos, siempre recuerdo el lugar con mucho cariño.",
+        "Camping ordenando limpido y a muy buen precio .<br>Esta a 3 cuadras del rio el balneario muy lindo .<br>Los sueños vivendo en el lugar y son super amables.",
+        "A metros del río",
+        "El rio enfrente.",
+        "Es un camping y balneario a orillas del Río Yuspe.",
+        "Hermoso lugar, bien mantenido y limpio, el río y la sombra son lo mejor.",
+        "A favor: •baños y lugares comunes siempre limpios<br>•quincho super completo con mesas, sillas, parrillas, heladeras, cocina, etc.<br>•hay wifi y funciona bien<br>•queda muy cerca del centro, 10 minutos caminando aprox<br>•enfrente tenes el rio<br>•es económico<br><br>En contra: •las parrillas distribuidas por el predio son muy pocas<br>•supuestamente tiene agua caliente las 24 horas pero yo me bañe por la mañana y el agua salia tibia tirando a fria<br>•si bien hay proveduria, tiene MUY pocas cosas.<br>•el trato es cordial pero no te muestran el camping cuando llegas ni te dicen donde estan las cosas ni te aclaran el horario de la proveduria ni nada.<br>•en mi caso me desaparecieron un par de zapatillas de la carpa y no se mostraron muy predispuestos a ayudarme con el tema pero bueno, no pasa nada.<br><br>En conclusión, en líneas generales está bien pero creo que es un camping para pasar no mas de 3 noches.",
+        "Cruzas la calle y tenes el rio.",
+        "Excelente ubicacion junto al río y cerca del centro y la plaza.",
+        "Cerca del río.",
+        "Muy lindo ,óptima limpieza, agradable el ambiente muy buena atención ,  linda ubicación con acceso al río y comercios",
+        "Un lugar tranquilo para pasar el dia.<br>Parrilla y mesitas.<br>Te podes meter al río siempre con precaución .",
+        "Estuvimos 10 minutos en el río para conocer lugar.",
+        "Lugar hermoso para hacer un parate y refrescarte en el río",
+        "Magnífica experiencia para estar en contacto con la naturaleza y el río Cosquín",
+        "Lugar ideal para descansar y relajarse frente al río.",
+        "Excelente ubicación por la cercanía con el río.",
+        "Pudimos hacer ejercicios al aire libre, en el rio y tambien adentro junto al hogar.",
+        "A media cuadra esta el Rio y re céntrico!",
+        "Siempre estaba cuidando todo y atendiendo con un matecito en mano para compartir...<br>Nos sentimos muy cómodos.<br>Además está ubicado a una cuadra del Río.",
+        "Es un camping muy tranquilo ya que es pequeño y bien ubicado, a metros del río.",
+        "Muchos chetos, pero estaba piola a un lado del rio",
+        "Excelente lugar, rio con partes bajas para los niños y ollas para los adultos..",
+        "Tiene río con playitas de arena y unas ollas de agua cristalina hermosísimas.",
+        "Lleven todo desde casa.<br><br>100% recomendable si buscás desconectar, río y naturaleza.",
+        "Hermoso el predio, la bajada al río.",
+        "El lugar maravilloso frente al río.",
+        "Tiene bajada al rio, en ese lugar hay parrilla para que te puedas hacer un asadito, es más hasta me prestaron parrilla.",
+        "Los baños son funcionales y lo mejor es la salida al río directa.",
+        "Con bajada al rio.",
+        "Agua sucia, igual que el rio, porque se llena con el agua del río",
+        "Atención cordial ,muy amables ,baños limpios,las parcelas no son muy grandes , el precio es un poco más caro que otros campings de la zona , igual muy recomendable estás pegado al río que es muy bello",
+        "No tienen wifi.<br>El camping tiene bajada al río y a la base del uritorco.",
+        "hermosa la bajada al río y víctor muy atento",
+        "A 20 metros del rio.",
+        "El rio es pequeño pero muy lindo para descansar",
+        "Nos encantó ya iremos toda la flia a disfrutar del río , pileta de todo ese lugar<br>!!",
+        "Muy lindas piletas en el complejo, además de pasar el río a metros de las cabañas, el lugar cuenta con proveeduria y todos los servicios; ideal para la familia, tranquilo y seguro.",
+        "Hermoso camping, muy lindo la bajada al rio y las personas muy amables, el unico detalle es la falta de cuidado del lugar, falta cortar algo el cesped pero nada mas que eso.<br>Cuenta con un monton de comodidades, ducha caliente, habitaciones para alquilar, proveduria,asadores, pileta,etc.",
+        "Bien cuidado los espacios comunes y sector para acampar, baños en buen estado.<br>Acceso fácil al río.",
+        "Hermoso!<br>Daniel nos atendió súper bien y siempre estuvo atento a lo que necesitábamos, nos recibió con 3 perritos que para nosotros es súper importante, las parcelas súper cómodas y con bajada al río, él está muy bien mantenido y limpio.<br>Los baños limpios y con agua caliente las 24hs.<br>Si continúan caminando por la calle al final tienen el ingreso a un trekking hermoso y bien conectado con la naturaleza.<br>Y si vuelven hacia el ingreso tienen el acceso a la base del cerro uritorco.<br>Muy cómoda la ubicación<br>Volveremos sin duda",
+        "Apreciar el Rio Tabaquillo es perfecto como plancito",
+        "Hermoso lugar para disfrutar ...lindo el río agua cristalina linda playita de arena , senderos para caminar , mesas , fogones ,baños un paisaje bellísimo que da lugar a disfrutar como a uno más le guste , un lugar seguro con procedería y restaurant .",
+        "El propio dueño te hace el recorrido<br>🏝️ El rio es súper apto para ir con niños ya que tenés mucha zona playiya y ollas más hondas de hasta dos metros para adultos.<br>🙋‍♀️LA ATENCIÓN UN 1000, SUPER AMABLES,.",
+        "Un lugar con mucha paz, el río al lado del Dpto que alquilamos, para bajar y comerse las medialunas recién horneadas más ricas del mundo!!!",
+        "El complejo ( parque) muy lindo mucho verde y cómoda bajada al río ( cercanía), puntos en contra mucha oscuridad en la zona de acampe y los vestuarios muy abandonados",
+        "Fuimos a pasar el dia, el lugar es amplio, estacionamiento con sombra, los baños son en un container..<br>tiene la bajada al rio cerca",
+        "Pegado a umepay y muy cerquita del Rio Grande.",
+        "El hostel está rodeado de un paisaje increíble, con un arroyo que pasa al lado y senderos que llevan al cerro, caminos al río Tabaquillo y al río Grande.",
+        "los dormís y cabañas son muy confortable una vista expectacular inolvidable y un río que es una maravilla de las cierras de Córdoba muy muy recomendable y la atención es genia y se come Genial",
+        "El lugar es superior tranqui, el.rio espectacular.",
+        "El espacio para el camping es muy lindo, con salida al río y apto mascotas.",
+        "Lo mejor de todo es el precio y el río es único!",
+        "Un lugar único por su belleza natural.<br>Rio increíble de aguas claras y pozones profundos rodeado de pinos y vegetación nativa.<br>Recomiendo alojarse en Casa de montaña Malaika con todas las comodidades, mini piscina con vista bellísima junto al rio del Durazno.",
+        "Hermoso lugar , nos hospedamos en una de las cabañas , lugar súper tranquilo, acogedor , con bajada propia  al río , tenés unas hermosas vistas , si sos amante del cielo y la naturaleza en si la vas a pasar súper bien !!",
+        "Desde las increíbles vistas, los aromas, la vegetación, el río..",
+        "El mejor río de Córdoba<br>Mucha naturaleza y muy buena atención<br>Amplio espacio para carpas",
+        "El rio tiene muchos lugares para meterse.",
+        "Un paraíso, super tranquilo y se puede acampar a la orilla del río, los baños sumamente limpios, conoletos, nuevos y cuidados.",
+        "Un paraíso el lugar y el río...",
+        "El camping esta pegado al rio, tiene una vista maravillosa de las sierras, también hay un proveeduría en el lugar.",
+        "Fuimos a pasar el finde para desconectarnos un poco de Capital, y la verdad que lo conseguimos.<br>Logré dormir bien por primera vez en semanas.<br>Es un camping fuera de lo común, te imaginas un camping y pensas en parcelas delimitadas, baños dudosos, un río con gente...",
+        "Es un espacio hermoso para disfrutar de la naturaleza, de calma y paz.<br>Hay todo lo necesario para pasar momentos amenos: cabañas, asadores, piscina, río y cascadas.",
+        "Además tiene bajada propia al rio y balneario los elefantes.",
+        "Este fue el 3er año que voy al mismo camping, muy bien las parcelas, siempre hay agua caliente y limpieza en los baños, muy buena atención de las personas del lugar, proveeduría y hermosa bajada al río.",
+        "La limpieza de los baños un espectáculo, la proveeduría tiene todo lo esencial, la bajada al río muy buena!<br>Obviamente está más que claro que próximos años volveremos al mismo lugar!<br>Desde ya, muchas gracias por leer y gracias a la gente del campig por su compromiso con los huéspedes.",
+        "Esta a unas cuadras del centro y a unas cuadras de la terminal a un paso del río  todo cerca",
+        "Hay que cruzar el camping y llegar al río antes de tomar a la izquierda !<br>La mujer que nos cobraron nos ha dejado salir en la mala dirrección...",
+        "Quizas hay que intentar al camping Chincal al lado (no conozco pero es cerca del río también entonces seguro que hay acceso en el camino que remonta el río pero no sé si cobran por allá)",
+        "Hermoso camping a orillas del rio.",
+        "Desde mi experiencia, no lo recomiendo.<br><br>Lo que es naturaleza, el río y toda esa zona es hermosísima, solo que si queres acampar te recomiendo que lo hagas en el monte o en otro lugar, pero no en ese camping, que lo único que rescato de bueno es el queso de cabra que hacen ahí, y nada más.",
+        "Es para conectar con la naturaleza y disfrutar de un río hermoso.",
+        "Incluso alguna que otra vaca.<br><br>Es de fácil acceso, con un par de cuadras de tierra bordeando el río.<br>Queda cercano al balneareo Los Elefantes.<br><br>El barrio cuenta con una pileta comunitaria, amplia, limpia y excelentemente mantenida.<br>Recomendable para amigos y familia.",
+        "La caminate es al costado del río.",
+        "No pudimos llegar más adelante porq tendríamos q haber llevado un calzado para cambiarnos, ya que hay partes q pasas por piedras en el rio para cruzar de un lugar a otro.",
+        "Visitamos el lugar el 15/02/26 por la tarde, muy buena atención, en el lugar hay proveeduría, baños, pileta y venden una tarta de peras casera espectacular, hay mas cosas, pero probamos eso después de la caminata por el río.<br>El acceso a Los Paredones es bastante sencillo, la caminata es de intensidad baja, solo hay que tener un poco de cuidado donde se pisa para evitar caídas.<br>Cuando llegas te dicen por donde ir, solo seguir el Río Seco hasta  donde se cruza con el San Marcos y el Calabalumba.<br>Al llegar ahi el paisaje es increíble, paisaje puro para donde uno mire, el agua es muy cálida y lo ideal es ir con tiempo porque no dan ganas de irse del lugar.<br>El complejo es atendido por sus dueños, que son muy amables, si queres hacer un asadito en el lugar te traen la leña, si andas sin auto te llevan hasta Capilla por una módica suma y la entrada al lugar es a voluntad....<br>Volveremos con mas tiempo a pasar unos dias en el lugar.",
+        "el quebradeño es el lugar más mágico que existe en el mundo, no hay nada comparado a despertarse en ese lugar y estar con gente tan mágica y al lado del río.",
+        "siempre que voy a Córdoba termino en el quebradeño, poder despertarme y bajar al río y que este también tan cerca del centro, lo +++ cómodo, la gente también es hermosa ojalá puedan tener la oportunidad de pasar!",
+        "El complejo tiene muy buena ubicación (cerca de comercios y rio), tiene todas las comodidades, tiene una pileta hermosa aire acondicionado, tele, ducha que funciona muy bien y estacionamiento techado, y asador su dueña es muy amable.",
+        "Bello paisajes enclavados en un cañón  con todo tipo de vegetación corre un río bastante limpio   pero para llegar es bastante complicado y más si no se está en forma, demasiadas subidas",
+        "Frente a este tenes varios negocios para abastecerse y a media cuadra del río panaholma.",
+        "Hermoso paisaje, tiene bajada al río y de ahí se puede llegar a la Toma.",
+        "Hermoso camping con vista a las sierras y bajada al Río con su propia playita.<br>Las parcelas respetan el entorno natural, cada una con su parrilla, mesa de piedra  y su toma de luz.",
+        "Tiene una vista espectacular de las cierras y una bajada exclusiva al río Nono chico con playa.",
+        "Camping con muy buena ubicación para disfrutar de la naturaleza, el río y las sierras.",
+        "hermoso camping con bajada al río!<br>vistas muy lindas de los cerros también<br>el lugar es súper lindo, muy bien cuidado<br>tienen buenas duchas, baños limpios, proveeduria (sobre todo cosas para comer y tomar y algunos que otros artículos de limpieza)<br>hay una heladera comunitaria para guardar cosas, parrillas individuales o comunitaria en el quincho<br>hay wifi solo en una zona específica que es en la entrada pero funciona súper para la necesidad<br>muy buena atención del equipo!<br>destacamos a Aníbal q nos recibió con toda la onda!<br>precios acordes a los campings de Córdoba en general y tienen un descuento en efectivo",
+        "Es la tercera vez que vamos con mi pareja, a acampar, la atención de Dani y su marido excelente muy serviciales, hacen comidas super accesibles y abundantes, los baños limpios, y tienen duchas con agua caliente a partir de las 18hs aproximadamente, las bajadas al río son excelentes, hay para todos los gustos, tenes la bajada con poca agua ideal para niños, y si seguís por el costado del río hay un camino que te lleva a unas ollas tremendas, y un plus es que no lo dejan llenar tanto de gente, lo super recomiendo, volveremos sin dudas!!",
+        "Lugar tranquilo (no se puede escuchar musica), se cierra con un número limitado de familias para evitar amontonamiento, lindo río y paisaje",
+        "Además de la zona que es muy linda con el rio anisacate, es económico y nos trataron muy bien.",
+        "Ubicación y bajada al río espectacular.",
+        "Cantina con precios y descuentos siempre hay d todo muy variada la carta todos atienden muy bien , además estás a dos min d la plaza centenario , a cinco minutos d mina clavero el centro , a dos cuadras el rio balneario los cedros , hermoso lugar lo súper recomiendo",
+        "Vista privilegiada a las sierras, tiene senderos bien marcados para bajar al río.",
+        "Recomendación ir con ganas de acampar y hacer los trekking al río, tiene lugares muy buenos , al ser poco concurrido también le da tranquilidad al lugar.",
+        "Si pensás en algo de comodidad es tu lugar, lejos del bullicio urbano!<br>Del mismo camping salen zarpadas  caminatas al rio, también a una capilla centenaria y hasta al famoso camino del Empedrado.<br>Plus, Luciana y Manu te atienden de primera con una buena onda que te levanta el ánimo aunque llueva 😉.<br>Super recomendable!!!!<br>Pd: conozcan a los Salchichas y Mogul 😁",
+        "El camping es hermoso, tranquilo y con 3 senderos de 30 minutos para llegar al río.",
+        "Las ollas del río son las más lindas de todo Córdoba.",
+        "Se los recomiendo, cerca del río y  el centro.",
+        "Nos metimos por los senderos y nos ubicamos enfrente del rio, pero el tema fue que en un momento se pone enfrente un hombre con una lanza, el estaba cazando (algo que esta prohibido) pero ademas, se quedo mirándonos enfrente de nosotros.",
+        "Repito, estábamos solos y había mucho espacio en el rio.",
+        "Limpio y familiar.<br>Hacia el canto izquierdo hermosos piletones de río, Río Quilpo, piedras, mesones al borde del río, arena.<br>La familia del lugar cuida y protege las tierras de generacion en generación.<br>Gracias Tío Rico!",
+        "Lo mejor para parar a orillas del río Quilpo.",
+        "Estuvimos dos noches y el camping es precioso, la zona del rio ahi es de ensueño.<br>En la parte principal del camping el agua es baja y se arman piletitas para relajarse, ya a unos metros caminando esta la segunda pileta para nadar( hay tres).",
+        "El agua transparente con el color de rio que caracteriza cordoba.",
+        "A la vera del rio hay mucho verde para poder tirar reposeras y pasar la tarde en el pasto.",
+        "Te podés bañar en el río y disfrutar de un paisaje hermoso.",
+        "Todavia estaba cerrado...abre en diciembre<br>Hermoso lugar sobre costa del rio...",
+        "esta bueno el predio, es amplio y la ubicación en frente del rio esta excelente.",
+        "Hermoso camping, grande y bien cuidado!<br>La bajada al río es muy linda y la playa es enorme, ideal para ir con niños ya que no es profundo e incluso se puede cruzar de un lado al otro caminando.<br>Lo que no me gustó fueron las duchas muy oscuras, las paredes con bichos, telarañas e incluso sucias con marcas de hace tiempo.<br>Por ultimo la falta de cestos de basura en el camping, el único lugar donde hay es donde estas las canillas de lavado y los baños.",
+        "Lo bueno del camping es lo frondoso de su vegetación, y que tiene bajada al río.<br>Falta luz en los baños, y en casi todo el camping, si vas fuera de temporada está siempre apagadas.",
+        "Excelente lugar con bajada al río ..",
+        "Un predio muy  amplio, con mucha sombra y bajada al río.",
+        "El lugar es hermoso, está al lado del Rio de los Sauces, el predio es enorme y es muy seguro.",
+        "La zona de río sigo eligiendo para el lado de ocho cruz o cuesta blanca.",
+        "tiene muy buenas instalaciones y bajada al rio",
+        "Fuimos en los primeros dias de mayo ya fuera de temporada eramos solo 2 familias en el lugar pero hubo buena atención, precios accesibles,baños limpios.<br>Agua caliente a partir de las 16 hs .<br>Frente al Río Sauces así que una ubicación genial!!!",
+        "Buen lugar tranquilo muy grande<br>Los baños limpios, fuera de temporada la prooveduría esta cerrada<br>Podes lavar ropa<br>Cruzando la calle tenesel río los sauces con playas amplias",
+        "Muy lindo lugar.<br>Mucha tranquilidad y naturaleza.<br>Cuenta con asadores y mesas, no muchos pero suficientes<br>Para tomar unos mates al lado del río es fenomenal.",
+        "Muy buena onda de Estela la dueña.<br>Cerca de las bajadas al río,buenos asadores y una ducha súper caliente que te relaja todo el cuerpo.",
+        "Buen camping , barato sobre todo más que el estacionamiento de la municipalidad, con baños y proveeduria… cerca del río",
+        "Bajamos al río de Anisacate, que se encuentra a pocos minutos; muy lindo también.",
+        "🌿 ¡Un lugar hermoso para desconectar y disfrutar de la naturaleza!<br>Visitamos el Camping Río Ascochinga y la verdad es que nos encantó.",
+        "Un lugar súper tranquilo, rodeado de árboles enormes que dan muchísima sombra y hacen que, incluso en los días de calor, se esté muy fresco.<br>El río es precioso, ideal para pasar el día, refrescarse y disfrutar en familia.",
+        "Hermoso el lugar y pude acampar al lado del río.",
+        "Hermoso camping  con sombra, asadores, sillas, bajada al rio cerca.<br>Baños super limpios, con duchas.<br>Cobran por persona $10 mil .",
+        "La bajada al río es muy linda, tiene pocas partes profundas y algunos lugares con sombra",
+        "El lugar es re lindo, tenes la bajada directo al río lo unico malo es que está en la punta de cabalango y el ultimo tramo para llegar esta horrible ni hablar si llueve.",
+        "Tambien tiene cancha de beach voley y paddle.<br>Una pileta muy linda…<br>La bajada al río es una..pero la playa de arena , invita a que todos se distribuyan y evita el amontonamiento.<br>La Proveeduria tiene todo lo necesario y a precios normales.",
+        "Tiene proveduria y los precios son accesibles, tiene pileta y un río al final del camping.",
+        "Bajada al rio los sauces , pileta , canchas de fútbol , voley  espacios comunes techados y mesas.",
+        "Naturaleza pura<br>Hay señal, hay rio y pueblo cerca.",
+        "Pasamos con el auto, día anterior llovió, rio crecido, queríamos ver si se podía comer un asado, vimos que estaban personas 2 donde nadie salió, nos quedamos empantanados y solos purismo sacar el auto.",
+        "es un lugar muy lindo, lástima el trato para con la gente que anda por el río, tratan muy mal a los turistas que caminan por la orilla del río, les dicen que sí o sí tienen que pagar para pasar !!!",
+        "Se creen dueños de la rivera del río !!!<br>Unos delincuentes que no saben de leyes !!!!",
+        "Hermoso rio !",
+        "Hermoso y muy cordial,<br>Proveeduría y Precios muy muy razonables, arboleda asadores y un río de los mejores<br>No te vas a arrepentir de visitarlo,",
+        "Lindo lugar para conocer entre Characato y La Candelaria sobre el río Avalos.",
+        "Bebidas frescas, picadas, bajada al río y la mejor atención.",
+        "Estaría bueno mejorar ese punto.<br>La proveeduría tiene comida casera muy rica.<br>Muy buena atención de todo el personal.<br>Salida al río directa desde el camping.<br>Asadores con sus parrillas y piletita.<br>Quincho por llueve, agua caliente en las duchas, el piso nivelado para los motor home,  todo de diez.<br>Gracias por unos días hermosos.",
+        "Exelente lugar con churrasqueras , mesas bajada al rio Panaholma  .",
+        "pegado al río.",
+        "Esta sobre el río.",
+        "muy buen camping, sobe la costa del rio, increible",
+        "Agreste, natural, con hermosa bajada al río, donde solo se escucha el canto de los pájaros.",
+        "Los dueños son muy amables y la bajada al rio es espectacular.",
+        "El mejor camping del valle de Calamuchita !!!, un ambiente mágico , tiene cancha de fútbol y voley , baños muy limpios , los dueños recontra buena onda , y la estrella del camping es el río !",
+        "El río espectacular.",
+        "Fuimos un día cualquiera y estaba limpio y pasamos una hermosa tarde a la orilla de éste hermoso río",
+        "Muy lindo lugar Serca del rio, todas las comodidades, exelente el servicio, muy buena la gente, los baños muy buena igiene, un lugar donde volvería a ir, muy contento",
+        "La bajada al río es una belleza !!",
+        "Excelente lugar para descansar rodeado de vegetación al lado del rio Anizacate",
+        "Los baños y duchas impecables en todo momento, las parcelas están bajo techo y no entra una gota de agua, bajada al río limpia, lugar para el auto techado, bufet, parrilleros individuales y la atención de Sandra y Gustavo de la mejor.",
+        "Bajada al río.",
+        "Tiene acceso al rio; Cuenta con despensa, parrillero individual, baños impecables,agua caliente, electricidad, luz individual y el área para acampar es techada; realmente muy muy lindo, 100% recomendable!!!",
+        "La verdad nos quedamos encantados con el lugar hermoso ,limpio súper cómodo y completo,bajada al rio ...",
+        "bien prolijito el lugar pasamos 2 noches buena atencion, podrian mejorar el mantenimiento de la pileta pero esta es estupenda, tamaño para natacion, la bajada al rio es ahi nomas",
+        "Tiene bajada al río.",
+        "Pile hermosa, rio al pie del lugar y procedería, que más!",
+        "Lindo espacio con áreas verdes, acceso al río, parrillas, baños, lamentablemente no hay duchas ni electricidad para cargar dispositivos, tampoco se reciclan lo cuál es algo a reveer ya que estamos en el 2024 y se están desaprovechando muchos recursos.",
+        "Cerca de la plaza y del río.",
+        "Hermoso lugar para pasar el día.<br>Especial para ir familia con niños pequeños, el lugar se presta para que estén jugando en el río o paseando por la zona.<br>Mucha sombra y árboles para disfrutar de la natruraleza.<br>El lugar está muy limpio, los baños también.",
+        "Muy limpio y el río es exelente.",
+        "TE DIVIDEN EL CAMPING DEL RÍO PARA COBRAR DOBLE Y DESPUES.",
+        "Y para el verano muy lindo para disfrutar el río, el espacio es muy amplio con lugar de mesas con bancos y churrasquera, los baños amplios y con duchas muy lindos,.",
+        "Hermoso el lugar para ir x un día a bañarse en el río",
+        "Porque salís de la pileta o venís del rio, te queres bañar y tenés que esperar mucho.",
+        "Bello Río Quilpo.",
+        "El agua es bastante turbia y sucia , hay muchos carteles de q el río es peligroso.<br>El lindo para meditar al sol y tomar unos antes en el pasto en otoño",
+        "El río es fácil de llegar, las ollas son profundas, hay carteles aclarando qué son aguas profundas, pero tiene lugar playos para disfrutar",
+        "Esta a dos cuadras del río.",
+        "Buena atención y precio acorde, frente al río",
+        "Al lado del río .( Balneario fantaseo).",
+        "Yo llame para consultar y me atendieron rápido.<br>Es muy lindo camping, frente al balneario y con ruido de Río todo el día.",
+        "Es maravilloso levantarse frente al río.<br>Los Baños son aceptables para lo que sale el camping, y el agua caliente de la ducha sale bien.<br>Hay parrillas y leña para hacer fuego.<br>Mención especial para los muchachos del camping, Matias y Ezequiel, que son muy atentos y buena onda.",
+        "Es un lugar seguro para dejar las cosas y pasar el día en el río.",
+        "Muy bueno con salida al río hermoso,baños limpios 7mil x persona me pareció bien",
+        "Muy lindo, los baños limpios, el río muy lindo todo lindo el mejor camping",
+        "Acceso al río.",
+        "Bajada al río.",
+        "Limpio, hermosa bajada al rio."
       ],
       "variants": {
         "rio": {
-          "count": 542,
+          "count": 751,
           "score": 100.0
         }
       }
