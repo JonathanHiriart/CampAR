@@ -887,46 +887,16 @@ def fetch_google_maps_via_apify(
                 logger.error("Error descargando items del dataset %s: %s", run_dataset_id, exc)
                 return []
 
-    # Caso B: Fallback sincrónico
-    if token:
-        logger.info(
-            "Iniciando ejecución sincrónica de compass/crawler-google-places con %d queries...",
-            len(search_queries),
-        )
-        run_url = "https://api.apify.com/v2/acts/compass~crawler-google-places/run-sync-get-dataset-items"
-        payload = {
-            "searchStringsArray": search_queries,
-            "maxCrawledPlacesPerSearch": max_crawled_places_per_search,
-            "maxReviews": max_reviews,
-            "language": "es",
-        }
-        try:
-            data_bytes = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                run_url,
-                data=data_bytes,
-                headers={
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "Authorization": f"Bearer {token}",
-                },
-            )
-            with urllib.request.urlopen(req, timeout=300) as resp:
-                if resp.status in (200, 201):
-                    raw_items = json.loads(resp.read().decode("utf-8"))
-                    logger.info("Actor Apify finalizado con éxito: %d lugares obtenidos.", len(raw_items))
-                    return raw_items
-        except Exception as e:
-            logger.error("Error ejecutando actor Apify compass/crawler-google-places: %s", e)
-            return []
-
     return []
 
 
-def load_apify_gmaps_json(json_path: str | Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def load_apify_gmaps_json(
+    json_path: str | Path,
+    localities: list[dict[str, Any]] | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Carga y procesa un archivo JSON exportado manualmente desde Apify Console.
 
-    Retorna una tupla (lugares, reseñas_individuales).
+    Reutiliza `parse_raw_gmaps_items` y retorna `(lugares, reseñas_individuales)`.
     """
     path = Path(json_path)
     if not path.exists():
@@ -940,60 +910,14 @@ def load_apify_gmaps_json(json_path: str | Path) -> tuple[list[dict[str, Any]], 
         logger.error("Error abriendo archivo JSON de Apify %s: %s", path, e)
         return ([], [])
 
-    items: list[dict[str, Any]] = []
     if isinstance(raw_data, list):
         items = raw_data
     elif isinstance(raw_data, dict):
         items = raw_data.get("items") or raw_data.get("data") or [raw_data]
+    else:
+        items = []
 
-    places: list[dict[str, Any]] = []
-    reviews: list[dict[str, Any]] = []
-
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-
-        place_title = item.get("title") or item.get("name") or "Camping sin nombre"
-        place_id = item.get("placeId") or item.get("cid") or item.get("dataId") or place_title
-        city = item.get("city") or item.get("address") or ""
-        valley = "Valle de Calamuchita" if "calamuchita" in city.lower() or "calamuchita" in place_title.lower() else "Valle de Punilla"
-
-        place_entry = {
-            "place_id": place_id,
-            "nombre_camping": place_title,
-            "localidad_raw": city,
-            "valle_corredor": valley,
-            "total_score": item.get("totalScore") or item.get("rating"),
-            "reviews_count": item.get("reviewsCount"),
-            "reviews_distribution": item.get("reviewsDistribution", {}),
-            "url": item.get("url"),
-        }
-        places.append(place_entry)
-
-        # Extraer reseñas
-        item_reviews = item.get("reviews") or item.get("reviewsData") or []
-        for r in item_reviews:
-            if not isinstance(r, dict):
-                continue
-            r_text = r.get("text") or r.get("textTranslated") or ""
-            if not r_text:
-                continue
-
-            r_id = r.get("id") or r.get("reviewId") or f"REV-{len(reviews)+1:04d}"
-            r_stars = r.get("stars") or r.get("rating")
-            r_date = r.get("publishedAtDate") or r.get("date")
-
-            reviews.append({
-                "id_review": r_id,
-                "place_id": place_id,
-                "nombre_camping": place_title,
-                "valle_corredor": valley,
-                "localidad_raw": city,
-                "estrellas_rating": r_stars,
-                "fecha_reseña": r_date,
-                "texto_reseña": r_text,
-            })
-
+    places, reviews = parse_raw_gmaps_items(items, localities=localities)
     logger.info("Cargados %d lugares y %d reseñas reales desde %s.", len(places), len(reviews), path)
     return (places, reviews)
 

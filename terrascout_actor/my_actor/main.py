@@ -15,16 +15,12 @@ Arquitectura conforme a la plantilla oficial SIC Capstone:
 from __future__ import annotations
 
 import difflib
-import json
 import logging
 import math
 import os
 import re
 import unicodedata
-import urllib.error
-import urllib.request
 from collections import defaultdict
-from pathlib import Path
 from typing import Any
 
 # Optional external dependencies with graceful fallbacks for local test environments
@@ -67,13 +63,6 @@ except ImportError:
     Actor = _MockActor()
 
 try:
-    from bs4 import BeautifulSoup
-    HAS_BS4 = True
-except ImportError:
-    HAS_BS4 = False
-    BeautifulSoup = None
-
-try:
     from rapidfuzz import fuzz, process
     HAS_RAPIDFUZZ = True
 except ImportError:
@@ -97,14 +86,14 @@ except ImportError:
         scrape_mercadolibre_valley,
     )
 
-# Import opcional del camping scraper (Author 2)
+# Import del camping scraper
 try:
-    from my_actor.camping_scraper import scrape_campings_and_gmaps
+    from my_actor.camping_scraper import scrape_all_real_campings
 except ImportError:
     try:
-        from .camping_scraper import scrape_campings_and_gmaps
+        from .camping_scraper import scrape_all_real_campings
     except ImportError:
-        scrape_campings_and_gmaps = None
+        scrape_all_real_campings = None
 
 
 # ---------------------------------------------------------------- Constantes y Expresiones Regulares
@@ -112,12 +101,6 @@ DEFAULT_THRESHOLD = 85.0
 SHORT_QUERY_LEN = 3
 SENTENCE_SPLIT = re.compile(r'(?<=[.!?])\s+')
 TOKEN_RE = re.compile(r"[^\W_]+(?:['’][^\W_]+)*")
-BLOCK_TAGS = ['p', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'section', 'article',
-              'blockquote', 'pre', 'dt', 'dd', 'tr', 'br']
-
-SUPERFICIE_RE = re.compile(
-    r'(?i)(\d+(?:[.,]\d+)?)\s*(m2|mts2|metros\s*cuadrados|mts|m²|ha|hectareas)\b'
-)
 
 SPANISH_STOP_WORDS = {
     'de', 'la', 'que', 'el', 'en', 'y', 'a', 'los', 'del', 'se', 'las', 'por', 'un', 'para',
@@ -435,44 +418,18 @@ def find_topics(
     }
 
 
-# ---------------------------------------------------------------- Extracción Live Mercado Libre
-def try_live_mercado_libre_scrape(
-    url: str,
-    max_items: int = 50,
-    valle_corredor: str = "Valle de Calamuchita",
-) -> list[dict[str, Any]]:
-    """Extrae publicaciones reales de Mercado Libre para la URL indicada sin datos sintéticos."""
-    pages = max(1, math.ceil(max_items / 48))
-    return scrape_mercadolibre_valley(
-        base_url=url,
-        valle_corredor=valle_corredor,
-        max_items=max_items,
-        max_pages=pages,
-    )
-
-
 # ---------------------------------------------------------------- Actor Main Entrypoint
 async def main() -> None:
     """Punto de entrada asíncrono para la plataforma Apify.
 
     1. Scrapes publicaciones reales de Mercado Libre Inmuebles (Calamuchita y Punilla).
-    2. Ejecuta camping_scraper para obtener reseñas turísticas (si está disponible).
+    2. Ejecuta camping_scraper para obtener campings y reseñas turísticas.
     3. Aplica RapidFuzz / SentenceIndex para evaluar servicios e infraestructura.
     4. Aplica TF-IDF + KMeans para detección de tópicos en reseñas/textos.
     5. Persiste el dataset enriquecido en Apify con CERO datos sintéticos.
     """
     async with Actor:
         actor_input = await Actor.get_input() or {}
-
-        # Reglas de negocio externas
-        rules_path = Path(__file__).resolve().parent.parent.parent / "config" / "business_rules.json"
-        config_rules: dict[str, Any] = {}
-        if rules_path.exists():
-            try:
-                with open(rules_path, encoding="utf-8") as f:
-                    config_rules = json.load(f)
-            except Exception:
-                config_rules = {}
 
         # Parámetros de extracción
         calamuchita_url = actor_input.get("calamuchita_url") or "https://inmuebles.mercadolibre.com.ar/terrenos-lotes/cordoba/calamuchita/"
@@ -481,10 +438,6 @@ async def main() -> None:
         max_items_per_valley = int(actor_input.get("max_items_per_valley") or actor_input.get("max_items", 800))
         max_pages_per_valley = int(actor_input.get("max_pages_per_valley", 20))
         apify_token_env = actor_input.get("apify_token_env") or "APIFY_TOKEN"
-        gmaps_search_queries = actor_input.get("gmaps_search_queries") or [
-            "campings en Calamuchita Córdoba",
-            "campings en Punilla Córdoba",
-        ]
 
         # Parámetros de NLP
         words = actor_input.get("words") or ["agua", "luz", "escritura", "arboleda", "asfalto", "rio"]
@@ -525,31 +478,17 @@ async def main() -> None:
 
         Actor.log.info(f"Mercado Libre: {len(ml_listings)} publicaciones reales extraídas.")
 
-        # 2. Extracción de Campings / Google Maps (Author 2 module)
-        camping_items: list[dict[str, Any]] = []
-        if scrape_campings_and_gmaps is not None:
+        # 2. Extracción de Campings / Google Maps
+        gmaps_reviews: list[dict[str, Any]] = []
+        if scrape_all_real_campings is not None:
             try:
-                Actor.log.info("Invocando camping_scraper...")
-                import inspect
-                sig = inspect.signature(scrape_campings_and_gmaps)
-                kwargs: dict[str, Any] = {}
-                if "search_queries" in sig.parameters:
-                    kwargs["search_queries"] = gmaps_search_queries
-                if "apify_token" in sig.parameters:
-                    kwargs["apify_token"] = os.getenv(apify_token_env, "")
-                elif "apify_token_env" in sig.parameters:
-                    kwargs["apify_token_env"] = apify_token_env
-
-                if inspect.iscoroutinefunction(scrape_campings_and_gmaps):
-                    c_res = await scrape_campings_and_gmaps(**kwargs)
-                else:
-                    c_res = scrape_campings_and_gmaps(**kwargs)
-
-                if isinstance(c_res, list):
-                    camping_items = c_res
-                elif isinstance(c_res, dict) and "reviews" in c_res:
-                    camping_items = c_res["reviews"]
-                Actor.log.info(f"Camping scraper finalizado: {len(camping_items)} registros.")
+                Actor.log.info("Invocando scrape_all_real_campings...")
+                c_res = scrape_all_real_campings(apify_token=os.getenv(apify_token_env, ""))
+                gmaps_reviews = c_res.get("gmaps_reviews", [])
+                Actor.log.info(
+                    f"Camping scraper finalizado: {c_res.get('total_campings', 0)} campings, "
+                    f"{len(gmaps_reviews)} reseñas Google Maps."
+                )
             except Exception as exc:
                 Actor.log.warning(f"Error ejecutando camping_scraper: {exc}")
         else:
@@ -576,11 +515,7 @@ async def main() -> None:
             enhanced_listings.append(enhanced_item)
 
         # 4. Tópicos de quejas turísticas (TF-IDF + KMeans)
-        review_sentences: list[str] = []
-        for c_item in camping_items:
-            rev_text = c_item.get("review_text") or c_item.get("texto") or c_item.get("comentario")
-            if rev_text:
-                review_sentences.append(str(rev_text))
+        review_sentences = [str(r["texto_reseña"]) for r in gmaps_reviews if r.get("texto_reseña")]
 
         sentences_for_topics = review_sentences if len(review_sentences) >= 2 else split_sentences(listing_texts)
         topics_res: dict[str, Any] = {}

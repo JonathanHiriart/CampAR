@@ -20,17 +20,19 @@
 
 ## Nodo de Extracción Real (Producto 1 — Cero Datos Dummy)
 
-* **`terrascout_actor/`**: Actor de Apify adaptado del estándar de la cátedra:
+* **`terrascout_actor/`** ([ver documentación del Actor y flujo completo](./terrascout_actor/README.md)): Actor de Apify adaptado del estándar de la cátedra:
   * [`my_actor/ml_scraper.py`](./terrascout_actor/my_actor/ml_scraper.py): Scraper paginado en vivo de **Mercado Libre Inmuebles** para Valle de Calamuchita y Valle de Punilla.
-  * [`my_actor/camping_scraper.py`](./terrascout_actor/my_actor/camping_scraper.py): Extractor en vivo de campings reales desde **OpenStreetMap Overpass API** + **SoloCampings Córdoba** y conector opcional a Google Maps vía Apify (`compass/crawler-google-places`).
-  * [`my_actor/main.py`](./terrascout_actor/my_actor/main.py): Normalización de texto, `SentenceIndex`, `fuzzy_count`, `find_topics` (`TF-IDF + KMeans`) y extracción de superficie (`re`).
-* **`src/run_scraper_node.py`**: Ejecutor CLI del pipeline completo que guarda los datos reales en `data/raw/`.
+  * [`my_actor/camping_scraper.py`](./terrascout_actor/my_actor/camping_scraper.py): Extractor en vivo de campings reales desde **OpenStreetMap Overpass API** + **SoloCampings Córdoba** y conector asincrónico a Google Maps vía Apify (`compass/crawler-google-places`).
+  * [`my_actor/main.py`](./terrascout_actor/my_actor/main.py): Normalización de texto, `SentenceIndex`, `fuzzy_count`, `find_topics` (`TF-IDF + KMeans`) y entrypoint Apify.
+* **`src/run_scraper_node.py`**: Ejecutor CLI del pipeline completo que guarda los datos reales en `data/raw/` (soporta `--gmaps-full`, `--gmaps-only`, `--nlp-only` y `--skip-ml-details`).
 * **`config/business_rules.json`**: Reglas de negocio y parámetros desacoplados del código Python (cumplimiento Auditoría Samsung 17/11).
 * **`data/`**:
-  * [`data/aux_topografia_cordoba.csv`](./data/aux_topografia_cordoba.csv): Métricas satelitales y cartográficas precalculadas por localidad (16 localidades).
+  * [`data/aux_topografia_cordoba.csv`](./data/aux_topografia_cordoba.csv): Métricas satelitales y cartográficas de referencia por localidad (16 localidades).
   * `data/raw/mercadolibre_terrenos_calamuchita_punilla_raw.csv`: 1.200 publicaciones reales de terrenos (600 Calamuchita + 600 Punilla).
-  * `data/raw/campings_zona_real_raw.csv`: 296 campings reales georreferenciados en la zona.
-  * `data/raw/topicos_nlp_real_raw.json`: Clusters TF-IDF + KMeans y menciones de servicios reales.
+  * `data/raw/campings_zona_real_raw.csv`: 288 campings reales georreferenciados (230 OSM + 58 SoloCampings).
+  * `data/raw/google_maps_campings_places_raw.csv`: 237 lugares reales de Google Maps vía Apify (`compass/crawler-google-places`).
+  * `data/raw/google_maps_campings_reviews_raw.csv`: 1.754 reseñas reales de Google Maps vía Apify.
+  * `data/raw/topicos_nlp_real_raw.json`: Clusters TF-IDF + KMeans (`topics` + `topics_quejas_gmaps`) y menciones de servicios reales.
 
 ---
 
