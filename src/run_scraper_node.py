@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import sys
+import urllib.parse
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -33,7 +34,10 @@ from terrascout_actor.my_actor.main import (
     fuzzy_count,
     split_sentences,
 )
-from terrascout_actor.my_actor.ml_scraper import scrape_all_mercadolibre_valleys
+from terrascout_actor.my_actor.ml_scraper import (
+    enrich_listings_with_details,
+    scrape_all_mercadolibre_valleys,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("run_scraper_node")
@@ -105,6 +109,7 @@ def run_scraper_pipeline(
     max_pages_per_valley: int = 15,
     gmaps_json_path: str | Path | None = None,
     apify_token: str | None = None,
+    skip_ml_details: bool = False,
 ) -> dict[str, Any]:
     """Ejecuta el pipeline completo de extracción real y NLP sin datos sintéticos."""
     os.makedirs(DATA_RAW_DIR, exist_ok=True)
@@ -127,7 +132,25 @@ def run_scraper_pipeline(
         max_items_per_valley=max_items_per_valley,
         max_pages_per_valley=max_pages_per_valley,
     )
-    logger.info("Mercado Libre: %d publicaciones extraídas.", len(ml_listings))
+    logger.info("Mercado Libre: %d publicaciones base extraídas.", len(ml_listings))
+
+    if not skip_ml_details:
+        logger.info(">>> Paso 1.5: Enriqueciendo %d publicaciones con detalles individuales...", len(ml_listings))
+        ml_listings = enrich_listings_with_details(ml_listings, max_workers=10)
+    else:
+        logger.info(">>> Paso 1.5: Omitiendo enriquecimiento de detalles ML (--skip-ml-details activo).")
+        for item in ml_listings:
+            if not item.get("localidad_raw"):
+                item["localidad_raw"] = f"{item.get('valle_corredor', 'Sierras')}, Córdoba"
+            item.setdefault("latitud", None)
+            item.setdefault("longitud", None)
+            item.setdefault("descripcion_completa", "")
+            item.setdefault("telefono_en_descripcion", "")
+            item.setdefault("url_vendedor", "")
+            item.setdefault("url_busqueda", "")
+            if not item.get("url_google_maps"):
+                loc = item["localidad_raw"]
+                item["url_google_maps"] = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote_plus(loc + ', Córdoba, Argentina')}"
 
     # Guardar CSV de Mercado Libre
     ml_fieldnames = [
@@ -140,10 +163,17 @@ def run_scraper_pipeline(
         "precio_raw",
         "superficie_raw_texto",
         "superficie_m2_extraida",
+        "latitud",
+        "longitud",
+        "descripcion_completa",
+        "telefono_en_descripcion",
         "vendedor_nombre",
+        "url_vendedor",
         "es_tienda_oficial",
         "tipo_aviso",
+        "url_busqueda",
         "url_publicacion",
+        "url_google_maps",
         "fuente_extraccion",
     ]
     with open(ML_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
@@ -173,6 +203,7 @@ def run_scraper_pipeline(
         "longitud",
         "localidad_raw",
         "localidad_asignada",
+        "ubicacion_completa",
         "valle_corredor",
         "distancia_centroide_km",
         "tiene_electricidad",
@@ -183,6 +214,8 @@ def run_scraper_pipeline(
         "operador",
         "horario",
         "descripcion_tags",
+        "url_busqueda_google_maps",
+        "url_osm",
         "fuente_extraccion",
     ]
     with open(CAMPINGS_CSV_PATH, mode="w", newline="", encoding="utf-8") as f:
@@ -226,11 +259,14 @@ def run_scraper_pipeline(
     logger.info(">>> Paso 3: Análisis NLP no supervisado sobre el corpus real...")
     corpus_sentences: list[str] = []
 
-    # Textos de publicaciones de Mercado Libre
+    # Textos de publicaciones de Mercado Libre (título y descripción completa)
     for item in ml_listings:
         title = item.get("titulo_publicacion")
         if title:
             corpus_sentences.extend(split_sentences([title]))
+        desc = item.get("descripcion_completa")
+        if desc:
+            corpus_sentences.extend(split_sentences([desc]))
 
     # Textos de campings (nombres y descripciones)
     for c in campings:
@@ -376,6 +412,12 @@ def main() -> None:
         default=None,
         help="Ruta opcional a dataset JSON exportado desde Apify compass/crawler-google-places",
     )
+    parser.add_argument(
+        "--skip-ml-details",
+        action="store_true",
+        default=False,
+        help="Omitir enriquecimiento individual de detalles en Mercado Libre (por defecto: ejecuta enriquecimiento)",
+    )
 
     args = parser.parse_args()
 
@@ -386,6 +428,7 @@ def main() -> None:
         max_items_per_valley=args.max_items_per_valley,
         max_pages_per_valley=args.max_pages_per_valley,
         gmaps_json_path=args.gmaps_json,
+        skip_ml_details=args.skip_ml_details,
     )
 
 

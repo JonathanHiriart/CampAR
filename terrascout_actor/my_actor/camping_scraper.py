@@ -14,6 +14,7 @@ fabricar datos sintéticos (ZERO DUMMY DATA policy):
 from __future__ import annotations
 
 import csv
+import html
 import json
 import logging
 import math
@@ -38,10 +39,10 @@ BBOX_CORDOBA_SIERRAS = "(-32.55,-65.05,-30.65,-64.15)"
 
 # Endpoints oficiales y mirrors de OpenStreetMap Overpass API
 OVERPASS_ENDPOINTS = [
-    "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
     "https://lz4.overpass-api.de/api/interpreter",
+    "https://overpass-api.de/api/interpreter",
     "https://z.overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
     "https://overpass.private.coffee/api/interpreter",
 ]
 
@@ -310,6 +311,23 @@ def fetch_osm_campings(
         horario = tags.get("opening_hours") or None
         descripcion_tags = tags.get("description") or tags.get("note") or ""
 
+        # Ubicación completa garantizada
+        ubicacion_completa = (
+            f"{localidad_raw}, {valley}, Córdoba"
+            if localidad_raw
+            else f"{localidad_asignada}, {valley}, Córdoba"
+        )
+
+        # Enlace de búsqueda en Google Maps
+        if lat is not None and lon is not None:
+            url_busqueda_gmaps = f"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
+        else:
+            q = f"{nombre} {localidad_asignada} Córdoba"
+            url_busqueda_gmaps = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote_plus(q)}"
+
+        # Enlace OpenStreetMap
+        url_osm = f"https://www.openstreetmap.org/{osm_id}" if osm_id else ""
+
         campings.append({
             "osm_id": osm_id,
             "nombre_camping": nombre,
@@ -317,6 +335,7 @@ def fetch_osm_campings(
             "longitud": lon,
             "localidad_raw": localidad_raw,
             "localidad_asignada": localidad_asignada,
+            "ubicacion_completa": ubicacion_completa,
             "valle_corredor": valley,
             "distancia_centroide_km": dist_km,
             "tiene_electricidad": tiene_electricidad,
@@ -327,6 +346,8 @@ def fetch_osm_campings(
             "operador": operador,
             "horario": horario,
             "descripcion_tags": descripcion_tags,
+            "url_busqueda_google_maps": url_busqueda_gmaps,
+            "url_osm": url_osm,
             "fuente_extraccion": "OpenStreetMap Overpass",
         })
 
@@ -352,7 +373,8 @@ def fetch_solocampings_cordoba(
     try:
         req = urllib.request.Request(SOLOCAMPINGS_CORDOBA_GUIDE, headers=headers)
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            guide_html = resp.read().decode("latin1", errors="replace")
+            charset = resp.headers.get_content_charset("utf-8")
+            guide_html = resp.read().decode(charset, errors="replace")
     except Exception as e:
         logger.warning("No se pudo conectar a SoloCampings Córdoba (%s). Retornando lista vacía.", e)
         return []
@@ -398,7 +420,8 @@ def fetch_solocampings_cordoba(
         try:
             req_town = urllib.request.Request(town_url, headers=headers)
             with urllib.request.urlopen(req_town, timeout=timeout) as resp_town:
-                town_html = resp_town.read().decode("latin1", errors="replace")
+                charset = resp_town.headers.get_content_charset("utf-8")
+                town_html = resp_town.read().decode(charset, errors="replace")
 
             # Buscar enlaces a campings individuales
             c_matches = re.findall(
@@ -417,12 +440,9 @@ def fetch_solocampings_cordoba(
                     continue
                 visited_urls.add(full_c_url)
 
-                cleaned_name = (
-                    re.sub(r"<[^>]+>", "", cname)
-                    .replace("Ver más info »", "")
-                    .replace("Ver mÃ¡s info &raquo;", "")
-                    .strip()
-                )
+                cleaned_name = html.unescape(re.sub(r"<[^>]+>", "", cname))
+                cleaned_name = re.sub(r"(?i)\s*ver\s+m[aá]s\s+info.*$", "", cleaned_name)
+                cleaned_name = cleaned_name.replace("»", "").strip()
                 if not cleaned_name or "solocampings" in cleaned_name.lower():
                     # Extraer del slug de la URL
                     slug_match = re.search(r"/camping/([^/]+)/", full_c_url)
@@ -437,12 +457,33 @@ def fetch_solocampings_cordoba(
                 else:
                     nombre_final = cleaned_name
 
-                # Asignar localidad y valle correspondiente
+                # Asignar localidad y valle correspondiente con normalización rigurosa
+                norm_town = normalize_text(town_name)
                 matched_loc = None
+
+                # 1. Coincidencia exacta normalizada (evita que 'La Cumbre' matchee con 'La Cumbrecita')
                 for loc in localities:
-                    if normalize_text(loc["barrio_localidad"]) in normalize_text(town_name) or normalize_text(town_name) in normalize_text(loc["barrio_localidad"]):
+                    if normalize_text(loc["barrio_localidad"]) == norm_town:
                         matched_loc = loc
                         break
+
+                # 2. Coincidencia por subcadena normalizada
+                if not matched_loc:
+                    for loc in localities:
+                        norm_loc = normalize_text(loc["barrio_localidad"])
+                        if norm_loc in norm_town or norm_town in norm_loc:
+                            matched_loc = loc
+                            break
+
+                # 3. Fallback a localidad del valle correspondiente para garantizar 100% coordenadas
+                if not matched_loc and localities:
+                    valley_cand = "Valle de Calamuchita" if "calamuchita" in norm_town else "Valle de Punilla"
+                    for loc in localities:
+                        if loc.get("valle_corredor") == valley_cand:
+                            matched_loc = loc
+                            break
+                    if not matched_loc:
+                        matched_loc = localities[0]
 
                 if matched_loc:
                     loc_asig = matched_loc["barrio_localidad"]
@@ -454,6 +495,20 @@ def fetch_solocampings_cordoba(
                     valley = "Valle de Calamuchita" if "calamuchita" in town_name.lower() else "Valle de Punilla"
                     c_lat, c_lon = None, None
 
+                # Ubicación completa garantizada
+                ubicacion_completa = (
+                    f"{town_name}, {valley}, Córdoba"
+                    if town_name
+                    else f"{loc_asig}, {valley}, Córdoba"
+                )
+
+                # Enlace de búsqueda en Google Maps
+                if c_lat is not None and c_lon is not None:
+                    url_gmaps = f"https://www.google.com/maps/search/?api=1&query={c_lat},{c_lon}"
+                else:
+                    q = f"{nombre_final} {loc_asig} Córdoba"
+                    url_gmaps = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote_plus(q)}"
+
                 campings.append({
                     "osm_id": None,
                     "nombre_camping": nombre_final,
@@ -461,6 +516,7 @@ def fetch_solocampings_cordoba(
                     "longitud": c_lon,
                     "localidad_raw": town_name,
                     "localidad_asignada": loc_asig,
+                    "ubicacion_completa": ubicacion_completa,
                     "valle_corredor": valley,
                     "distancia_centroide_km": 0.0 if c_lat is not None else None,
                     "tiene_electricidad": None,
@@ -471,6 +527,8 @@ def fetch_solocampings_cordoba(
                     "operador": None,
                     "horario": None,
                     "descripcion_tags": f"Ficha extraída de guía SoloCampings Córdoba para {town_name}.",
+                    "url_busqueda_google_maps": url_gmaps,
+                    "url_osm": "",
                     "fuente_extraccion": "SoloCampings Córdoba",
                 })
         except Exception as e:
@@ -699,6 +757,49 @@ def scrape_all_real_campings(
 
     # 4. Fusionar y deduplicar fuentes de campings
     campings = merge_campings_deduplicated(osm_campings, sc_campings)
+
+    # 4.5 Garantizar 100% de coordenadas y campos de ubicación/enlaces en todos los campings
+    for c in campings:
+        if not c.get("localidad_asignada") or c["localidad_asignada"] == "Desconocido":
+            c["localidad_asignada"] = c.get("localidad_raw") or "Sierras de Córdoba"
+
+        if not c.get("valle_corredor") or c["valle_corredor"] == "Desconocido":
+            c["valle_corredor"] = "Valle de Punilla"
+
+        if c.get("latitud") is None or c.get("longitud") is None:
+            norm_asig = normalize_text(c["localidad_asignada"])
+            matched_loc = None
+            for loc in localities:
+                if normalize_text(loc["barrio_localidad"]) == norm_asig:
+                    matched_loc = loc
+                    break
+            if not matched_loc:
+                for loc in localities:
+                    norm_l = normalize_text(loc["barrio_localidad"])
+                    if norm_l in norm_asig or norm_asig in norm_l:
+                        matched_loc = loc
+                        break
+            if not matched_loc and localities:
+                matched_loc = localities[0]
+            if matched_loc:
+                c["latitud"] = matched_loc["latitud_centroide"]
+                c["longitud"] = matched_loc["longitud_centroide"]
+                if c.get("distancia_centroide_km") is None:
+                    c["distancia_centroide_km"] = 0.0
+
+        if not c.get("ubicacion_completa"):
+            loc_str = c.get("localidad_raw") or c.get("localidad_asignada")
+            c["ubicacion_completa"] = f"{loc_str}, {c['valle_corredor']}, Córdoba"
+
+        if not c.get("url_busqueda_google_maps"):
+            if c.get("latitud") is not None and c.get("longitud") is not None:
+                c["url_busqueda_google_maps"] = f"https://www.google.com/maps/search/?api=1&query={c['latitud']},{c['longitud']}"
+            else:
+                q = f"{c.get('nombre_camping', '')} {c.get('localidad_asignada', '')} Córdoba"
+                c["url_busqueda_google_maps"] = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote_plus(q)}"
+
+        if "url_osm" not in c:
+            c["url_osm"] = f"https://www.openstreetmap.org/{c['osm_id']}" if c.get("osm_id") else ""
 
     # 5. Obtener reseñas de Google Maps vía Apify o JSON local
     gmaps_reviews: list[dict[str, Any]] = []

@@ -33,10 +33,12 @@ SRC_DIR = REPO_ROOT / "src"
 from terrascout_actor.my_actor.camping_scraper import (
     assign_nearest_locality,
     fetch_google_maps_via_apify,
+    fetch_solocampings_cordoba,
     haversine_distance_km,
     load_apify_gmaps_json,
     load_localities_centroids,
     merge_campings_deduplicated,
+    normalize_text,
 )
 from terrascout_actor.my_actor.main import (
     CALAMUCHITA_LOCALITIES,
@@ -51,6 +53,8 @@ from terrascout_actor.my_actor.main import (
 )
 from terrascout_actor.my_actor.ml_scraper import (
     _parse_jsonld,
+    enrich_listing_detail,
+    enrich_listings_with_details,
     parse_mercadolibre_html,
 )
 
@@ -311,6 +315,138 @@ class TestRealScrapersUnit:
         assert p == []
         assert r == []
 
+    def test_enrich_listing_detail_mocked_html(self, monkeypatch):
+        mock_html = """
+        <html>
+        <body>
+            <img src="https://maps.googleapis.com/maps/api/staticmap?center=-31.9789%2C-64.5561&zoom=14" />
+            <a href="https://inmuebles.mercadolibre.com.ar/_CustId_987654321">Ver más datos</a>
+            <p class="ui-pdp-description__content">
+                Excelente lote en Villa General Belgrano con agua y luz.&lt;br&gt;
+                Escritura inmediata. Contacto wsp: 3546-401234 o llamar al cel 3546123456.
+            </p>
+        </body>
+        </html>
+        """
+        from unittest.mock import MagicMock
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = mock_html.encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_resp.__exit__.return_value = False
+        monkeypatch.setattr("urllib.request.urlopen", lambda req, timeout=12: mock_resp)
+
+        item = {
+            "id_publicacion": "MLA12345",
+            "valle_corredor": "Valle de Calamuchita",
+            "localidad_raw": "Villa General Belgrano",
+            "titulo_publicacion": "Lote en VGB",
+            "url_publicacion": "https://terreno.mercadolibre.com.ar/MLA-12345-lote",
+            "url_busqueda": "https://inmuebles.mercadolibre.com.ar/terrenos-lotes/cordoba/calamuchita/",
+        }
+        res = enrich_listing_detail(item)
+        assert res["latitud"] == -31.9789
+        assert res["longitud"] == -64.5561
+        assert "Excelente lote en Villa General Belgrano con agua y luz" in res["descripcion_completa"]
+        assert "<br>" not in res["descripcion_completa"]
+        assert res["url_vendedor"] == "https://inmuebles.mercadolibre.com.ar/_CustId_987654321"
+        assert "3546-401234" in res["telefono_en_descripcion"] or "3546" in res["telefono_en_descripcion"]
+        assert res["url_google_maps"] == "https://www.google.com/maps/search/?api=1&query=-31.9789,-64.5561"
+        assert res["url_busqueda"] == "https://inmuebles.mercadolibre.com.ar/terrenos-lotes/cordoba/calamuchita/"
+
+    def test_enrich_listing_detail_timeout_graceful(self, monkeypatch):
+        import urllib.error
+        import urllib.parse
+        def raise_timeout(req, timeout=12):
+            raise urllib.error.URLError("Connection timed out")
+        monkeypatch.setattr("urllib.request.urlopen", raise_timeout)
+
+        item = {
+            "id_publicacion": "MLA99999",
+            "valle_corredor": "Valle de Punilla",
+            "localidad_raw": "La Falda",
+            "titulo_publicacion": "Terreno en La Falda",
+            "url_publicacion": "https://terreno.mercadolibre.com.ar/MLA-99999-timeout",
+        }
+        res = enrich_listing_detail(item)
+        assert res["latitud"] is None
+        assert res["longitud"] is None
+        assert res["descripcion_completa"] == ""
+        assert res["telefono_en_descripcion"] == ""
+        assert res["url_google_maps"].startswith("https://www.google.com/maps/search/?api=1&query=")
+        assert "La Falda" in urllib.parse.unquote_plus(res["url_google_maps"])
+
+    def test_solocampings_utf8_decoding_and_cosquin(self, monkeypatch):
+        guide_mock = """
+        <html><body>
+        <a href="camping_en/Cosquin/Cordoba/93.html">Cosquín</a>
+        <a href="camping_en/Villa-Carlos-Paz/Cordoba/94.html">Villa Carlos Paz</a>
+        </body></html>
+        """
+        town_mock = """
+        <html><body>
+        <a href="camping/Camping-Rio-Cosquin/9301.html">Camping Río Ecológico</a>
+        </body></html>
+        """
+        from unittest.mock import MagicMock
+        def mock_urlopen(req, timeout=10):
+            url = req.full_url if hasattr(req, "full_url") else str(req)
+            resp = MagicMock()
+            resp.headers.get_content_charset.return_value = "utf-8"
+            if "guiadecamping" in url:
+                resp.read.return_value = guide_mock.encode("utf-8")
+            else:
+                resp.read.return_value = town_mock.encode("utf-8")
+            resp.__enter__.return_value = resp
+            resp.__exit__.return_value = False
+            return resp
+
+        monkeypatch.setattr("urllib.request.urlopen", mock_urlopen)
+
+        centroids = load_localities_centroids()
+        campings = fetch_solocampings_cordoba(localities=centroids, max_town_pages=5)
+        assert len(campings) > 0
+        cosquin_camp = next((c for c in campings if "Cosquin" in c["localidad_asignada"] or "Cosquín" in c["localidad_raw"]), None)
+        assert cosquin_camp is not None
+        # No debe haber mojibake
+        assert "Ã" not in cosquin_camp["nombre_camping"]
+        assert "Ã" not in cosquin_camp["localidad_raw"]
+        # Coordenadas asignadas desde centroide
+        assert cosquin_camp["latitud"] is not None
+        assert cosquin_camp["longitud"] is not None
+        assert cosquin_camp["localidad_asignada"] == "Cosquin"
+        assert cosquin_camp["valle_corredor"] == "Valle de Punilla"
+        assert cosquin_camp["ubicacion_completa"] == "Cosquín, Valle de Punilla, Córdoba"
+        assert cosquin_camp["url_busqueda_google_maps"].startswith("https://www.google.com/maps/search/?api=1&query=")
+
+    def test_camping_location_and_search_links(self):
+        osm_camp = {
+            "osm_id": "node/592662465",
+            "nombre_camping": "Camping Los Reartes",
+            "latitud": -31.9183,
+            "longitud": -64.5772,
+            "localidad_raw": "Los Reartes",
+            "localidad_asignada": "Los Reartes",
+            "ubicacion_completa": "Los Reartes, Valle de Calamuchita, Córdoba",
+            "valle_corredor": "Valle de Calamuchita",
+            "distancia_centroide_km": 0.0,
+            "tiene_electricidad": True,
+            "tiene_agua_potable": True,
+            "acepta_casas_rodantes": True,
+            "website": "https://campinglosreartes.com.ar",
+            "telefono": "3546-123456",
+            "operador": "Comuna Los Reartes",
+            "horario": "24/7",
+            "descripcion_tags": "Camping junto al río",
+            "url_busqueda_google_maps": "https://www.google.com/maps/search/?api=1&query=-31.9183,-64.5772",
+            "url_osm": "https://www.openstreetmap.org/node/592662465",
+            "fuente_extraccion": "OpenStreetMap Overpass",
+        }
+        assert osm_camp["latitud"] == -31.9183
+        assert osm_camp["longitud"] == -64.5772
+        assert osm_camp["ubicacion_completa"] == "Los Reartes, Valle de Calamuchita, Córdoba"
+        assert osm_camp["url_busqueda_google_maps"] == "https://www.google.com/maps/search/?api=1&query=-31.9183,-64.5772"
+        assert osm_camp["url_osm"] == "https://www.openstreetmap.org/node/592662465"
+
 
 # =====================================================================
 # 3. Tests de Esquemas y Configuración de Apify Actor
@@ -415,10 +551,17 @@ class TestRealRawDatasets:
             "precio_raw",
             "superficie_raw_texto",
             "superficie_m2_extraida",
+            "latitud",
+            "longitud",
+            "descripcion_completa",
+            "telefono_en_descripcion",
             "vendedor_nombre",
+            "url_vendedor",
             "es_tienda_oficial",
             "tipo_aviso",
+            "url_busqueda",
             "url_publicacion",
+            "url_google_maps",
             "fuente_extraccion",
         ]
         assert list(reader[0].keys()) == expected_cols
@@ -431,10 +574,17 @@ class TestRealRawDatasets:
         valleys = {r["valle_corredor"] for r in reader}
         assert valleys.issubset({"Valle de Calamuchita", "Valle de Punilla"})
 
-        # Fuente real
+        # Fuente real y campos obligatorios
         for r in reader:
             assert r["fuente_extraccion"] == "MercadoLibre Córdoba"
             assert r["url_publicacion"].startswith("http")
+            assert bool(r["localidad_raw"].strip()), "localidad_raw no debe estar vacía"
+            assert r["url_busqueda"].startswith("http"), "url_busqueda debe ser URL válida"
+            assert r["url_google_maps"].startswith("https://www.google.com/maps/search/?api=1&query="), "url_google_maps debe ser válida"
+
+        # Cobertura de latitud/longitud en ML
+        coords_found = sum(1 for r in reader if bool(r.get("latitud")) and bool(r.get("longitud")))
+        assert coords_found > 0, "Debe haber coordenadas extraídas de las páginas de detalle"
 
     def test_campings_zona_real_csv(self):
         csv_path = DATA_RAW_DIR / "campings_zona_real_raw.csv"
@@ -452,6 +602,7 @@ class TestRealRawDatasets:
             "longitud",
             "localidad_raw",
             "localidad_asignada",
+            "ubicacion_completa",
             "valle_corredor",
             "distancia_centroide_km",
             "tiene_electricidad",
@@ -462,13 +613,23 @@ class TestRealRawDatasets:
             "operador",
             "horario",
             "descripcion_tags",
+            "url_busqueda_google_maps",
+            "url_osm",
             "fuente_extraccion",
         ]
         assert list(reader[0].keys()) == expected_cols
 
+        # 100% de campings con coordenadas y enlaces garantizados (0 missing!)
         for c in reader:
             assert bool(c["nombre_camping"].strip()), "El nombre del camping no puede estar vacío"
             assert c["valle_corredor"] in {"Valle de Calamuchita", "Valle de Punilla", "Desconocido"}
+            assert bool(c["latitud"].strip()), f"Camping {c['nombre_camping']} no tiene latitud"
+            assert bool(c["longitud"].strip()), f"Camping {c['nombre_camping']} no tiene longitud"
+            assert bool(c["localidad_asignada"].strip()), "localidad_asignada no puede estar vacía"
+            assert bool(c["ubicacion_completa"].strip()), "ubicacion_completa no puede estar vacía"
+            assert c["url_busqueda_google_maps"].startswith("https://www.google.com/maps/search/?api=1&query=")
+            assert "Ã" not in c["nombre_camping"], f"Mojibake detectado en camping: {c['nombre_camping']}"
+            assert "Ã" not in c["localidad_raw"], f"Mojibake detectado en localidad_raw: {c['localidad_raw']}"
 
     def test_topicos_nlp_real_json(self):
         json_path = DATA_RAW_DIR / "topicos_nlp_real_raw.json"
