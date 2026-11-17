@@ -1,0 +1,31 @@
+{
+    "actorSpecification": 1,
+    "fields": {},
+    "views": {
+        "overview": {
+            "title": "Dataset Limpio Producto 1",
+            "transformation": {
+                "fields": [
+                    "id_registro",
+                    "valle_corredor",
+                    "barrio_localidad",
+                    "precio_usd",
+                    "superficie_m2",
+                    "precio_m2_usd",
+                    "score_servicios",
+                    "pendiente_media_grados",
+                    "ndvi_sombra_verano",
+                    "distancia_rio_m",
+                    "riesgo_ambiental",
+                    "campings_5km",
+                    "nps_proxy_zona",
+                    "descuento_vs_mediana_pct",
+                    "es_oportunidad_p1"
+                ]
+            },
+            "display": {
+                "component": "table"
+            }
+        }
+    }
+}

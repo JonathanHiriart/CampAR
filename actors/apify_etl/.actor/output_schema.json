@@ -1,0 +1,22 @@
+{
+    "$schema": "https://apify.com/schemas/v1/output.ide.json",
+    "actorOutputSchemaVersion": 1,
+    "title": "TerraScout ETL Output",
+    "properties": {
+        "dataset_items": {
+            "type": "string",
+            "title": "Filas limpias (JSON Dataset)",
+            "template": "{{links.apiDefaultDatasetUrl}}/items"
+        },
+        "dataset_limpio_csv": {
+            "type": "string",
+            "title": "Archivo dataset_limpio.csv (Key-Value Store)",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/dataset_limpio.csv"
+        },
+        "etl_funnel": {
+            "type": "string",
+            "title": "Resumen embudo ETL (JSON)",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/etl_funnel.json"
+        }
+    }
+}

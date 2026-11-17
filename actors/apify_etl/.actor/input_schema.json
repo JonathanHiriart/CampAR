@@ -1,0 +1,50 @@
+{
+    "$schema": "https://apify.com/schemas/v1/input.ide.json",
+    "title": "TerraScout AI — APIFY ETL Input",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "ml_csv_url": {
+            "title": "URL o ruta CSV crudo Mercado Libre",
+            "type": "string",
+            "description": "Link de Google Drive, URL HTTP(S) o ruta local de mercadolibre_terrenos_calamuchita_punilla_raw.csv.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "campings_csv_url": {
+            "title": "URL o ruta CSV crudo Campings",
+            "type": "string",
+            "description": "Link de Google Drive, URL HTTP(S) o ruta local de campings_zona_real_raw.csv.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "places_csv_url": {
+            "title": "URL o ruta CSV Google Maps Places",
+            "type": "string",
+            "description": "Link de Google Drive, URL HTTP(S) o ruta local de google_maps_campings_places_raw.csv.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "topo_csv_url": {
+            "title": "URL o ruta CSV Topografía Córdoba",
+            "type": "string",
+            "description": "Link de Google Drive, URL HTTP(S) o ruta local de aux_topografia_cordoba.csv.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "rules_json_url": {
+            "title": "URL o ruta config/business_rules.json",
+            "type": "string",
+            "description": "Link de Google Drive, URL HTTP(S) o ruta local con reglas desacopladas de negocio.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "tipo_cambio_ars_usd_override": {
+            "title": "Override tipo de cambio ARS/USD (opcional)",
+            "type": "number",
+            "description": "Si > 0 sobrescribe temporalmente tipo_cambio_ars_usd de business_rules.json.",
+            "editor": "number",
+            "default": 0
+        }
+    }
+}
