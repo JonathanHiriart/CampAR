@@ -1,9 +1,9 @@
 {
-  "name": "TerraScout AI - Producto 1 (ETL + EDA + Drive)",
+  "name": "TerraScout AI - Producto 1 (ETL -> Drive -> EDA -> Drive)",
   "nodes": [
     {
       "parameters": {},
-      "id": "trigger-manual-1",
+      "id": "trigger-1",
       "name": "When clicking 'Execute workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -41,7 +41,7 @@
         },
         "options": {}
       },
-      "id": "config-set-2",
+      "id": "config-2",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -50,7 +50,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.apify.com/v2/acts/ypvpGbmD1vpqraNXA/runs?waitForFinish=120",
+        "url": "https://api.apify.com/v2/acts/ypvpGbmD1vpqraNXA/run-sync?outputRecordKey=dataset_limpio.csv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -63,39 +63,6 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ raw_workbook_url: $('Config').first().json.raw_workbook_url }) }}",
-        "options": {}
-      },
-      "id": "apify-etl-3",
-      "name": "1. APIFY ETL (Run Sync)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [460, 0]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "=https://api.apify.com/v2/key-value-stores/{{ $json.data.defaultKeyValueStoreId }}/records/etl_funnel.json",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "etl-funnel-4",
-      "name": "1b. Leer URL dataset_limpio",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [700, 0]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "={{ $json.dataset_limpio_public_url }}",
         "options": {
           "response": {
             "response": {
@@ -105,11 +72,11 @@
           }
         }
       },
-      "id": "dl-limpio-5",
-      "name": "Descargar dataset_limpio.csv",
+      "id": "apify-etl-3",
+      "name": "1. APIFY ETL",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [940, 0]
+      "position": [460, 0]
     },
     {
       "parameters": {
@@ -128,16 +95,16 @@
         },
         "options": {}
       },
-      "id": "drive-limpio-6",
-      "name": "2. DRIVE Dataset Limpio (Upload)",
+      "id": "drive-limpio-4",
+      "name": "2. DRIVE Dataset Limpio",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [1180, 0]
+      "position": [700, 0]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.apify.com/v2/acts/YZH8ti7zjLt6410Hx/runs?waitForFinish=120",
+        "url": "https://api.apify.com/v2/acts/YZH8ti7zjLt6410Hx/run-sync?outputRecordKey=contenido_graficas_dashboard.xlsx",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -149,40 +116,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ dataset_limpio_url: $('1b. Leer URL dataset_limpio').first().json.dataset_limpio_public_url, raw_workbook_url: $('Config').first().json.raw_workbook_url, top_oportunidades_limit: 250 }) }}",
-        "options": {}
-      },
-      "id": "apify-eda-7",
-      "name": "3. APIFY EDA (Run Sync)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1420, 0]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "=https://api.apify.com/v2/key-value-stores/{{ $json.data.defaultKeyValueStoreId }}/records/eda_summary.json",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "eda-summary-8",
-      "name": "3b. Leer URLs Dashboard",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1660, 0]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "={{ $json.public_urls.csv_1 }}",
+        "jsonBody": "={{ JSON.stringify({ dataset_limpio_url: 'https://drive.google.com/file/d/' + $json.id + '/view', raw_workbook_url: $('Config').first().json.raw_workbook_url, top_oportunidades_limit: 250 }) }}",
         "options": {
           "response": {
             "response": {
@@ -192,128 +126,34 @@
           }
         }
       },
-      "id": "dl-csv1",
-      "name": "Descargar csv_1",
+      "id": "apify-eda-5",
+      "name": "3. APIFY EDA",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1940, -240]
-    },
-    {
-      "parameters": {
-        "operation": "upload",
-        "inputDataFieldName": "data",
-        "name": "csv_1_localidades_y_riesgo.csv",
-        "driveId": { "__rl": true, "mode": "list", "value": "My Drive" },
-        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Config').first().json.folder_graficas_id }}" },
-        "options": {}
-      },
-      "id": "drive-csv1",
-      "name": "4a. DRIVE Subir csv_1",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
-      "position": [2200, -240]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "={{ $json.public_urls.csv_2 }}",
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "file",
-              "outputPropertyName": "data"
-            }
-          }
-        }
-      },
-      "id": "dl-csv2",
-      "name": "Descargar csv_2",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1940, -80]
-    },
-    {
-      "parameters": {
-        "operation": "upload",
-        "inputDataFieldName": "data",
-        "name": "csv_2_correlaciones_y_distribuciones.csv",
-        "driveId": { "__rl": true, "mode": "list", "value": "My Drive" },
-        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Config').first().json.folder_graficas_id }}" },
-        "options": {}
-      },
-      "id": "drive-csv2",
-      "name": "4b. DRIVE Subir csv_2",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
-      "position": [2200, -80]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "={{ $json.public_urls.csv_3 }}",
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "file",
-              "outputPropertyName": "data"
-            }
-          }
-        }
-      },
-      "id": "dl-csv3",
-      "name": "Descargar csv_3",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1940, 80]
-    },
-    {
-      "parameters": {
-        "operation": "upload",
-        "inputDataFieldName": "data",
-        "name": "csv_3_oportunidades_y_voz_turista.csv",
-        "driveId": { "__rl": true, "mode": "list", "value": "My Drive" },
-        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Config').first().json.folder_graficas_id }}" },
-        "options": {}
-      },
-      "id": "drive-csv3",
-      "name": "4c. DRIVE Subir csv_3",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
-      "position": [2200, 80]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "={{ $json.public_urls.xlsx }}",
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "file",
-              "outputPropertyName": "data"
-            }
-          }
-        }
-      },
-      "id": "dl-xlsx",
-      "name": "Descargar xlsx",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1940, 240]
+      "position": [940, 0]
     },
     {
       "parameters": {
         "operation": "upload",
         "inputDataFieldName": "data",
         "name": "contenido_graficas_dashboard.xlsx",
-        "driveId": { "__rl": true, "mode": "list", "value": "My Drive" },
-        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Config').first().json.folder_graficas_id }}" },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.folder_graficas_id }}"
+        },
         "options": {}
       },
-      "id": "drive-xlsx",
-      "name": "4d. DRIVE Subir xlsx",
+      "id": "drive-graficas-6",
+      "name": "4. DRIVE Contenido Graficas",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [2200, 240]
+      "position": [1180, 0]
     }
   ],
   "connections": {
@@ -321,42 +161,16 @@
       "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
     },
     "Config": {
-      "main": [[{ "node": "1. APIFY ETL (Run Sync)", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "1. APIFY ETL", "type": "main", "index": 0 }]]
     },
-    "1. APIFY ETL (Run Sync)": {
-      "main": [[{ "node": "1b. Leer URL dataset_limpio", "type": "main", "index": 0 }]]
+    "1. APIFY ETL": {
+      "main": [[{ "node": "2. DRIVE Dataset Limpio", "type": "main", "index": 0 }]]
     },
-    "1b. Leer URL dataset_limpio": {
-      "main": [[{ "node": "Descargar dataset_limpio.csv", "type": "main", "index": 0 }]]
+    "2. DRIVE Dataset Limpio": {
+      "main": [[{ "node": "3. APIFY EDA", "type": "main", "index": 0 }]]
     },
-    "Descargar dataset_limpio.csv": {
-      "main": [[{ "node": "2. DRIVE Dataset Limpio (Upload)", "type": "main", "index": 0 }]]
-    },
-    "2. DRIVE Dataset Limpio (Upload)": {
-      "main": [[{ "node": "3. APIFY EDA (Run Sync)", "type": "main", "index": 0 }]]
-    },
-    "3. APIFY EDA (Run Sync)": {
-      "main": [[{ "node": "3b. Leer URLs Dashboard", "type": "main", "index": 0 }]]
-    },
-    "3b. Leer URLs Dashboard": {
-      "main": [[
-        { "node": "Descargar csv_1", "type": "main", "index": 0 },
-        { "node": "Descargar csv_2", "type": "main", "index": 0 },
-        { "node": "Descargar csv_3", "type": "main", "index": 0 },
-        { "node": "Descargar xlsx", "type": "main", "index": 0 }
-      ]]
-    },
-    "Descargar csv_1": {
-      "main": [[{ "node": "4a. DRIVE Subir csv_1", "type": "main", "index": 0 }]]
-    },
-    "Descargar csv_2": {
-      "main": [[{ "node": "4b. DRIVE Subir csv_2", "type": "main", "index": 0 }]]
-    },
-    "Descargar csv_3": {
-      "main": [[{ "node": "4c. DRIVE Subir csv_3", "type": "main", "index": 0 }]]
-    },
-    "Descargar xlsx": {
-      "main": [[{ "node": "4d. DRIVE Subir xlsx", "type": "main", "index": 0 }]]
+    "3. APIFY EDA": {
+      "main": [[{ "node": "4. DRIVE Contenido Graficas", "type": "main", "index": 0 }]]
     }
   },
   "active": false,
