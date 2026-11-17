@@ -4,6 +4,13 @@
     "type": "object",
     "schemaVersion": 1,
     "properties": {
+        "raw_workbook_url": {
+            "title": "URL única de Google Sheets / Excel RAW consolidado (opcional)",
+            "type": "string",
+            "description": "Opcional: link único de Google Sheets/Drive para leer pestañas reviews, topicos_nlp y topografia.",
+            "editor": "textfield",
+            "default": ""
+        },
         "dataset_limpio_url": {
             "title": "URL o ruta de dataset_limpio.csv",
             "type": "string",

@@ -51,6 +51,7 @@ async def main() -> None:
             topo_csv_source=str(inp.get("topo_csv_url") or ""),
             rules_json_source=str(inp.get("rules_json_url") or ""),
             tipo_cambio_override=float(inp.get("tipo_cambio_ars_usd_override") or 0.0),
+            raw_workbook_source=str(inp.get("raw_workbook_url") or ""),
         )
 
         csv_text = df_clean.to_csv(index=False)

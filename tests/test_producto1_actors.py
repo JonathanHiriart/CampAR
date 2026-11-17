@@ -20,7 +20,10 @@ from actors.apify_etl.my_actor.etl_core import (  # noqa: E402
     normalize_drive_url,
     run_etl_pipeline,
 )
-from src.run_producto1_pipeline import run_producto1_end_to_end  # noqa: E402
+from src.run_producto1_pipeline import (  # noqa: E402
+    build_raw_consolidated_xlsx,
+    run_producto1_end_to_end,
+)
 
 
 class TestActorsEstructuraApify:
@@ -40,8 +43,9 @@ class TestUtilidadesETL:
     def test_normalize_drive_url(self):
         url = "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/view?usp=sharing"
         assert normalize_drive_url(url) == "https://drive.google.com/uc?export=download&confirm=t&id=1AbCdEfGhIjKlMnOpQrStUvWxYz"
-        sheet_url = "https://docs.google.com/spreadsheets/d/1SheetIdXYZ123/edit?usp=sharing"
-        assert normalize_drive_url(sheet_url) == "https://docs.google.com/spreadsheets/d/1SheetIdXYZ123/export?format=csv"
+        sheet_url = "https://docs.google.com/spreadsheets/d/1SheetIdXYZ123/edit?gid=4567#gid=4567"
+        assert normalize_drive_url(sheet_url) == "https://docs.google.com/spreadsheets/d/1SheetIdXYZ123/export?format=csv&gid=4567"
+        assert normalize_drive_url(sheet_url, output_format="xlsx") == "https://docs.google.com/spreadsheets/d/1SheetIdXYZ123/export?format=xlsx"
         assert normalize_drive_url("https://example.com/data.csv") == "https://example.com/data.csv"
 
     def test_extraer_superficie_ignora_distancias(self):
@@ -50,6 +54,22 @@ class TestUtilidadesETL:
 
 
 class TestPipelineProducto1EndToEnd:
+    def test_libro_unico_raw_consolidado_etl_y_eda(self, tmp_path: Path):
+        wb_path = build_raw_consolidated_xlsx(tmp_path / "dataset_raw_consolidado.xlsx")
+        assert wb_path.is_file()
+
+        df_clean, _ = run_etl_pipeline(raw_workbook_source=str(wb_path))
+        assert len(df_clean) == 894
+
+        clean_csv = tmp_path / "clean.csv"
+        df_clean.to_csv(clean_csv, index=False, encoding="utf-8")
+        eda_res = run_eda_pipeline(
+            dataset_limpio_source=str(clean_csv),
+            raw_workbook_source=str(wb_path),
+        )
+        assert eda_res["summary"]["total_lotes_limpios"] == 894
+        assert eda_res["summary"]["oportunidades_p1"] == 244
+
     def test_etl_y_eda_sobre_datos_reales(self, tmp_path: Path):
         res = run_producto1_end_to_end(processed_dir=tmp_path, top_oportunidades_limit=100)
         csv_limpio = Path(res["dataset_limpio_csv"])

@@ -19,19 +19,27 @@ flowchart LR
 
 ## 2. Cómo conectar los 2 Actores en Make o n8n
 
-### Paso A — Input desde Drive (Caja 1 → Caja 2: `APIFY ETL`)
-* Compartir los archivos de `data/raw/`, `data/aux_topografia_cordoba.csv` y `config/business_rules.json` en Google Drive con permiso de lectura (*Cualquiera con el enlace*), o usar los links `raw.githubusercontent.com`.
-* En el módulo **Apify -> Run an Actor** (Make) o **HTTP Request POST** (n8n) hacia `terrascout-etl-actor`, pasar el JSON:
-  ```json
-  {
-    "ml_csv_url": "<URL_DRIVE_O_GITHUB_ML>",
-    "campings_csv_url": "<URL_DRIVE_O_GITHUB_CAMPINGS>",
-    "places_csv_url": "<URL_DRIVE_O_GITHUB_PLACES>",
-    "topo_csv_url": "<URL_DRIVE_O_GITHUB_TOPO>",
-    "rules_json_url": "<URL_DRIVE_O_GITHUB_BUSINESS_RULES>"
-  }
-  ```
-* *(Nota: tanto `apify_etl` como `apify_eda` convierten automáticamente links `drive.google.com/file/d/.../view` a descarga directa `uc?export=download&id=...`).*
+### Paso A — Input desde Drive / Google Sheets (Caja 1 → Caja 2: `APIFY ETL`)
+* **Opción recomendada (1 solo archivo en Google Sheets):**
+  * Subir `data/raw/dataset_raw_consolidado.xlsx` a Google Drive → *Abrir con Google Sheets* → Compartir como *Cualquiera con el enlace (Lector)*. Ya trae las 7 pestañas (`ml_terrenos`, `campings`, `places`, `topografia`, `reviews`, `business_rules`, `topicos_nlp`).
+  * Pasar ese único link en `raw_workbook_url`:
+    ```json
+    {
+      "raw_workbook_url": "<URL_GOOGLE_SHEETS_UNICO>"
+    }
+    ```
+* **Opción alternativa (archivos sueltos en Drive):**
+  * Compartir los archivos de `data/raw/`, `data/aux_topografia_cordoba.csv` y `config/business_rules.json` en Google Drive con permiso de lectura (*Cualquiera con el enlace*), o usar los links `raw.githubusercontent.com`:
+    ```json
+    {
+      "ml_csv_url": "<URL_DRIVE_O_GITHUB_ML>",
+      "campings_csv_url": "<URL_DRIVE_O_GITHUB_CAMPINGS>",
+      "places_csv_url": "<URL_DRIVE_O_GITHUB_PLACES>",
+      "topo_csv_url": "<URL_DRIVE_O_GITHUB_TOPO>",
+      "rules_json_url": "<URL_DRIVE_O_GITHUB_BUSINESS_RULES>"
+    }
+    ```
+* *(Nota: tanto `apify_etl` como `apify_eda` convierten automáticamente links de Google Sheets `#gid=...` / libro completo `.xlsx` y links `drive.google.com/file/d/.../view`).*
 
 ### Paso B — Guardar Dataset Limpio en Drive (Caja 2 → Caja 3)
 * `yonihiriart/terrascout-etl-actor` (`ypvpGbmD1vpqraNXA`) guarda en su **Key-Value Store**:

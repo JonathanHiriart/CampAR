@@ -50,6 +50,7 @@ async def main() -> None:
             topicos_json_source=str(inp.get("topicos_json_url") or ""),
             topo_csv_source=str(inp.get("topo_csv_url") or ""),
             top_oportunidades_limit=int(inp.get("top_oportunidades_limit") or 250),
+            raw_workbook_source=str(inp.get("raw_workbook_url") or ""),
         )
 
         csv1_txt = res["csv_1_localidades_y_riesgo"].to_csv(index=False)

@@ -29,11 +29,64 @@ except ImportError:
 
 sys.path.insert(0, str(REPO_ROOT))
 
-from actors.apify_eda.my_actor.eda_core import run_eda_pipeline  # noqa: E402
+from actors.apify_eda.my_actor.eda_core import build_multisheet_xlsx_bytes, run_eda_pipeline  # noqa: E402
 from actors.apify_etl.my_actor.etl_core import run_etl_pipeline  # noqa: E402
+import pandas as pd  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("run_producto1_pipeline")
+
+
+def build_raw_consolidated_xlsx(output_path: Path | None = None) -> Path:
+    """Consolida todos los CSV y JSON RAW del Paso 1 en un único Excel multi-hoja para Google Sheets."""
+    raw_dir = REPO_ROOT / "data" / "raw"
+    out_xlsx = output_path or (raw_dir / "dataset_raw_consolidado.xlsx")
+
+    df_ml = pd.read_csv(raw_dir / "mercadolibre_terrenos_calamuchita_punilla_raw.csv", dtype={"telefono_en_descripcion": str})
+    df_camp = pd.read_csv(raw_dir / "campings_zona_real_raw.csv")
+    df_places = pd.read_csv(raw_dir / "google_maps_campings_places_raw.csv")
+    df_topo = pd.read_csv(REPO_ROOT / "data" / "aux_topografia_cordoba.csv")
+    df_reviews = pd.read_csv(raw_dir / "google_maps_campings_reviews_raw.csv")
+
+    rules = json.loads((REPO_ROOT / "config" / "business_rules.json").read_text(encoding="utf-8"))
+    df_rules = pd.DataFrame([
+        {"clave": k, "valor_json": json.dumps(v, ensure_ascii=False)}
+        for k, v in rules.items()
+    ])
+
+    top = json.loads((raw_dir / "topicos_nlp_real_raw.json").read_text(encoding="utf-8"))
+    top_rows: list[dict[str, Any]] = []
+    for item in (top.get("topics_quejas_gmaps") or {}).get("items", []):
+        top_rows.append({
+            "seccion": "topic_queja",
+            "rank_o_clave": str(item.get("rank", "")),
+            "size": int(item.get("size", 0)),
+            "share": float(item.get("share", 0.0)),
+            "terms_json": json.dumps(item.get("terms", []), ensure_ascii=False),
+        })
+    for kw, stats in (top.get("fuzzy_counts") or {}).items():
+        top_rows.append({
+            "seccion": "fuzzy_count",
+            "rank_o_clave": str(kw),
+            "size": int(stats.get("count", 0)),
+            "share": None,
+            "terms_json": json.dumps(stats, ensure_ascii=False),
+        })
+    df_topicos = pd.DataFrame(top_rows)
+
+    xlsx_bytes = build_multisheet_xlsx_bytes({
+        "ml_terrenos": df_ml,
+        "campings": df_camp,
+        "places": df_places,
+        "topografia": df_topo,
+        "reviews": df_reviews,
+        "business_rules": df_rules,
+        "topicos_nlp": df_topicos,
+    })
+    out_xlsx.parent.mkdir(parents=True, exist_ok=True)
+    out_xlsx.write_bytes(xlsx_bytes)
+    logger.info("Excel RAW consolidado escrito: %s (%d bytes, 7 pestañas)", out_xlsx, len(xlsx_bytes))
+    return out_xlsx
 
 
 def run_producto1_end_to_end(
@@ -91,7 +144,10 @@ def run_producto1_end_to_end(
 def main() -> None:
     parser = argparse.ArgumentParser(description="TerraScout AI — Pipeline Producto 1 (ETL + EDA)")
     parser.add_argument("--top-oportunidades", type=int, default=250, help="Tope de lotes en csv_3 (0 = todos)")
+    parser.add_argument("--skip-raw-xlsx", action="store_true", help="No regenerar dataset_raw_consolidado.xlsx")
     args = parser.parse_args()
+    if not args.skip_raw_xlsx:
+        build_raw_consolidated_xlsx()
     res = run_producto1_end_to_end(top_oportunidades_limit=args.top_oportunidades)
     print(json.dumps(res["summary"], indent=2, ensure_ascii=False))
 

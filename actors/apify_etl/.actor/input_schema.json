@@ -4,6 +4,13 @@
     "type": "object",
     "schemaVersion": 1,
     "properties": {
+        "raw_workbook_url": {
+            "title": "URL única de Google Sheets / Excel RAW consolidado (opcional)",
+            "type": "string",
+            "description": "Link de Google Sheets o Drive con un único libro que contenga las pestañas ml_terrenos, campings, places, topografia y business_rules.",
+            "editor": "textfield",
+            "default": ""
+        },
         "ml_csv_url": {
             "title": "URL o ruta CSV crudo Mercado Libre",
             "type": "string",
