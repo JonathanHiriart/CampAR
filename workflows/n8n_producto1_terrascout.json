@@ -1,0 +1,352 @@
+{
+  "name": "TerraScout AI - Producto 1 (ETL + EDA + Drive)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-manual-1",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-token",
+              "name": "apify_token",
+              "value": "PEGA_TU_APIFY_TOKEN_AQUI",
+              "type": "string"
+            },
+            {
+              "id": "cfg-raw",
+              "name": "raw_workbook_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "cfg-limpio",
+              "name": "folder_limpio_id",
+              "value": "root",
+              "type": "string"
+            },
+            {
+              "id": "cfg-graficas",
+              "name": "folder_graficas_id",
+              "value": "root",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "config-set-2",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/ypvpGbmD1vpqraNXA/runs?waitForFinish=120",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ raw_workbook_url: $('Config').first().json.raw_workbook_url }) }}",
+        "options": {}
+      },
+      "id": "apify-etl-3",
+      "name": "1. APIFY ETL (Run Sync)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/key-value-stores/{{ $json.data.defaultKeyValueStoreId }}/records/etl_funnel.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "etl-funnel-4",
+      "name": "1b. Leer URL dataset_limpio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.dataset_limpio_public_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "dl-limpio-5",
+      "name": "Descargar dataset_limpio.csv",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "name": "dataset_limpio.csv",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.folder_limpio_id }}"
+        },
+        "options": {}
+      },
+      "id": "drive-limpio-6",
+      "name": "2. DRIVE Dataset Limpio (Upload)",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1180, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/YZH8ti7zjLt6410Hx/runs?waitForFinish=120",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ dataset_limpio_url: $('1b. Leer URL dataset_limpio').first().json.dataset_limpio_public_url, raw_workbook_url: $('Config').first().json.raw_workbook_url, top_oportunidades_limit: 250 }) }}",
+        "options": {}
+      },
+      "id": "apify-eda-7",
+      "name": "3. APIFY EDA (Run Sync)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1420, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/key-value-stores/{{ $json.data.defaultKeyValueStoreId }}/records/eda_summary.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "eda-summary-8",
+      "name": "3b. Leer URLs Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const urls = $input.first().json.public_urls;\nreturn [\n  { json: { fileName: 'csv_1_localidades_y_riesgo.csv', url: urls.csv_1 } },\n  { json: { fileName: 'csv_2_correlaciones_y_distribuciones.csv', url: urls.csv_2 } },\n  { json: { fileName: 'csv_3_oportunidades_y_voz_turista.csv', url: urls.csv_3 } },\n  { json: { fileName: 'contenido_graficas_dashboard.xlsx', url: urls.xlsx } },\n];"
+      },
+      "id": "code-split-9",
+      "name": "Preparar 4 archivos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1900, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "dl-dash-10",
+      "name": "Descargar archivo Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2140, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "name": "={{ $('Preparar 4 archivos').item.json.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.folder_graficas_id }}"
+        },
+        "options": {}
+      },
+      "id": "drive-dash-11",
+      "name": "4. DRIVE Contenido Graficas (Upload)",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [2380, 0]
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "1. APIFY ETL (Run Sync)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. APIFY ETL (Run Sync)": {
+      "main": [
+        [
+          {
+            "node": "1b. Leer URL dataset_limpio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1b. Leer URL dataset_limpio": {
+      "main": [
+        [
+          {
+            "node": "Descargar dataset_limpio.csv",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar dataset_limpio.csv": {
+      "main": [
+        [
+          {
+            "node": "2. DRIVE Dataset Limpio (Upload)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. DRIVE Dataset Limpio (Upload)": {
+      "main": [
+        [
+          {
+            "node": "3. APIFY EDA (Run Sync)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. APIFY EDA (Run Sync)": {
+      "main": [
+        [
+          {
+            "node": "3b. Leer URLs Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3b. Leer URLs Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Preparar 4 archivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar 4 archivos": {
+      "main": [
+        [
+          {
+            "node": "Descargar archivo Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar archivo Dashboard": {
+      "main": [
+        [
+          {
+            "node": "4. DRIVE Contenido Graficas (Upload)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
