@@ -181,18 +181,8 @@
     },
     {
       "parameters": {
-        "jsCode": "const urls = $input.first().json.public_urls;\nreturn [\n  { json: { fileName: 'csv_1_localidades_y_riesgo.csv', url: urls.csv_1 } },\n  { json: { fileName: 'csv_2_correlaciones_y_distribuciones.csv', url: urls.csv_2 } },\n  { json: { fileName: 'csv_3_oportunidades_y_voz_turista.csv', url: urls.csv_3 } },\n  { json: { fileName: 'contenido_graficas_dashboard.xlsx', url: urls.xlsx } },\n];"
-      },
-      "id": "code-split-9",
-      "name": "Preparar 4 archivos",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1900, 0]
-    },
-    {
-      "parameters": {
         "method": "GET",
-        "url": "={{ $json.url }}",
+        "url": "={{ $json.public_urls.csv_1 }}",
         "options": {
           "response": {
             "response": {
@@ -202,146 +192,171 @@
           }
         }
       },
-      "id": "dl-dash-10",
-      "name": "Descargar archivo Dashboard",
+      "id": "dl-csv1",
+      "name": "Descargar csv_1",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2140, 0]
+      "position": [1940, -240]
     },
     {
       "parameters": {
         "operation": "upload",
         "inputDataFieldName": "data",
-        "name": "={{ $('Preparar 4 archivos').item.json.fileName }}",
-        "driveId": {
-          "__rl": true,
-          "mode": "list",
-          "value": "My Drive"
-        },
-        "folderId": {
-          "__rl": true,
-          "mode": "id",
-          "value": "={{ $('Config').first().json.folder_graficas_id }}"
-        },
+        "name": "csv_1_localidades_y_riesgo.csv",
+        "driveId": { "__rl": true, "mode": "list", "value": "My Drive" },
+        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Config').first().json.folder_graficas_id }}" },
         "options": {}
       },
-      "id": "drive-dash-11",
-      "name": "4. DRIVE Contenido Graficas (Upload)",
+      "id": "drive-csv1",
+      "name": "4a. DRIVE Subir csv_1",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [2380, 0]
+      "position": [2200, -240]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.public_urls.csv_2 }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "dl-csv2",
+      "name": "Descargar csv_2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1940, -80]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "name": "csv_2_correlaciones_y_distribuciones.csv",
+        "driveId": { "__rl": true, "mode": "list", "value": "My Drive" },
+        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Config').first().json.folder_graficas_id }}" },
+        "options": {}
+      },
+      "id": "drive-csv2",
+      "name": "4b. DRIVE Subir csv_2",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [2200, -80]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.public_urls.csv_3 }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "dl-csv3",
+      "name": "Descargar csv_3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1940, 80]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "name": "csv_3_oportunidades_y_voz_turista.csv",
+        "driveId": { "__rl": true, "mode": "list", "value": "My Drive" },
+        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Config').first().json.folder_graficas_id }}" },
+        "options": {}
+      },
+      "id": "drive-csv3",
+      "name": "4c. DRIVE Subir csv_3",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [2200, 80]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.public_urls.xlsx }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "dl-xlsx",
+      "name": "Descargar xlsx",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1940, 240]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "name": "contenido_graficas_dashboard.xlsx",
+        "driveId": { "__rl": true, "mode": "list", "value": "My Drive" },
+        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Config').first().json.folder_graficas_id }}" },
+        "options": {}
+      },
+      "id": "drive-xlsx",
+      "name": "4d. DRIVE Subir xlsx",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [2200, 240]
     }
   ],
   "connections": {
     "When clicking 'Execute workflow'": {
-      "main": [
-        [
-          {
-            "node": "Config",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
     },
     "Config": {
-      "main": [
-        [
-          {
-            "node": "1. APIFY ETL (Run Sync)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "1. APIFY ETL (Run Sync)", "type": "main", "index": 0 }]]
     },
     "1. APIFY ETL (Run Sync)": {
-      "main": [
-        [
-          {
-            "node": "1b. Leer URL dataset_limpio",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "1b. Leer URL dataset_limpio", "type": "main", "index": 0 }]]
     },
     "1b. Leer URL dataset_limpio": {
-      "main": [
-        [
-          {
-            "node": "Descargar dataset_limpio.csv",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Descargar dataset_limpio.csv", "type": "main", "index": 0 }]]
     },
     "Descargar dataset_limpio.csv": {
-      "main": [
-        [
-          {
-            "node": "2. DRIVE Dataset Limpio (Upload)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "2. DRIVE Dataset Limpio (Upload)", "type": "main", "index": 0 }]]
     },
     "2. DRIVE Dataset Limpio (Upload)": {
-      "main": [
-        [
-          {
-            "node": "3. APIFY EDA (Run Sync)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "3. APIFY EDA (Run Sync)", "type": "main", "index": 0 }]]
     },
     "3. APIFY EDA (Run Sync)": {
-      "main": [
-        [
-          {
-            "node": "3b. Leer URLs Dashboard",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "3b. Leer URLs Dashboard", "type": "main", "index": 0 }]]
     },
     "3b. Leer URLs Dashboard": {
-      "main": [
-        [
-          {
-            "node": "Preparar 4 archivos",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[
+        { "node": "Descargar csv_1", "type": "main", "index": 0 },
+        { "node": "Descargar csv_2", "type": "main", "index": 0 },
+        { "node": "Descargar csv_3", "type": "main", "index": 0 },
+        { "node": "Descargar xlsx", "type": "main", "index": 0 }
+      ]]
     },
-    "Preparar 4 archivos": {
-      "main": [
-        [
-          {
-            "node": "Descargar archivo Dashboard",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Descargar csv_1": {
+      "main": [[{ "node": "4a. DRIVE Subir csv_1", "type": "main", "index": 0 }]]
     },
-    "Descargar archivo Dashboard": {
-      "main": [
-        [
-          {
-            "node": "4. DRIVE Contenido Graficas (Upload)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Descargar csv_2": {
+      "main": [[{ "node": "4b. DRIVE Subir csv_2", "type": "main", "index": 0 }]]
+    },
+    "Descargar csv_3": {
+      "main": [[{ "node": "4c. DRIVE Subir csv_3", "type": "main", "index": 0 }]]
+    },
+    "Descargar xlsx": {
+      "main": [[{ "node": "4d. DRIVE Subir xlsx", "type": "main", "index": 0 }]]
     }
   },
   "active": false,
