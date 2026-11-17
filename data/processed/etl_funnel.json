@@ -1,0 +1,29 @@
+{
+  "funnel": [
+    {
+      "etapa": "0. Crudo Mercado Libre",
+      "registros": 1200,
+      "retencion_pct": 100.0
+    },
+    {
+      "etapa": "1. Precio USD válido",
+      "registros": 1178,
+      "retencion_pct": 98.2
+    },
+    {
+      "etapa": "2. Superficie apta [500-20000 m²]",
+      "registros": 927,
+      "retencion_pct": 77.2
+    },
+    {
+      "etapa": "3. Precio/m² válido [2.0-150.0]",
+      "registros": 918,
+      "retencion_pct": 76.5
+    },
+    {
+      "etapa": "4. Deduplicado (ID + lote repetido)",
+      "registros": 894,
+      "retencion_pct": 74.5
+    }
+  ]
+}

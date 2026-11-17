@@ -1,0 +1,19 @@
+{
+    "$schema": "https://apify.com/schemas/v1/actor.ide.json",
+    "actorSpecification": 1,
+    "name": "terrascout-eda-actor",
+    "title": "TerraScout AI - Actor 2: APIFY EDA (Dashboard)",
+    "description": "Actor EDA que consume dataset_limpio.csv (+ reviews/topicos opcionales), calcula estadísticos, asimetría, cruces y correlaciones Pearson/Spearman/Kendall/InfoMutua, y genera csv_1, csv_2, csv_3 + xlsx multi-hoja para Looker Studio.",
+    "version": "1.0",
+    "buildTag": "latest",
+    "meta": {
+        "templateId": "python-start",
+        "generatedBy": "terrascout-ai"
+    },
+    "inputSchema": "./input_schema.json",
+    "outputSchema": "./output_schema.json",
+    "storages": {
+        "dataset": "./dataset_schema.json"
+    },
+    "dockerfile": "../Dockerfile"
+}

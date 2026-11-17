@@ -1,0 +1,21 @@
+{
+    "actorSpecification": 1,
+    "fields": {},
+    "views": {
+        "overview": {
+            "title": "Contenido de Gráficas Dashboard",
+            "transformation": {
+                "fields": [
+                    "origen_tabla",
+                    "valle_corredor",
+                    "barrio_localidad",
+                    "metrica",
+                    "valor"
+                ]
+            },
+            "display": {
+                "component": "table"
+            }
+        }
+    }
+}

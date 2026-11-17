@@ -1,0 +1,27 @@
+{
+    "$schema": "https://apify.com/schemas/v1/output.ide.json",
+    "actorOutputSchemaVersion": 1,
+    "title": "TerraScout EDA Output (CSVs + XLSX)",
+    "properties": {
+        "csv_1_localidades_y_riesgo": {
+            "type": "string",
+            "title": "CSV 1 — Mapa Localidades y Riesgo (hoja1)",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/csv_1_localidades_y_riesgo.csv"
+        },
+        "csv_2_correlaciones_y_distribuciones": {
+            "type": "string",
+            "title": "CSV 2 — Correlaciones y Distribuciones EDA (hoja2)",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/csv_2_correlaciones_y_distribuciones.csv"
+        },
+        "csv_3_oportunidades_y_voz_turista": {
+            "type": "string",
+            "title": "CSV 3 — Oportunidades P1 y Voz del Turista (hoja3)",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/csv_3_oportunidades_y_voz_turista.csv"
+        },
+        "xlsx_dashboard": {
+            "type": "string",
+            "title": "Excel Consolidado (hoja1, hoja2, hoja3)",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/contenido_graficas_dashboard.xlsx"
+        }
+    }
+}

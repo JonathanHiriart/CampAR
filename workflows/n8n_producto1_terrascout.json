@@ -1,0 +1,181 @@
+{
+  "name": "TerraScout AI - Producto 1 (ETL -> Drive -> EDA -> Drive)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-1",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-token",
+              "name": "apify_token",
+              "value": "PEGA_TU_APIFY_TOKEN_AQUI",
+              "type": "string"
+            },
+            {
+              "id": "cfg-raw",
+              "name": "raw_workbook_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "cfg-limpio",
+              "name": "folder_limpio_id",
+              "value": "root",
+              "type": "string"
+            },
+            {
+              "id": "cfg-graficas",
+              "name": "folder_graficas_id",
+              "value": "root",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "config-2",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/ypvpGbmD1vpqraNXA/run-sync?outputRecordKey=dataset_limpio.csv",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ raw_workbook_url: $('Config').first().json.raw_workbook_url }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "apify-etl-3",
+      "name": "1. APIFY ETL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "name": "dataset_limpio.csv",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.folder_limpio_id }}"
+        },
+        "options": {}
+      },
+      "id": "drive-limpio-4",
+      "name": "2. DRIVE Dataset Limpio",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [700, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/YZH8ti7zjLt6410Hx/run-sync?outputRecordKey=contenido_graficas_dashboard.xlsx",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ dataset_limpio_url: 'https://drive.google.com/file/d/' + $json.id + '/view', raw_workbook_url: $('Config').first().json.raw_workbook_url, top_oportunidades_limit: 250 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "apify-eda-5",
+      "name": "3. APIFY EDA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "name": "contenido_graficas_dashboard.xlsx",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.folder_graficas_id }}"
+        },
+        "options": {}
+      },
+      "id": "drive-graficas-6",
+      "name": "4. DRIVE Contenido Graficas",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1180, 0]
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "1. APIFY ETL", "type": "main", "index": 0 }]]
+    },
+    "1. APIFY ETL": {
+      "main": [[{ "node": "2. DRIVE Dataset Limpio", "type": "main", "index": 0 }]]
+    },
+    "2. DRIVE Dataset Limpio": {
+      "main": [[{ "node": "3. APIFY EDA", "type": "main", "index": 0 }]]
+    },
+    "3. APIFY EDA": {
+      "main": [[{ "node": "4. DRIVE Contenido Graficas", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

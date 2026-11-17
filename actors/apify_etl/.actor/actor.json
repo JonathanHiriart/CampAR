@@ -1,0 +1,19 @@
+{
+    "$schema": "https://apify.com/schemas/v1/actor.ide.json",
+    "actorSpecification": 1,
+    "name": "terrascout-etl-actor",
+    "title": "TerraScout AI — Actor 1: APIFY ETL (Raw -> Dataset Limpio)",
+    "description": "Actor ETL que ingesta datasets crudos desde Google Drive/HTTP o disco local, aplica reglas de config/business_rules.json, normaliza moneda y superficie, ejecuta JOIN espacial Haversine y emite dataset_limpio.csv.",
+    "version": "1.0",
+    "buildTag": "latest",
+    "meta": {
+        "templateId": "python-start",
+        "generatedBy": "terrascout-ai"
+    },
+    "inputSchema": "./input_schema.json",
+    "outputSchema": "./output_schema.json",
+    "storages": {
+        "dataset": "./dataset_schema.json"
+    },
+    "dockerfile": "../Dockerfile"
+}

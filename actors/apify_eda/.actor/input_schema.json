@@ -1,0 +1,50 @@
+{
+    "$schema": "https://apify.com/schemas/v1/input.ide.json",
+    "title": "TerraScout AI — APIFY EDA Input",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "raw_workbook_url": {
+            "title": "URL única de Google Sheets / Excel RAW consolidado (opcional)",
+            "type": "string",
+            "description": "Opcional: link único de Google Sheets/Drive para leer pestañas reviews, topicos_nlp y topografia.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "dataset_limpio_url": {
+            "title": "URL o ruta de dataset_limpio.csv",
+            "type": "string",
+            "description": "Link de Google Drive, URL de KV Store del Actor ETL, URL JSON/CSV o ruta local de dataset_limpio.csv.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "reviews_csv_url": {
+            "title": "URL o ruta de google_maps_campings_reviews_raw.csv",
+            "type": "string",
+            "description": "Opcional: reseñas reales de Google Maps para generar la sección Voz del Turista en csv_3.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "topicos_json_url": {
+            "title": "URL o ruta de topicos_nlp_real_raw.json",
+            "type": "string",
+            "description": "Opcional: salida NLP para incorporar tópicos de quejas y keywords en csv_3.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "topo_csv_url": {
+            "title": "URL o ruta de aux_topografia_cordoba.csv",
+            "type": "string",
+            "description": "Opcional: centroides GPS de las 16 localidades para el mapa de csv_1.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "top_oportunidades_limit": {
+            "title": "Cantidad máxima de lotes destacados en csv_3",
+            "type": "integer",
+            "description": "Tope de lotes ordenados por descuento vs mediana zonal incluidos en csv_3 / hoja3 (0 = todos).",
+            "editor": "number",
+            "default": 250
+        }
+    }
+}
