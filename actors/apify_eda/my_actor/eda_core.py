@@ -16,6 +16,7 @@ import math
 import os
 import re
 import urllib.request
+import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -27,12 +28,17 @@ from scipy.stats import kendalltau
 from sklearn.feature_selection import mutual_info_regression
 
 
-def normalize_drive_url(url_or_path: str) -> str:
+def normalize_drive_url(url_or_path: str, output_format: str = "csv") -> str:
     """Convierte links compartidos de Google Drive o Sheets en URLs directas de descarga."""
     s = str(url_or_path or "").strip()
     m_sheet = re.search(r"docs\.google\.com/spreadsheets/d/([a-zA-Z0-9_-]+)", s)
     if m_sheet:
-        return f"https://docs.google.com/spreadsheets/d/{m_sheet.group(1)}/export?format=csv"
+        base = f"https://docs.google.com/spreadsheets/d/{m_sheet.group(1)}/export?format={output_format}"
+        if output_format == "csv":
+            m_gid = re.search(r"[?&#]gid=(\d+)", s)
+            if m_gid:
+                base += f"&gid={m_gid.group(1)}"
+        return base
     m = re.search(r"drive\.google\.com/file/d/([a-zA-Z0-9_-]+)", s)
     if m:
         return f"https://drive.google.com/uc?export=download&confirm=t&id={m.group(1)}"
@@ -72,29 +78,151 @@ class _StripAuthOnRedirect(urllib.request.HTTPRedirectHandler):
         return new_req
 
 
+def _http_get_bytes(url: str, timeout: int = 60, user_agent: str = "TerraScout-EDA-Actor/1.0") -> bytes:
+    """Descarga bytes vía HTTP(S) evitando reenviar Authorization tras redirecciones."""
+    headers = {"User-Agent": user_agent}
+    apify_tok = os.getenv("APIFY_TOKEN")
+    if url.startswith("https://api.apify.com/") and apify_tok and "token=" not in url:
+        headers["Authorization"] = f"Bearer {apify_tok}"
+    opener = urllib.request.build_opener(_StripAuthOnRedirect)
+    req = urllib.request.Request(url, headers=headers)
+    with opener.open(req, timeout=timeout) as resp:
+        data = resp.read()
+    head = data[:256].decode("utf-8", errors="ignore").lstrip().lower()
+    if head.startswith(("<!doctype html", "<html")):
+        raise ValueError(
+            f"La URL '{url}' devolvió HTML en vez de datos. Verificá que el link de Drive/Sheets sea público."
+        )
+    return data
+
+
 def read_optional_source(url_or_path: str, *local_fallbacks: str, timeout: int = 60) -> str | None:
     """Lee texto desde HTTP/Drive o disco local; retorna None si no existe fuente."""
     src = str(url_or_path or "").strip()
     if src.startswith(("http://", "https://")):
-        direct_url = normalize_drive_url(src)
-        headers = {"User-Agent": "TerraScout-EDA-Actor/1.0"}
-        apify_tok = os.getenv("APIFY_TOKEN")
-        if direct_url.startswith("https://api.apify.com/") and apify_tok and "token=" not in direct_url:
-            headers["Authorization"] = f"Bearer {apify_tok}"
-        opener = urllib.request.build_opener(_StripAuthOnRedirect)
-        req = urllib.request.Request(direct_url, headers=headers)
-        with opener.open(req, timeout=timeout) as resp:
-            text = resp.read().decode("utf-8", errors="replace")
-        if text.lstrip().lower().startswith(("<!doctype html", "<html")):
-            raise ValueError(
-                f"La URL '{src}' devolvió HTML en vez de datos. Verificá que el link de Drive sea público."
-            )
-        return text
+        direct_url = normalize_drive_url(src, output_format="csv")
+        return _http_get_bytes(direct_url, timeout=timeout).decode("utf-8", errors="replace")
 
     resolved = resolve_repo_path(src, *local_fallbacks)
     if resolved is not None:
         return resolved.read_text(encoding="utf-8")
     return None
+
+
+def _read_xlsx_sheets_stdlib(raw_bytes: bytes) -> dict[str, pd.DataFrame]:
+    """Lector OpenXML puro (fallback si openpyxl no está instalado)."""
+    ns_m = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    ns_r = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+    out: dict[str, pd.DataFrame] = {}
+
+    def _col_idx(ref: str) -> int:
+        letters = "".join(ch for ch in ref if ch.isalpha())
+        idx = 0
+        for ch in letters:
+            idx = idx * 26 + (ord(ch.upper()) - 64)
+        return max(idx - 1, 0)
+
+    with zipfile.ZipFile(io.BytesIO(raw_bytes), "r") as zf:
+        shared: list[str] = []
+        if "xl/sharedStrings.xml" in zf.namelist():
+            ss_root = ET.fromstring(zf.read("xl/sharedStrings.xml"))
+            for si in ss_root.findall("m:si", ns_m):
+                shared.append("".join(t.text or "" for t in si.findall(".//m:t", ns_m)))
+
+        rels_map: dict[str, str] = {}
+        rels_root = ET.fromstring(zf.read("xl/_rels/workbook.xml.rels"))
+        for rel in rels_root:
+            rid = rel.attrib.get("Id", "")
+            tgt = rel.attrib.get("Target", "").lstrip("/")
+            rels_map[rid] = tgt if tgt.startswith("xl/") else f"xl/{tgt}"
+
+        wb_root = ET.fromstring(zf.read("xl/workbook.xml"))
+        for sh in wb_root.findall(".//m:sheet", ns_m):
+            name = sh.attrib["name"]
+            rid = sh.attrib.get(ns_r, "")
+            xml_path = rels_map.get(rid, "")
+            if xml_path not in zf.namelist():
+                continue
+            ws_root = ET.fromstring(zf.read(xml_path))
+            rows_parsed: list[list[Any]] = []
+            max_cols = 0
+            for r_el in ws_root.findall(".//m:sheetData/m:row", ns_m):
+                row_vals: dict[int, Any] = {}
+                for c_el in r_el.findall("m:c", ns_m):
+                    c_i = _col_idx(c_el.attrib.get("r", "A1"))
+                    ctype = c_el.attrib.get("t", "")
+                    if ctype == "inlineStr":
+                        val: Any = "".join(t.text or "" for t in c_el.findall(".//m:t", ns_m))
+                    elif ctype == "s":
+                        v_el = c_el.find("m:v", ns_m)
+                        val = shared[int(v_el.text)] if (v_el is not None and v_el.text) else ""
+                    elif ctype in ("str", "e"):
+                        v_el = c_el.find("m:v", ns_m)
+                        val = v_el.text if v_el is not None else ""
+                    elif ctype == "b":
+                        v_el = c_el.find("m:v", ns_m)
+                        val = bool(int(v_el.text)) if (v_el is not None and v_el.text) else False
+                    else:
+                        v_el = c_el.find("m:v", ns_m)
+                        if v_el is not None and v_el.text is not None:
+                            try:
+                                f = float(v_el.text)
+                                val = int(f) if f.is_integer() and "." not in v_el.text else f
+                            except ValueError:
+                                val = v_el.text
+                        else:
+                            val = None
+                    row_vals[c_i] = val
+                    max_cols = max(max_cols, c_i + 1)
+                if row_vals:
+                    rows_parsed.append([row_vals.get(i) for i in range(max_cols)])
+            if not rows_parsed:
+                out[name] = pd.DataFrame()
+                continue
+            headers = [str(h) if h is not None else f"col_{i}" for i, h in enumerate(rows_parsed[0])]
+            body = [r + [None] * (len(headers) - len(r)) for r in rows_parsed[1:]]
+            out[name] = pd.DataFrame(body, columns=headers)
+    return out
+
+
+def load_workbook_sheets(url_or_path: str, timeout: int = 90) -> dict[str, pd.DataFrame]:
+    """Carga pestañas desde un Google Sheet / Excel (.xlsx) consolidado."""
+    src = str(url_or_path or "").strip()
+    if not src:
+        return {}
+    if src.startswith(("http://", "https://")):
+        direct_url = normalize_drive_url(src, output_format="xlsx")
+        raw_bytes = _http_get_bytes(direct_url, timeout=timeout)
+    else:
+        resolved = resolve_repo_path(src)
+        if resolved is None:
+            raise FileNotFoundError(f"No se encontró el libro RAW '{src}'.")
+        raw_bytes = resolved.read_bytes()
+    try:
+        return pd.read_excel(io.BytesIO(raw_bytes), sheet_name=None, engine="openpyxl")
+    except ImportError:
+        return _read_xlsx_sheets_stdlib(raw_bytes)
+
+
+def _topicos_from_dataframe(df_top: pd.DataFrame) -> dict[str, Any]:
+    """Reconstruye `topics_quejas_gmaps` y `fuzzy_counts` desde la pestaña `topicos_nlp`."""
+    quejas: list[dict[str, Any]] = []
+    fuzzy: dict[str, dict[str, Any]] = {}
+    for _, row in df_top.iterrows():
+        sec = str(row.get("seccion", "")).strip()
+        key = str(row.get("rank_o_clave", "")).strip()
+        terms_raw = row.get("terms_json")
+        if sec == "topic_queja":
+            terms = json.loads(str(terms_raw)) if pd.notna(terms_raw) else []
+            quejas.append({
+                "rank": int(float(key)) if key else len(quejas) + 1,
+                "size": int(float(row.get("size") or 0)),
+                "share": float(row.get("share") or 0.0),
+                "terms": terms,
+            })
+        elif sec == "fuzzy_count" and key:
+            fuzzy[key] = json.loads(str(terms_raw)) if pd.notna(terms_raw) else {"count": int(float(row.get("size") or 0))}
+    return {"topics_quejas_gmaps": {"items": quejas}, "fuzzy_counts": fuzzy}
 
 
 def _col_letter(col_idx: int) -> str:
@@ -230,8 +358,10 @@ def run_eda_pipeline(
     topicos_json_source: str = "",
     topo_csv_source: str = "",
     top_oportunidades_limit: int = 250,
+    raw_workbook_source: str = "",
 ) -> dict[str, Any]:
     """Ejecuta el EDA y construye `csv_1`, `csv_2`, `csv_3` y el `.xlsx` multi-hoja."""
+    wb_sheets = load_workbook_sheets(raw_workbook_source) if raw_workbook_source else {}
     df = _load_clean_dataframe(dataset_limpio_source)
     for col in [
         "precio_usd", "superficie_m2", "precio_m2_usd", "score_servicios",
@@ -248,10 +378,13 @@ def run_eda_pipeline(
     else:
         df["es_oportunidad_p1"] = False
 
-    topo_text = read_optional_source(topo_csv_source, "data/aux_topografia_cordoba.csv")
     topo_centroids: dict[str, tuple[float, float]] = {}
-    if topo_text:
-        df_topo = pd.read_csv(io.StringIO(topo_text))
+    if not topo_csv_source and "topografia" in wb_sheets:
+        df_topo = wb_sheets["topografia"]
+    else:
+        topo_text = read_optional_source(topo_csv_source, "data/aux_topografia_cordoba.csv")
+        df_topo = pd.read_csv(io.StringIO(topo_text)) if topo_text else None
+    if df_topo is not None:
         for _, tr in df_topo.iterrows():
             topo_centroids[str(tr["barrio_localidad"])] = (
                 float(tr["latitud_centroide"]),
@@ -426,12 +559,16 @@ def run_eda_pipeline(
             "porcentaje_o_share": None,
         })
 
-    reviews_text = read_optional_source(
-        reviews_csv_source,
-        "data/raw/google_maps_campings_reviews_raw.csv",
-    )
-    if reviews_text:
-        df_rev = pd.read_csv(io.StringIO(reviews_text))
+    if not reviews_csv_source and "reviews" in wb_sheets:
+        df_rev = wb_sheets["reviews"]
+    else:
+        reviews_text = read_optional_source(
+            reviews_csv_source,
+            "data/raw/google_maps_campings_reviews_raw.csv",
+        )
+        df_rev = pd.read_csv(io.StringIO(reviews_text)) if reviews_text else None
+
+    if df_rev is not None:
         total_rev = max(int(len(df_rev)), 1)
         star_counts = df_rev["estrellas_rating"].value_counts().sort_index()
         for star, cnt in star_counts.items():
@@ -451,12 +588,16 @@ def run_eda_pipeline(
                 "porcentaje_o_share": round(int(cnt) / total_rev * 100.0, 2),
             })
 
-    topicos_text = read_optional_source(
-        topicos_json_source,
-        "data/raw/topicos_nlp_real_raw.json",
-    )
-    if topicos_text:
-        top_data = json.loads(topicos_text)
+    if not topicos_json_source and "topicos_nlp" in wb_sheets:
+        top_data = _topicos_from_dataframe(wb_sheets["topicos_nlp"])
+    else:
+        topicos_text = read_optional_source(
+            topicos_json_source,
+            "data/raw/topicos_nlp_real_raw.json",
+        )
+        top_data = json.loads(topicos_text) if topicos_text else None
+
+    if top_data:
         quejas = (top_data.get("topics_quejas_gmaps") or {}).get("items", [])
         for q in quejas:
             opp_rows.append({

@@ -13,6 +13,8 @@ import os
 import re
 import unicodedata
 import urllib.request
+import xml.etree.ElementTree as ET
+import zipfile
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
@@ -23,12 +25,17 @@ import pandas as pd
 _PLACEHOLDER_PRICES = {101010101.0, 111111111.0, 99999999.0, 123456789.0}
 
 
-def normalize_drive_url(url_or_path: str) -> str:
+def normalize_drive_url(url_or_path: str, output_format: str = "csv") -> str:
     """Convierte links compartidos de Google Drive o Sheets en URLs directas de descarga."""
     s = str(url_or_path or "").strip()
     m_sheet = re.search(r"docs\.google\.com/spreadsheets/d/([a-zA-Z0-9_-]+)", s)
     if m_sheet:
-        return f"https://docs.google.com/spreadsheets/d/{m_sheet.group(1)}/export?format=csv"
+        base = f"https://docs.google.com/spreadsheets/d/{m_sheet.group(1)}/export?format={output_format}"
+        if output_format == "csv":
+            m_gid = re.search(r"[?&#]gid=(\d+)", s)
+            if m_gid:
+                base += f"&gid={m_gid.group(1)}"
+        return base
     m = re.search(r"drive\.google\.com/file/d/([a-zA-Z0-9_-]+)", s)
     if m:
         return f"https://drive.google.com/uc?export=download&confirm=t&id={m.group(1)}"
@@ -68,25 +75,31 @@ class _StripAuthOnRedirect(urllib.request.HTTPRedirectHandler):
         return new_req
 
 
+def _http_get_bytes(url: str, timeout: int = 60, user_agent: str = "TerraScout-ETL-Actor/1.0") -> bytes:
+    """Descarga bytes vía HTTP(S) evitando reenviar Authorization tras redirecciones."""
+    headers = {"User-Agent": user_agent}
+    apify_tok = os.getenv("APIFY_TOKEN")
+    if url.startswith("https://api.apify.com/") and apify_tok and "token=" not in url:
+        headers["Authorization"] = f"Bearer {apify_tok}"
+    opener = urllib.request.build_opener(_StripAuthOnRedirect)
+    req = urllib.request.Request(url, headers=headers)
+    with opener.open(req, timeout=timeout) as resp:
+        data = resp.read()
+    head = data[:256].decode("utf-8", errors="ignore").lstrip().lower()
+    if head.startswith(("<!doctype html", "<html")):
+        raise ValueError(
+            f"La URL '{url}' devolvió HTML en vez de datos. "
+            "Si es Google Drive/Sheets, verificá que esté compartido como 'Cualquiera con el enlace (Lector)'."
+        )
+    return data
+
+
 def read_text_source(url_or_path: str, *local_fallbacks: str, timeout: int = 60) -> str:
     """Descarga texto desde HTTP/Drive o lee desde disco local."""
     src = str(url_or_path or "").strip()
     if src.startswith(("http://", "https://")):
-        direct_url = normalize_drive_url(src)
-        headers = {"User-Agent": "TerraScout-ETL-Actor/1.0"}
-        apify_tok = os.getenv("APIFY_TOKEN")
-        if direct_url.startswith("https://api.apify.com/") and apify_tok and "token=" not in direct_url:
-            headers["Authorization"] = f"Bearer {apify_tok}"
-        opener = urllib.request.build_opener(_StripAuthOnRedirect)
-        req = urllib.request.Request(direct_url, headers=headers)
-        with opener.open(req, timeout=timeout) as resp:
-            text = resp.read().decode("utf-8", errors="replace")
-        if text.lstrip().lower().startswith(("<!doctype html", "<html")):
-            raise ValueError(
-                f"La URL '{src}' devolvió una página HTML en vez de datos. "
-                "Si es Google Drive, verificá que esté compartido como 'Cualquiera con el enlace (Lector)'."
-            )
-        return text
+        direct_url = normalize_drive_url(src, output_format="csv")
+        return _http_get_bytes(direct_url, timeout=timeout).decode("utf-8", errors="replace")
 
     resolved = resolve_repo_path(src, *local_fallbacks)
     if resolved is None:
@@ -94,6 +107,122 @@ def read_text_source(url_or_path: str, *local_fallbacks: str, timeout: int = 60)
             f"No se encontró la fuente '{src}' ni fallbacks locales {local_fallbacks}."
         )
     return resolved.read_text(encoding="utf-8")
+
+
+def _read_xlsx_sheets_stdlib(raw_bytes: bytes) -> dict[str, pd.DataFrame]:
+    """Lector OpenXML puro (fallback si openpyxl no está instalado)."""
+    ns_m = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    ns_r = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+    out: dict[str, pd.DataFrame] = {}
+
+    def _col_idx(ref: str) -> int:
+        letters = "".join(ch for ch in ref if ch.isalpha())
+        idx = 0
+        for ch in letters:
+            idx = idx * 26 + (ord(ch.upper()) - 64)
+        return max(idx - 1, 0)
+
+    with zipfile.ZipFile(io.BytesIO(raw_bytes), "r") as zf:
+        shared: list[str] = []
+        if "xl/sharedStrings.xml" in zf.namelist():
+            ss_root = ET.fromstring(zf.read("xl/sharedStrings.xml"))
+            for si in ss_root.findall("m:si", ns_m):
+                shared.append("".join(t.text or "" for t in si.findall(".//m:t", ns_m)))
+
+        rels_map: dict[str, str] = {}
+        rels_root = ET.fromstring(zf.read("xl/_rels/workbook.xml.rels"))
+        for rel in rels_root:
+            rid = rel.attrib.get("Id", "")
+            tgt = rel.attrib.get("Target", "").lstrip("/")
+            rels_map[rid] = tgt if tgt.startswith("xl/") else f"xl/{tgt}"
+
+        wb_root = ET.fromstring(zf.read("xl/workbook.xml"))
+        for sh in wb_root.findall(".//m:sheet", ns_m):
+            name = sh.attrib["name"]
+            rid = sh.attrib.get(ns_r, "")
+            xml_path = rels_map.get(rid, "")
+            if xml_path not in zf.namelist():
+                continue
+            ws_root = ET.fromstring(zf.read(xml_path))
+            rows_parsed: list[list[Any]] = []
+            max_cols = 0
+            for r_el in ws_root.findall(".//m:sheetData/m:row", ns_m):
+                row_vals: dict[int, Any] = {}
+                for c_el in r_el.findall("m:c", ns_m):
+                    c_i = _col_idx(c_el.attrib.get("r", "A1"))
+                    ctype = c_el.attrib.get("t", "")
+                    if ctype == "inlineStr":
+                        val: Any = "".join(t.text or "" for t in c_el.findall(".//m:t", ns_m))
+                    elif ctype == "s":
+                        v_el = c_el.find("m:v", ns_m)
+                        val = shared[int(v_el.text)] if (v_el is not None and v_el.text) else ""
+                    elif ctype in ("str", "e"):
+                        v_el = c_el.find("m:v", ns_m)
+                        val = v_el.text if v_el is not None else ""
+                    elif ctype == "b":
+                        v_el = c_el.find("m:v", ns_m)
+                        val = bool(int(v_el.text)) if (v_el is not None and v_el.text) else False
+                    else:
+                        v_el = c_el.find("m:v", ns_m)
+                        if v_el is not None and v_el.text is not None:
+                            try:
+                                f = float(v_el.text)
+                                val = int(f) if f.is_integer() and "." not in v_el.text else f
+                            except ValueError:
+                                val = v_el.text
+                        else:
+                            val = None
+                    row_vals[c_i] = val
+                    max_cols = max(max_cols, c_i + 1)
+                if row_vals:
+                    rows_parsed.append([row_vals.get(i) for i in range(max_cols)])
+            if not rows_parsed:
+                out[name] = pd.DataFrame()
+                continue
+            headers = [str(h) if h is not None else f"col_{i}" for i, h in enumerate(rows_parsed[0])]
+            body = [r + [None] * (len(headers) - len(r)) for r in rows_parsed[1:]]
+            out[name] = pd.DataFrame(body, columns=headers)
+    return out
+
+
+def load_workbook_sheets(url_or_path: str, timeout: int = 90) -> dict[str, pd.DataFrame]:
+    """Carga todas las pestañas de un libro Google Sheets / Excel (.xlsx)."""
+    src = str(url_or_path or "").strip()
+    if not src:
+        return {}
+    if src.startswith(("http://", "https://")):
+        direct_url = normalize_drive_url(src, output_format="xlsx")
+        raw_bytes = _http_get_bytes(direct_url, timeout=timeout)
+    else:
+        resolved = resolve_repo_path(src)
+        if resolved is None:
+            raise FileNotFoundError(f"No se encontró el libro RAW '{src}'.")
+        raw_bytes = resolved.read_bytes()
+    try:
+        return pd.read_excel(io.BytesIO(raw_bytes), sheet_name=None, engine="openpyxl")
+    except ImportError:
+        return _read_xlsx_sheets_stdlib(raw_bytes)
+
+
+def _rules_from_dataframe(df_rules: pd.DataFrame) -> dict[str, Any]:
+    """Reconstruye el diccionario `business_rules.json` desde una pestaña clave/valor."""
+    rules: dict[str, Any] = {}
+    for _, row in df_rules.iterrows():
+        clave = str(row.get("clave", "")).strip()
+        if not clave:
+            continue
+        val_raw = row.get("valor_json")
+        if pd.isna(val_raw):
+            continue
+        if isinstance(val_raw, str):
+            txt = val_raw.strip()
+            try:
+                rules[clave] = json.loads(txt)
+            except json.JSONDecodeError:
+                rules[clave] = txt
+        else:
+            rules[clave] = val_raw
+    return rules
 
 
 def norm_txt(value: object) -> str:
@@ -148,10 +277,16 @@ def run_etl_pipeline(
     topo_csv_source: str = "",
     rules_json_source: str = "",
     tipo_cambio_override: float = 0.0,
+    raw_workbook_source: str = "",
 ) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
     """Ejecuta el ETL completo de Producto 1 y retorna `(df_limpio, funnel)`."""
-    rules_raw = read_text_source(rules_json_source, "config/business_rules.json")
-    rules: dict[str, Any] = json.loads(rules_raw)
+    wb_sheets = load_workbook_sheets(raw_workbook_source) if raw_workbook_source else {}
+
+    if not rules_json_source and "business_rules" in wb_sheets:
+        rules = _rules_from_dataframe(wb_sheets["business_rules"])
+    else:
+        rules_raw = read_text_source(rules_json_source, "config/business_rules.json")
+        rules = json.loads(rules_raw)
 
     tipo_cambio = (
         float(tipo_cambio_override)
@@ -166,38 +301,15 @@ def run_etl_pipeline(
     umbral_desc_pct = float(arb_cfg["umbral_descuento_minimo_pct"]) * 100.0
     excluir_riesgo_alto = bool(arb_cfg["excluir_riesgo_alto"])
 
-    df_ml = pd.read_csv(
-        io.StringIO(
-            read_text_source(
-                ml_csv_source,
-                "data/raw/mercadolibre_terrenos_calamuchita_punilla_raw.csv",
-            )
-        )
-    )
-    df_campings = pd.read_csv(
-        io.StringIO(
-            read_text_source(
-                campings_csv_source,
-                "data/raw/campings_zona_real_raw.csv",
-            )
-        )
-    )
-    df_places = pd.read_csv(
-        io.StringIO(
-            read_text_source(
-                places_csv_source,
-                "data/raw/google_maps_campings_places_raw.csv",
-            )
-        )
-    )
-    df_topo = pd.read_csv(
-        io.StringIO(
-            read_text_source(
-                topo_csv_source,
-                "data/aux_topografia_cordoba.csv",
-            )
-        )
-    )
+    def _sheet_or_csv(sheet_name: str, src: str, fallback: str) -> pd.DataFrame:
+        if not src and sheet_name in wb_sheets:
+            return wb_sheets[sheet_name].copy()
+        return pd.read_csv(io.StringIO(read_text_source(src, fallback)))
+
+    df_ml = _sheet_or_csv("ml_terrenos", ml_csv_source, "data/raw/mercadolibre_terrenos_calamuchita_punilla_raw.csv")
+    df_campings = _sheet_or_csv("campings", campings_csv_source, "data/raw/campings_zona_real_raw.csv")
+    df_places = _sheet_or_csv("places", places_csv_source, "data/raw/google_maps_campings_places_raw.csv")
+    df_topo = _sheet_or_csv("topografia", topo_csv_source, "data/aux_topografia_cordoba.csv")
 
     funnel: list[dict[str, Any]] = [{"etapa": "0. Crudo Mercado Libre", "registros": int(len(df_ml))}]
     df_clean = df_ml.copy()
