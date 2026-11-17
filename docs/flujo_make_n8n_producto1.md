@@ -34,13 +34,13 @@ flowchart LR
 * *(Nota: tanto `apify_etl` como `apify_eda` convierten automáticamente links `drive.google.com/file/d/.../view` a descarga directa `uc?export=download&id=...`).*
 
 ### Paso B — Guardar Dataset Limpio en Drive (Caja 2 → Caja 3)
-* `terrascout-etl-actor` (`B4OGQydA2RGEbpg5E`) guarda en su **Key-Value Store**:
+* `yonihiriart/terrascout-etl-actor` (`ypvpGbmD1vpqraNXA`) guarda en su **Key-Value Store**:
   * `dataset_limpio.csv`
   * `etl_funnel.json` (incluye **`dataset_limpio_public_url`** firmada con `?signature=...`, lista para descargar sin token desde Make, n8n, Google Drive o Actor 2).
 * En Make/n8n: leer `https://api.apify.com/v2/key-value-stores/{defaultKeyValueStoreId}/records/etl_funnel.json`, tomar `dataset_limpio_public_url`, descargarlo con **HTTP -> Get a File** y subirlo a Google Drive (`Google Drive -> Upload a File` en carpeta `02_DATASET_LIMPIO`) reemplazando `dataset_limpio.csv`.
 
 ### Paso C — Correr `APIFY EDA` y generar Contenido de Gráficas (Caja 3 → Caja 4 → Caja 5)
-* Llamar a `terrascout-eda-actor` (`HqJfcmrxzAFe9W0bk`) pasándole en `dataset_limpio_url` la **`dataset_limpio_public_url`** de `etl_funnel.json` (o el link público de Drive de la Caja 3), más opcionalmente `reviews_csv_url`, `topicos_json_url` y `topo_csv_url`.
+* Llamar a `yonihiriart/terrascout-eda-actor` (`YZH8ti7zjLt6410Hx`) pasándole en `dataset_limpio_url` la **`dataset_limpio_public_url`** de `etl_funnel.json` (o el link público de Drive de la Caja 3), más opcionalmente `reviews_csv_url`, `topicos_json_url` y `topo_csv_url`.
 * Desde `eda_summary.json` (campo `public_urls`) o directamente del `defaultKeyValueStoreId` del Actor 2, descargar con sus URLs firmadas los **4 archivos** y subirlos a `03_CONTENIDO_GRAFICAS` de Drive:
   1. `csv_1_localidades_y_riesgo.csv` (**`hoja1`**)
   2. `csv_2_correlaciones_y_distribuciones.csv` (**`hoja2`**)
