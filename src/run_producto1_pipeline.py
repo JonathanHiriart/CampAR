@@ -1,6 +1,6 @@
 """Ejecutor local del flujo Producto 1: APIFY ETL -> dataset_limpio.csv -> APIFY EDA -> Dashboard CSVs/XLSX.
 
-Refleja paso a paso el diagrama `ObjetivoFlujo_N8n|make.png`:
+Refleja paso a paso el diagrama `docs/diagrama_flujo_producto1.png`:
   1. [DRIVE DATASET RAW] -> data/raw/* + data/aux_topografia_cordoba.csv + config/business_rules.json
   2. [APIFY ETL]         -> actors/apify_etl -> data/processed/dataset_limpio.csv
   3. [APIFY EDA]         -> actors/apify_eda -> data/processed/dashboard/{csv_1,csv_2,csv_3,.xlsx}

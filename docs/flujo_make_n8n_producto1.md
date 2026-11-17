@@ -1,6 +1,6 @@
 # Flujo Producto 1 en Make / n8n y Diseño de Datos para Dashboard
 
-Este documento conecta los **2 Actores de Apify** ([`actors/apify_etl/`](../actors/apify_etl/.actor/actor.json) y [`actors/apify_eda/`](../actors/apify_eda/.actor/actor.json)) con el diagrama de referencia de la cátedra (`ObjetivoFlujo_N8n|make.png`) y detalla cómo alimentar el Dashboard en **Looker Studio** / **Google Sheets**.
+Este documento conecta los **2 Actores de Apify** ([`actors/apify_etl/`](../actors/apify_etl/.actor/actor.json) y [`actors/apify_eda/`](../actors/apify_eda/.actor/actor.json)) con el diagrama de referencia de la cátedra ([`docs/diagrama_flujo_producto1.png`](./diagrama_flujo_producto1.png)) y detalla cómo alimentar el Dashboard en **Looker Studio** / **Google Sheets**.
 
 ---
 
