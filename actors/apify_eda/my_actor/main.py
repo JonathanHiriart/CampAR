@@ -56,10 +56,12 @@ async def main() -> None:
         csv1_txt = res["csv_1_localidades_y_riesgo"].to_csv(index=False)
         csv2_txt = res["csv_2_correlaciones_y_distribuciones"].to_csv(index=False)
         csv3_txt = res["csv_3_oportunidades_y_voz_turista"].to_csv(index=False)
+        unico_txt = res["dashboard_consolidado"].to_csv(index=False)
 
         await Actor.set_value("csv_1_localidades_y_riesgo.csv", csv1_txt.encode("utf-8"), content_type="text/csv; charset=utf-8")
         await Actor.set_value("csv_2_correlaciones_y_distribuciones.csv", csv2_txt.encode("utf-8"), content_type="text/csv; charset=utf-8")
         await Actor.set_value("csv_3_oportunidades_y_voz_turista.csv", csv3_txt.encode("utf-8"), content_type="text/csv; charset=utf-8")
+        await Actor.set_value("dashboard_consolidado.csv", unico_txt.encode("utf-8"), content_type="text/csv; charset=utf-8")
         await Actor.set_value(
             "contenido_graficas_dashboard.xlsx",
             res["xlsx_bytes"],
@@ -74,6 +76,7 @@ async def main() -> None:
                     "csv_1": await store.get_public_url("csv_1_localidades_y_riesgo.csv"),
                     "csv_2": await store.get_public_url("csv_2_correlaciones_y_distribuciones.csv"),
                     "csv_3": await store.get_public_url("csv_3_oportunidades_y_voz_turista.csv"),
+                    "dashboard_consolidado": await store.get_public_url("dashboard_consolidado.csv"),
                     "xlsx": await store.get_public_url("contenido_graficas_dashboard.xlsx"),
                 }
             except Exception as exc:  # pragma: no cover - depende de runtime Apify
@@ -81,18 +84,8 @@ async def main() -> None:
 
         await Actor.set_value("eda_summary.json", summary_payload)
 
-        # Subir resumen tabulado al Dataset Apify para consumo directo de Make/n8n
-        dataset_rows = []
-        for sheet_tag, df_part in [
-            ("csv_1_localidades_y_riesgo", res["csv_1_localidades_y_riesgo"]),
-            ("csv_2_correlaciones_y_distribuciones", res["csv_2_correlaciones_y_distribuciones"]),
-            ("csv_3_oportunidades_y_voz_turista", res["csv_3_oportunidades_y_voz_turista"]),
-        ]:
-            part = json.loads(df_part.to_json(orient="records"))
-            for row in part:
-                row["origen_tabla"] = sheet_tag
-            dataset_rows.extend(part)
-
+        # Subir tabla única uniforme al Dataset Apify para consumo directo en Google Sheets vía n8n
+        dataset_rows = json.loads(res["dashboard_consolidado"].to_json(orient="records"))
         if dataset_rows:
             await Actor.push_data(dataset_rows)
 

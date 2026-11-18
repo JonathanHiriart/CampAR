@@ -89,24 +89,36 @@ class TestPipelineProducto1EndToEnd:
         csv1 = Path(res["csv_1"])
         csv2 = Path(res["csv_2"])
         csv3 = Path(res["csv_3"])
+        unico = Path(res["dashboard_consolidado"])
         xlsx = Path(res["xlsx"])
 
         assert csv_limpio.is_file()
         assert csv1.is_file()
         assert csv2.is_file()
         assert csv3.is_file()
+        assert unico.is_file()
         assert xlsx.is_file()
 
         assert res["summary"]["total_lotes_limpios"] >= 700
         assert res["summary"]["oportunidades_p1"] > 0
         assert res["summary"]["filas_csv1"] == 16
         assert res["summary"]["oportunidades_segmento"] > 0
+        assert res["summary"]["filas_consolidado"] > 900
 
         import pandas as pd
         df_clean = pd.read_csv(csv_limpio)
         df_csv1 = pd.read_csv(csv1)
         df_csv3 = pd.read_csv(csv3)
+        df_unico = pd.read_csv(unico)
         df_topo = pd.read_csv(REPO_ROOT / "data" / "aux_topografia_cordoba.csv")
+
+        assert "tipo_tabla" in df_unico.columns
+        assert (df_unico["tipo_tabla"] == "lote").sum() == len(df_clean)
+        assert {"voz_turista_estrellas", "topico_queja_gmaps", "infraestructura_lote", "eda_correlacion"}.issubset(
+            set(df_unico["tipo_tabla"].unique())
+        )
+        assert "telefono_en_descripcion" not in df_unico.columns
+        assert "vendedor_nombre" not in df_unico.columns
 
         # 1. Consistencia valle_corredor vs topografía y clave única en hoja1
         merged_v = df_clean[["barrio_localidad", "valle_corredor"]].merge(

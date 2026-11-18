@@ -6,7 +6,12 @@
 
 ## 1. Fuentes de Datos a Conectar en Looker Studio
 
-En Google Drive, n8n actualiza automáticamente **`dataset_limpio.csv`** (nodo 2) y **`contenido_graficas_dashboard.xlsx`** (nodo 4). Para conectar Looker Studio sin errores:
+### Modo recomendado (1 sola pestaña automática desde n8n → Google Sheets)
+El flujo actualizado ([`n8n_producto1_terrascout.json`](../workflows/n8n_producto1_terrascout.json)) envía directamente las **`918` filas unificadas** a la pestaña **`Datos`** de un único Google Sheet (`dashboard_consolidado`), usando `tipo_tabla` para separar:
+* **`tipo_tabla = "lote"`** (`894` filas) → alimenta **Páginas 1, 2, 3, dispersión de Pág 4 y Pág 5** (aplicar este filtro en los gráficos/tarjetas de lotes).
+* **`tipo_tabla = "voz_turista_estrellas"`** (`5`), **`"topico_queja_gmaps"`** (`3`), **`"infraestructura_lote"`** (`6`) y **`"eda_correlacion"`** (`10`) → alimentan los gráficos de **Página 4** usando `metrica_nombre`, `metrica_cantidad`, `metrica_porcentaje`, `eda_pearson_m2` y `eda_spearman_m2`.
+
+### Modo alternativo (4 fuentes separadas desde `contenido_graficas_dashboard.xlsx`)
 
 | Fuente en Looker Studio | Archivo / Pestaña | Filas | Para qué páginas se usa |
 | :--- | :--- | :---: | :--- |
