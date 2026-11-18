@@ -287,7 +287,7 @@ def build_multisheet_xlsx_bytes(sheets: dict[str, pd.DataFrame]) -> bytes:
             "[Content_Types].xml",
             '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.relationships+xml"/>'
             '<Default Extension="xml" ContentType="application/xml"/>'
             '<Override PartName="/xl/workbook.xml" '
             'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
@@ -364,19 +364,24 @@ def run_eda_pipeline(
     wb_sheets = load_workbook_sheets(raw_workbook_source) if raw_workbook_source else {}
     df = _load_clean_dataframe(dataset_limpio_source)
     for col in [
-        "precio_usd", "superficie_m2", "precio_m2_usd", "score_servicios",
-        "tiene_escritura", "tiene_arboleda", "pendiente_media_grados",
-        "ndvi_sombra_verano", "distancia_rio_m", "campings_5km",
-        "distancia_camping_min_km", "nps_proxy_zona",
-        "precio_referencia_zona_m2", "descuento_vs_mediana_pct", "lat_eff", "lon_eff",
+        "precio_usd", "superficie_m2", "banda_orden", "precio_m2_usd", "score_servicios",
+        "tiene_agua", "tiene_luz", "tiene_escritura", "tiene_arboleda", "tiene_rio",
+        "tiene_servicios", "pendiente_media_grados", "ndvi_sombra_verano",
+        "distancia_rio_m", "riesgo_orden", "campings_5km", "distancia_camping_min_km",
+        "nps_proxy_zona", "precio_referencia_zona_m2", "descuento_vs_mediana_pct",
+        "segmento_n", "precio_referencia_segmento_m2", "descuento_vs_segmento_pct",
+        "lat_eff", "lon_eff",
     ]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    if "es_oportunidad_p1" in df.columns:
-        df["es_oportunidad_p1"] = df["es_oportunidad_p1"].astype(str).str.lower().isin(["true", "1", "yes"])
-    else:
-        df["es_oportunidad_p1"] = False
+    for bcol in ("es_oportunidad_p1", "es_oportunidad_segmento"):
+        if bcol in df.columns:
+            df[bcol] = df[bcol].astype(str).str.lower().isin(["true", "1", "yes"])
+        else:
+            df[bcol] = False
+    if "riesgo_orden" not in df.columns and "riesgo_ambiental" in df.columns:
+        df["riesgo_orden"] = df["riesgo_ambiental"].map({"BAJO": 1, "MEDIO": 2, "ALTO": 3}).fillna(9)
 
     topo_centroids: dict[str, tuple[float, float]] = {}
     if not topo_csv_source and "topografia" in wb_sheets:
@@ -399,6 +404,7 @@ def run_eda_pipeline(
         df.groupby(grp_cols, as_index=False)
         .agg(
             cantidad_lotes=("id_registro", "count"),
+            riesgo_orden=("riesgo_orden", "min"),
             superficie_mediana_m2=("superficie_m2", "median"),
             precio_mediano_usd=("precio_usd", "median"),
             precio_m2_mediano_usd=("precio_m2_usd", "median"),
@@ -411,6 +417,7 @@ def run_eda_pipeline(
             campings_5km_mediana=("campings_5km", "median"),
             nps_proxy_zona_mediana=("nps_proxy_zona", "median"),
             oportunidades_p1_count=("es_oportunidad_p1", "sum"),
+            oportunidades_segmento_count=("es_oportunidad_segmento", "sum"),
             lat_lote_med=("lat_eff", "median"),
             lon_lote_med=("lon_eff", "median"),
         )
@@ -531,33 +538,100 @@ def run_eda_pipeline(
     # CSV 3 / hoja3: Oportunidades Producto 1 + Voz del Turista y Quejas
     # ------------------------------------------------------------------
     opp_rows: list[dict[str, Any]] = []
-    df_sorted_lotes = df.sort_values(["es_oportunidad_p1", "descuento_vs_mediana_pct"], ascending=[False, False])
+    sort_cols = (
+        ["es_oportunidad_segmento", "descuento_vs_segmento_pct"]
+        if "descuento_vs_segmento_pct" in df.columns
+        else ["es_oportunidad_p1", "descuento_vs_mediana_pct"]
+    )
+    df_sorted_lotes = df.sort_values(sort_cols, ascending=[False, False])
     if top_oportunidades_limit and top_oportunidades_limit > 0:
         df_sorted_lotes = df_sorted_lotes.head(int(top_oportunidades_limit))
 
+    include_phone = "telefono_en_descripcion" in df.columns
     for _, lr in df_sorted_lotes.iterrows():
-        opp_rows.append({
+        row_opp: dict[str, Any] = {
             "seccion": "oportunidad_lote",
             "id_registro": lr.get("id_registro", ""),
+            "fecha_extraccion": lr.get("fecha_extraccion", ""),
             "valle_corredor": lr.get("valle_corredor", ""),
             "barrio_localidad": lr.get("barrio_localidad", ""),
             "titulo_publicacion": lr.get("titulo_publicacion", ""),
             "precio_usd": lr.get("precio_usd"),
             "superficie_m2": lr.get("superficie_m2"),
+            "banda_superficie": lr.get("banda_superficie", ""),
             "precio_m2_usd": lr.get("precio_m2_usd"),
             "precio_referencia_zona_m2": lr.get("precio_referencia_zona_m2"),
             "descuento_vs_mediana_pct": lr.get("descuento_vs_mediana_pct"),
             "es_oportunidad_p1": bool(lr.get("es_oportunidad_p1", False)),
+            "precio_referencia_segmento_m2": lr.get("precio_referencia_segmento_m2"),
+            "descuento_vs_segmento_pct": lr.get("descuento_vs_segmento_pct"),
+            "es_oportunidad_segmento": bool(lr.get("es_oportunidad_segmento", False)),
             "pendiente_media_grados": lr.get("pendiente_media_grados"),
             "riesgo_ambiental": lr.get("riesgo_ambiental", ""),
             "score_servicios": lr.get("score_servicios"),
-            "telefono_en_descripcion": lr.get("telefono_en_descripcion", "") if pd.notna(lr.get("telefono_en_descripcion")) else "",
             "url_publicacion": lr.get("url_publicacion", ""),
             "url_google_maps": lr.get("url_google_maps", ""),
+            "coordenadas_gmaps": lr.get("coordenadas_gmaps", ""),
             "metrica_turismo_o_topico": "",
             "cantidad_o_menciones": None,
             "porcentaje_o_share": None,
-        })
+        }
+        if include_phone:
+            row_opp["telefono_en_descripcion"] = (
+                lr.get("telefono_en_descripcion", "") if pd.notna(lr.get("telefono_en_descripcion")) else ""
+            )
+        opp_rows.append(row_opp)
+
+    def _summary_row(
+        seccion: str,
+        id_reg: str,
+        titulo: str,
+        metrica: str,
+        cantidad: int | None,
+        share: float | None,
+    ) -> dict[str, Any]:
+        row_s: dict[str, Any] = {
+            "seccion": seccion,
+            "id_registro": id_reg,
+            "fecha_extraccion": "",
+            "valle_corredor": "Todos",
+            "barrio_localidad": "Sierras de Córdoba",
+            "titulo_publicacion": titulo,
+            "precio_usd": None, "superficie_m2": None, "banda_superficie": "",
+            "precio_m2_usd": None, "precio_referencia_zona_m2": None,
+            "descuento_vs_mediana_pct": None, "es_oportunidad_p1": False,
+            "precio_referencia_segmento_m2": None, "descuento_vs_segmento_pct": None,
+            "es_oportunidad_segmento": False, "pendiente_media_grados": None,
+            "riesgo_ambiental": "", "score_servicios": None,
+            "url_publicacion": "", "url_google_maps": "", "coordenadas_gmaps": "",
+            "metrica_turismo_o_topico": metrica,
+            "cantidad_o_menciones": cantidad,
+            "porcentaje_o_share": share,
+        }
+        if include_phone:
+            row_s["telefono_en_descripcion"] = ""
+        return row_s
+
+    total_lotes = max(int(len(df)), 1)
+    infra_cols = [
+        ("tiene_agua", "Agua corriente / red"),
+        ("tiene_luz", "Luz / energía eléctrica"),
+        ("tiene_escritura", "Escritura (sin disclaimers/negaciones)"),
+        ("tiene_arboleda", "Arboleda / sombra"),
+        ("tiene_rio", "Río / arroyo cercano"),
+        ("tiene_servicios", "Servicios básicos (>=2)"),
+    ]
+    for col_flag, label in infra_cols:
+        if col_flag in df.columns:
+            cnt_flag = int(df[col_flag].fillna(0).sum())
+            opp_rows.append(_summary_row(
+                "infraestructura_lote",
+                f"INFRA-{col_flag}",
+                label,
+                label,
+                cnt_flag,
+                round(cnt_flag / total_lotes * 100.0, 2),
+            ))
 
     if not reviews_csv_source and "reviews" in wb_sheets:
         df_rev = wb_sheets["reviews"]
@@ -572,21 +646,14 @@ def run_eda_pipeline(
         total_rev = max(int(len(df_rev)), 1)
         star_counts = df_rev["estrellas_rating"].value_counts().sort_index()
         for star, cnt in star_counts.items():
-            opp_rows.append({
-                "seccion": "voz_turista_estrellas",
-                "id_registro": f"STAR-{star}",
-                "valle_corredor": "Todos",
-                "barrio_localidad": "Sierras de Córdoba",
-                "titulo_publicacion": f"Reseñas Google Maps {star} estrellas",
-                "precio_usd": None, "superficie_m2": None, "precio_m2_usd": None,
-                "precio_referencia_zona_m2": None, "descuento_vs_mediana_pct": None,
-                "es_oportunidad_p1": False, "pendiente_media_grados": None,
-                "riesgo_ambiental": "", "score_servicios": None,
-                "telefono_en_descripcion": "", "url_publicacion": "", "url_google_maps": "",
-                "metrica_turismo_o_topico": f"{star}_estrellas",
-                "cantidad_o_menciones": int(cnt),
-                "porcentaje_o_share": round(int(cnt) / total_rev * 100.0, 2),
-            })
+            opp_rows.append(_summary_row(
+                "voz_turista_estrellas",
+                f"STAR-{star}",
+                f"Reseñas Google Maps {star} estrellas",
+                f"{star}_estrellas",
+                int(cnt),
+                round(int(cnt) / total_rev * 100.0, 2),
+            ))
 
     if not topicos_json_source and "topicos_nlp" in wb_sheets:
         top_data = _topicos_from_dataframe(wb_sheets["topicos_nlp"])
@@ -600,37 +667,23 @@ def run_eda_pipeline(
     if top_data:
         quejas = (top_data.get("topics_quejas_gmaps") or {}).get("items", [])
         for q in quejas:
-            opp_rows.append({
-                "seccion": "topico_queja_gmaps",
-                "id_registro": f"QUEJA-{q.get('rank')}",
-                "valle_corredor": "Todos",
-                "barrio_localidad": "Sierras de Córdoba",
-                "titulo_publicacion": ", ".join(q.get("terms", [])),
-                "precio_usd": None, "superficie_m2": None, "precio_m2_usd": None,
-                "precio_referencia_zona_m2": None, "descuento_vs_mediana_pct": None,
-                "es_oportunidad_p1": False, "pendiente_media_grados": None,
-                "riesgo_ambiental": "", "score_servicios": None,
-                "telefono_en_descripcion": "", "url_publicacion": "", "url_google_maps": "",
-                "metrica_turismo_o_topico": f"Cluster #{q.get('rank')}: {', '.join(q.get('terms', []))}",
-                "cantidad_o_menciones": int(q.get("size", 0)),
-                "porcentaje_o_share": round(float(q.get("share", 0.0)) * 100.0, 2),
-            })
+            opp_rows.append(_summary_row(
+                "topico_queja_gmaps",
+                f"QUEJA-{q.get('rank')}",
+                ", ".join(q.get("terms", [])),
+                f"Cluster #{q.get('rank')}: {', '.join(q.get('terms', []))}",
+                int(q.get("size", 0)),
+                round(float(q.get("share", 0.0)) * 100.0, 2),
+            ))
         for kw, stats in (top_data.get("fuzzy_counts") or {}).items():
-            opp_rows.append({
-                "seccion": "infraestructura_keyword",
-                "id_registro": f"KW-{kw}",
-                "valle_corredor": "Todos",
-                "barrio_localidad": "Sierras de Córdoba",
-                "titulo_publicacion": f"Mención difusa '{kw}'",
-                "precio_usd": None, "superficie_m2": None, "precio_m2_usd": None,
-                "precio_referencia_zona_m2": None, "descuento_vs_mediana_pct": None,
-                "es_oportunidad_p1": False, "pendiente_media_grados": None,
-                "riesgo_ambiental": "", "score_servicios": None,
-                "telefono_en_descripcion": "", "url_publicacion": "", "url_google_maps": "",
-                "metrica_turismo_o_topico": str(kw),
-                "cantidad_o_menciones": int(stats.get("count", 0)),
-                "porcentaje_o_share": None,
-            })
+            opp_rows.append(_summary_row(
+                "infraestructura_keyword",
+                f"KW-{kw}",
+                f"Mención difusa ML '{kw}'",
+                str(kw),
+                int(stats.get("count", 0)),
+                None,
+            ))
 
     df_csv3 = pd.DataFrame(opp_rows)
 
@@ -648,6 +701,7 @@ def run_eda_pipeline(
         "summary": {
             "total_lotes_limpios": int(len(df)),
             "oportunidades_p1": int(df["es_oportunidad_p1"].sum()),
+            "oportunidades_segmento": int(df["es_oportunidad_segmento"].sum()),
             "filas_csv1": int(len(df_csv1)),
             "filas_csv2": int(len(df_csv2)),
             "filas_csv3": int(len(df_csv3)),
