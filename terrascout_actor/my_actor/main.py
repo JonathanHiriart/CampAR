@@ -220,7 +220,7 @@ def tokenize(text: str) -> list[str]:
 
 
 def split_sentences(content: dict[str, str] | list[str]) -> list[str]:
-    """Divide oraciones respetando signos de puntuación (. ! ?)."""
+    """Divide oraciones respetando signos de puntuación (. ! ?) y limpiando tags HTML."""
     sentences: list[str] = []
     if isinstance(content, dict):
         texts = content.values()
@@ -232,7 +232,8 @@ def split_sentences(content: dict[str, str] | list[str]) -> list[str]:
     for text in texts:
         if not text:
             continue
-        for line in str(text).splitlines():
+        clean_text = re.sub(r"<[^>]+>", " ", str(text))
+        for line in clean_text.splitlines():
             sentences.extend(s.strip() for s in SENTENCE_SPLIT.split(line) if s.strip())
     return sentences
 

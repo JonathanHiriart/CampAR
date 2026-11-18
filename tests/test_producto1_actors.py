@@ -16,6 +16,7 @@ from actors.apify_eda.my_actor.eda_core import (  # noqa: E402
     run_eda_pipeline,
 )
 from actors.apify_etl.my_actor.etl_core import (  # noqa: E402
+    detect_tiene_escritura,
     extraer_superficie_segura,
     normalize_drive_url,
     run_etl_pipeline,
@@ -52,6 +53,18 @@ class TestUtilidadesETL:
         assert extraer_superficie_segura("Lote a 300 metros del rio, 1200 m2 totales") == 1200.0
         assert extraer_superficie_segura("Fraccion de 1.5 ha en Calamuchita") == 15000.0
 
+    def test_detect_tiene_escritura_filtra_disclaimers_y_negaciones(self):
+        import pandas as pd
+
+        s = pd.Series([
+            "lote con escritura inmediata y agua corriente",
+            "listo para escriturar hermoso terreno",
+            "no interviene en la confeccion y o firma del boleto de compraventa y o escritura",
+            "lote hermoso sin escritura por boleto de compraventa",
+            "terreno con escritura en tramite",
+        ])
+        assert detect_tiene_escritura(s).tolist() == [1, 1, 0, 0, 0]
+
 
 class TestPipelineProducto1EndToEnd:
     def test_libro_unico_raw_consolidado_etl_y_eda(self, tmp_path: Path):
@@ -86,6 +99,35 @@ class TestPipelineProducto1EndToEnd:
 
         assert res["summary"]["total_lotes_limpios"] >= 700
         assert res["summary"]["oportunidades_p1"] > 0
+        assert res["summary"]["filas_csv1"] == 16
+        assert res["summary"]["oportunidades_segmento"] > 0
+
+        import pandas as pd
+        df_clean = pd.read_csv(csv_limpio)
+        df_csv1 = pd.read_csv(csv1)
+        df_csv3 = pd.read_csv(csv3)
+        df_topo = pd.read_csv(REPO_ROOT / "data" / "aux_topografia_cordoba.csv")
+
+        # 1. Consistencia valle_corredor vs topografía y clave única en hoja1
+        merged_v = df_clean[["barrio_localidad", "valle_corredor"]].merge(
+            df_topo[["barrio_localidad", "valle_corredor"]],
+            on="barrio_localidad",
+            suffixes=("_clean", "_topo"),
+        )
+        assert (merged_v["valle_corredor_clean"] == merged_v["valle_corredor_topo"]).all()
+        assert df_csv1["barrio_localidad"].is_unique
+
+        # 2. Segmentación, fecha y ausencia de PII (Ley 25.326)
+        for col in ("fecha_extraccion", "banda_superficie", "banda_orden", "riesgo_orden", "descuento_vs_segmento_pct", "es_oportunidad_segmento", "coordenadas_gmaps"):
+            assert col in df_clean.columns
+        assert "telefono_en_descripcion" not in df_clean.columns
+        assert "vendedor_nombre" not in df_clean.columns
+        assert "telefono_en_descripcion" not in df_csv3.columns
+
+        # 3. Quejas sin tag <br> y métricas reales por lote en hoja3
+        quejas = df_csv3[df_csv3["seccion"] == "topico_queja_gmaps"]["metrica_turismo_o_topico"].astype(str)
+        assert not quejas.str.contains(r"\bbr\b", regex=True).any()
+        assert (df_csv3["seccion"] == "infraestructura_lote").any()
 
         # Verificar que el .xlsx contiene hoja1, hoja2 y hoja3 válidas
         with zipfile.ZipFile(xlsx, "r") as zf:

@@ -28,7 +28,7 @@ En los valles de **Punilla y Calamuchita (Córdoba)**, evaluar dónde comprar o 
 1. **Datos de entrada (1 solo archivo):** subí [`data/raw/dataset_raw_consolidado.xlsx`](./data/raw/dataset_raw_consolidado.xlsx) a Google Drive (o abrilo con Google Sheets) y compartilo como *Cualquiera con el enlace → Lector*.
 2. **Importar el flujo:** en **n8n**, importá [`workflows/n8n_producto1_terrascout.json`](./workflows/n8n_producto1_terrascout.json).
 3. **Configurar:** en el nodo `Config`, completá tu `apify_token`, el link de entrada `raw_workbook_url` (o dejalo vacío para usar el fallback embebido) y los IDs de tus carpetas de Drive; vinculá tu credencial de Google Drive en los nodos `2` y `4` (recomendado usar `Operation: Update` tras la primera subida para conservar siempre el mismo `File ID` hacia Looker Studio).
-4. **Ejecutar:** apretá *Execute workflow* y n8n corre el pipeline completo (`ETL → Drive Limpio → EDA → Drive Dashboard`). Ver detalle completo y diseño de gráficos en [**Guía Make / n8n y Looker Studio**](./docs/flujo_make_n8n_producto1.md).
+4. **Ejecutar:** apretá *Execute workflow* y n8n corre el pipeline completo (`ETL → Drive Limpio → EDA → Drive Dashboard`). Ver detalle técnico en [**Guía Make / n8n**](./docs/flujo_make_n8n_producto1.md) y paso a paso de vistas en [**Guía Looker Studio**](./docs/guia_looker_studio_producto1.md).
 
 ### Opción B — Ejecución y pruebas en local (Python)
 
@@ -87,7 +87,8 @@ Capstone/
 │   └── test_scraper_node.py               # Tests unitarios de scrapers y datos reales
 └── docs/
     ├── DOCUMENTACION_COMPLETA.md          # Explicación no técnica de plan y archivos
-    ├── flujo_make_n8n_producto1.md        # Guía Make / n8n + Looker Studio
+    ├── guia_looker_studio_producto1.md    # Guía paso a paso del tablero en Looker Studio
+    ├── flujo_make_n8n_producto1.md        # Guía Make / n8n + conexión Apify
     ├── diagrama_flujo_producto1.png       # Diagrama de referencia de la cátedra
     └── planificacion/                     # Propuesta base, marco satelital y guías de producto
 ```

@@ -373,15 +373,20 @@ def run_scraper_pipeline(
     # 3. Procesamiento de NLP y Conteo Difuso sobre Corpus 100% Real
     logger.info(">>> Paso 3: Análisis NLP no supervisado sobre el corpus real...")
     corpus_sentences: list[str] = []
+    ml_sentences: list[str] = []
 
     # Textos de publicaciones de Mercado Libre (título y descripción completa)
     for item in ml_listings:
         title = item.get("titulo_publicacion")
         if title:
-            corpus_sentences.extend(split_sentences([title]))
+            s_t = split_sentences([title])
+            corpus_sentences.extend(s_t)
+            ml_sentences.extend(s_t)
         desc = item.get("descripcion_completa")
         if desc:
-            corpus_sentences.extend(split_sentences([desc]))
+            s_d = split_sentences([desc])
+            corpus_sentences.extend(s_d)
+            ml_sentences.extend(s_d)
 
     # Textos de campings (nombres y descripciones)
     for c in campings:
@@ -450,8 +455,8 @@ def run_scraper_pipeline(
             extra_stop_words=(stop_words_es[:40] if stop_words_es else []) + ["camping", "lugar", "muy"],
         )
 
-    # Conteo difuso sobre infraestructura y servicios en el corpus real
-    sentence_idx = SentenceIndex(corpus_sentences)
+    # Conteo difuso sobre infraestructura y servicios exclusivamente sobre avisos ML
+    sentence_idx = SentenceIndex(ml_sentences or corpus_sentences)
     fuzzy_counts: dict[str, Any] = {}
     for kw in palabras_clave:
         fuzzy_counts[kw] = fuzzy_count(
@@ -465,6 +470,7 @@ def run_scraper_pipeline(
         "metadata": {
             "fecha_extraccion": datetime.now().isoformat(),
             "algoritmo": "TF-IDF + KMeans + SentenceIndex (scikit-learn / rapidfuzz / difflib)",
+            "fuzzy_counts_fuente": "mercadolibre_publicaciones",
             "fuentes_utilizadas": [
                 "MercadoLibre Inmuebles Córdoba",
                 "OpenStreetMap Overpass",

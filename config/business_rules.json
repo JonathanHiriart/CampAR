@@ -13,6 +13,19 @@
     "umbral_descuento_minimo_pct": 0.20,
     "excluir_riesgo_alto": true
   },
+  "segmentacion_superficie": {
+    "cortes_m2": [1000.0, 3000.0, 10000.0],
+    "etiquetas": ["<= 1.000 m2", "1.001 - 3.000 m2", "3.001 - 10.000 m2", "> 10.000 m2"],
+    "orden_riesgo": {
+      "BAJO": 1,
+      "MEDIO": 2,
+      "ALTO": 3
+    },
+    "minimo_muestra_segmento": 5
+  },
+  "seguridad": {
+    "ocultar_pii_en_salidas": true
+  },
   "nlp_params": {
     "fuzzy_threshold": 85,
     "fuzzy_scorer": "WRatio",
