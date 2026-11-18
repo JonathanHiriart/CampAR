@@ -259,6 +259,22 @@ def extraer_superficie_segura(texto: object) -> float:
     return float("nan")
 
 
+def detect_tiene_escritura(texto_norm: pd.Series) -> pd.Series:
+    """Detecta tenencia real de escritura excluyendo disclaimers legales y negaciones."""
+    clean = (
+        texto_norm
+        .str.replace(r"no\s+interviene[^.]{0,160}escritura", " ", regex=True)
+        .str.replace(r"confeccion\s+y\s+o\s+firma\s+del\s+boleto\s+de\s+compraventa\s+y\s+o\s+escritura", " ", regex=True)
+        .str.replace(r"gastos\s+de\s+escribania\s+por\s+escritura(?:\s+o\s+boleto\s+de\s+compra\s+venta)?", " ", regex=True)
+        .str.replace(r"\b(?:sin|no\s+tiene|no\s+posee|no\s+cuenta\s+con|carece\s+de)\s+(?:de\s+)?escritur\w*", " ", regex=True)
+        .str.replace(r"\b(?:escritura\s+en\s+tramite|proximamente\s+a\s+escriturar|boleto\s+para\s+escriturar|mediante\s+boleto\s+de\s+compra\s*venta)\b", " ", regex=True)
+    )
+    return clean.str.contains(
+        r"\bescritura(?:do|da|dos|das)?\b|\bescriturable\b|\blist[oa]s?\s+para\s+escriturar\b|\btitulo\s+perfecto\b",
+        regex=True,
+    ).astype(int)
+
+
 def haversine_vec(lat1: float, lon1: float, lat2_arr: np.ndarray, lon2_arr: np.ndarray) -> np.ndarray:
     """Distancia Haversine vectorizada en kilómetros."""
     earth_r_km = 6371.0
@@ -300,6 +316,12 @@ def run_etl_pipeline(
     arb_cfg = rules["arbitraje"]
     umbral_desc_pct = float(arb_cfg["umbral_descuento_minimo_pct"]) * 100.0
     excluir_riesgo_alto = bool(arb_cfg["excluir_riesgo_alto"])
+    seg_cfg = rules.get("segmentacion_superficie") or {}
+    cortes_sup = [float(x) for x in seg_cfg.get("cortes_m2", [1000.0, 3000.0, 10000.0])]
+    etiq_sup = [str(x) for x in seg_cfg.get("etiquetas", ["<= 1.000 m2", "1.001 - 3.000 m2", "3.001 - 10.000 m2", "> 10.000 m2"])]
+    orden_riesgo_map = {str(k): int(v) for k, v in (seg_cfg.get("orden_riesgo") or {"BAJO": 1, "MEDIO": 2, "ALTO": 3}).items()}
+    min_muestra_seg = int(seg_cfg.get("minimo_muestra_segmento", 5))
+    ocultar_pii = bool((rules.get("seguridad") or {}).get("ocultar_pii_en_salidas", True))
 
     def _sheet_or_csv(sheet_name: str, src: str, fallback: str) -> pd.DataFrame:
         if not src and sheet_name in wb_sheets:
@@ -364,7 +386,7 @@ def run_etl_pipeline(
     texto_full = (df_clean["titulo_publicacion"].fillna("") + " " + pd.Series(desc_series).fillna("")).apply(norm_txt)
     df_clean["tiene_agua"] = texto_full.str.contains(r"\bagua\b|agua corriente|red de agua", regex=True).astype(int)
     df_clean["tiene_luz"] = texto_full.str.contains(r"\bluz\b|energia electrica|tendido electrico", regex=True).astype(int)
-    df_clean["tiene_escritura"] = texto_full.str.contains(r"escritura|escriturable|titulo perfecto", regex=True).astype(int)
+    df_clean["tiene_escritura"] = detect_tiene_escritura(texto_full)
     df_clean["tiene_arboleda"] = texto_full.str.contains(r"arboleda|arboles|pinos|sombra|monte", regex=True).astype(int)
     df_clean["tiene_rio"] = texto_full.str.contains(r"\brio\b|arroyo|costa|balneario", regex=True).astype(int)
     df_clean["score_servicios"] = df_clean["tiene_agua"] + df_clean["tiene_luz"] + df_clean["tiene_escritura"]
@@ -387,13 +409,12 @@ def run_etl_pipeline(
     pl_w = places_valid["reviews_w"].to_numpy(dtype=float)
     nps_valle_mean = places_valid.groupby("valle_corredor")["nps_proxy"].mean().to_dict()
 
-    barrios, pendientes, ndvis, dist_rios, riesgos = [], [], [], [], []
+    valles, barrios, pendientes, ndvis, dist_rios, riesgos = [], [], [], [], [], []
     camp_5km_l, camp_min_l, nps_zona_l, lat_eff_l, lon_eff_l = [], [], [], [], []
 
     for _, row in df_clean.iterrows():
         lat = pd.to_numeric(row["latitud"], errors="coerce")
         lon = pd.to_numeric(row["longitud"], errors="coerce")
-        valle = str(row["valle_corredor"])
 
         if pd.notna(lat) and pd.notna(lon):
             dists_t = haversine_vec(float(lat), float(lon), topo_lats, topo_lons)
@@ -405,6 +426,8 @@ def run_etl_pipeline(
             lon = float(topo_lons[idx_t])
 
         t_row = df_topo.iloc[idx_t]
+        valle = str(t_row["valle_corredor"]) if "valle_corredor" in t_row and pd.notna(t_row["valle_corredor"]) else str(row["valle_corredor"])
+        valles.append(valle)
         barrios.append(str(t_row["barrio_localidad"]))
         pendientes.append(float(t_row["pendiente_media_grados"]))
         ndvis.append(float(t_row["ndvi_sombra_verano"]))
@@ -429,18 +452,25 @@ def run_etl_pipeline(
                 nps_z = float(nps_valle_mean.get(valle, np.mean(pl_nps)))
         nps_zona_l.append(round(nps_z, 2))
 
+    df_clean["valle_corredor"] = valles
     df_clean["barrio_localidad"] = barrios
     df_clean["pendiente_media_grados"] = pendientes
     df_clean["ndvi_sombra_verano"] = ndvis
     df_clean["distancia_rio_m"] = dist_rios
     df_clean["riesgo_ambiental"] = riesgos
+    df_clean["riesgo_orden"] = df_clean["riesgo_ambiental"].map(orden_riesgo_map).fillna(9).astype(int)
     df_clean["campings_5km"] = camp_5km_l
     df_clean["distancia_camping_min_km"] = camp_min_l
     df_clean["nps_proxy_zona"] = nps_zona_l
     df_clean["lat_eff"] = lat_eff_l
     df_clean["lon_eff"] = lon_eff_l
+    df_clean["coordenadas_gmaps"] = [f"{la:.6f},{lo:.6f}" for la, lo in zip(lat_eff_l, lon_eff_l)]
 
-    # 7. Línea base de oportunidad Producto 1 (mediana por localidad, sin ML)
+    # 7. Segmentación por superficie y oportunidad (localidad + banda con fallback muestral)
+    bin_idx = np.searchsorted(cortes_sup, df_clean["superficie_m2"].to_numpy(dtype=float), side="left")
+    df_clean["banda_orden"] = (bin_idx + 1).astype(int)
+    df_clean["banda_superficie"] = [etiq_sup[min(int(i), len(etiq_sup) - 1)] for i in bin_idx]
+
     med_zona = df_clean.groupby("barrio_localidad")["precio_m2_usd"].transform("median")
     df_clean["precio_referencia_zona_m2"] = med_zona.round(2)
     df_clean["descuento_vs_mediana_pct"] = (
@@ -448,23 +478,46 @@ def run_etl_pipeline(
         / df_clean["precio_referencia_zona_m2"]
         * 100.0
     ).round(2)
+
+    grp_seg = df_clean.groupby(["barrio_localidad", "banda_superficie"])["precio_m2_usd"]
+    df_clean["segmento_n"] = grp_seg.transform("count").astype(int)
+    med_seg = grp_seg.transform("median")
+    df_clean["precio_referencia_segmento_m2"] = np.where(
+        df_clean["segmento_n"] >= min_muestra_seg, med_seg, med_zona
+    ).round(2)
+    df_clean["descuento_vs_segmento_pct"] = (
+        (df_clean["precio_referencia_segmento_m2"] - df_clean["precio_m2_usd"])
+        / df_clean["precio_referencia_segmento_m2"]
+        * 100.0
+    ).round(2)
+
     cond_riesgo = (df_clean["riesgo_ambiental"] != "ALTO") if excluir_riesgo_alto else True
     df_clean["es_oportunidad_p1"] = (
         (df_clean["descuento_vs_mediana_pct"] >= umbral_desc_pct)
         & (df_clean["pendiente_media_grados"] <= pend_alerta)
         & cond_riesgo
     )
+    df_clean["es_oportunidad_segmento"] = (
+        (df_clean["descuento_vs_segmento_pct"] >= umbral_desc_pct)
+        & (df_clean["pendiente_media_grados"] <= pend_alerta)
+        & cond_riesgo
+    )
 
     df_out = df_clean.rename(columns={"id_publicacion": "id_registro"}).copy()
     cols_final = [
-        "id_registro", "valle_corredor", "barrio_localidad", "precio_usd", "superficie_m2",
-        "precio_m2_usd", "score_servicios", "tiene_agua", "tiene_luz", "tiene_escritura",
+        "id_registro", "fecha_extraccion", "valle_corredor", "barrio_localidad",
+        "precio_usd", "superficie_m2", "banda_superficie", "banda_orden", "precio_m2_usd",
+        "score_servicios", "tiene_agua", "tiene_luz", "tiene_escritura",
         "tiene_arboleda", "tiene_rio", "tiene_servicios", "pendiente_media_grados",
-        "ndvi_sombra_verano", "distancia_rio_m", "riesgo_ambiental", "campings_5km",
-        "distancia_camping_min_km", "nps_proxy_zona", "precio_referencia_zona_m2",
-        "descuento_vs_mediana_pct", "es_oportunidad_p1", "titulo_publicacion", "lat_eff",
-        "lon_eff", "telefono_en_descripcion", "vendedor_nombre", "url_publicacion", "url_google_maps",
+        "ndvi_sombra_verano", "distancia_rio_m", "riesgo_ambiental", "riesgo_orden",
+        "campings_5km", "distancia_camping_min_km", "nps_proxy_zona",
+        "precio_referencia_zona_m2", "descuento_vs_mediana_pct", "es_oportunidad_p1",
+        "segmento_n", "precio_referencia_segmento_m2", "descuento_vs_segmento_pct",
+        "es_oportunidad_segmento", "titulo_publicacion", "lat_eff", "lon_eff", "coordenadas_gmaps",
     ]
+    if not ocultar_pii:
+        cols_final.extend(["telefono_en_descripcion", "vendedor_nombre"])
+    cols_final.extend(["url_publicacion", "url_google_maps"])
     for col in cols_final:
         if col not in df_out.columns:
             df_out[col] = ""
