@@ -80,7 +80,8 @@ En los valles de **Calamuchita y Punilla (Sierras de Córdoba)** hay cientos de 
 
 ### `docs/` — Documentación y material de diseño
 * [`docs/DOCUMENTACION_COMPLETA.md`](./DOCUMENTACION_COMPLETA.md): Este resumen general pensado para todo el equipo.
-* [`docs/flujo_make_n8n_producto1.md`](./flujo_make_n8n_producto1.md): Paso a paso técnico para conectar Make / n8n y armar cada gráfico en Looker Studio.
+* [`docs/guia_looker_studio_producto1.md`](./guia_looker_studio_producto1.md): Guía paso a paso página por página (5 páginas, KPIs, mapas y tablas) para armar el tablero final en Looker Studio.
+* [`docs/flujo_make_n8n_producto1.md`](./flujo_make_n8n_producto1.md): Paso a paso técnico para conectar Make / n8n y los actores Apify.
 * [`docs/diagrama_flujo_producto1.png`](./diagrama_flujo_producto1.png): Diagrama de referencia de la cátedra que guía toda la arquitectura.
 * **`docs/planificacion/`**: Documentos originales de definición y sustento del proyecto TerraScout AI (`propuesta_terrascout_ai.md`, `proyecto_satelital_sin_series_temporales.md`, `plan_implementacion_producto_1.md`, `guia_ds_etl_eda_y_modelo.md`).
 
