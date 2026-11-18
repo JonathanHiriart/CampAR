@@ -687,6 +687,88 @@ def run_eda_pipeline(
 
     df_csv3 = pd.DataFrame(opp_rows)
 
+    # ------------------------------------------------------------------
+    # Tabla única consolidada para Looker Studio / Google Sheets directo
+    # ------------------------------------------------------------------
+    lot_base_cols = [
+        "id_registro", "fecha_extraccion", "valle_corredor", "barrio_localidad",
+        "precio_usd", "superficie_m2", "banda_superficie", "banda_orden", "precio_m2_usd",
+        "score_servicios", "tiene_agua", "tiene_luz", "tiene_escritura",
+        "tiene_arboleda", "tiene_rio", "tiene_servicios", "pendiente_media_grados",
+        "ndvi_sombra_verano", "distancia_rio_m", "riesgo_ambiental", "riesgo_orden",
+        "campings_5km", "distancia_camping_min_km", "nps_proxy_zona",
+        "precio_referencia_zona_m2", "descuento_vs_mediana_pct", "es_oportunidad_p1",
+        "segmento_n", "precio_referencia_segmento_m2", "descuento_vs_segmento_pct",
+        "es_oportunidad_segmento", "titulo_publicacion", "lat_eff", "lon_eff",
+        "coordenadas_gmaps", "url_publicacion", "url_google_maps",
+    ]
+    extra_summary_cols = [
+        "tipo_tabla", "metrica_nombre", "metrica_cantidad",
+        "metrica_porcentaje", "eda_pearson_m2", "eda_spearman_m2",
+    ]
+    unified_rows: list[dict[str, Any]] = []
+
+    def _empty_unified(tipo: str) -> dict[str, Any]:
+        row_u: dict[str, Any] = {c: None for c in lot_base_cols}
+        for txt_c in (
+            "id_registro", "fecha_extraccion", "valle_corredor", "barrio_localidad",
+            "banda_superficie", "riesgo_ambiental", "titulo_publicacion",
+            "coordenadas_gmaps", "url_publicacion", "url_google_maps",
+        ):
+            row_u[txt_c] = ""
+        row_u["es_oportunidad_p1"] = False
+        row_u["es_oportunidad_segmento"] = False
+        row_u["tipo_tabla"] = tipo
+        row_u["metrica_nombre"] = ""
+        row_u["metrica_cantidad"] = None
+        row_u["metrica_porcentaje"] = None
+        row_u["eda_pearson_m2"] = None
+        row_u["eda_spearman_m2"] = None
+        return row_u
+
+    for _, lr in df.iterrows():
+        r_u = _empty_unified("lote")
+        for c in lot_base_cols:
+            if c in df.columns:
+                v = lr.get(c)
+                if pd.isna(v):
+                    v = "" if isinstance(r_u[c], str) else (False if isinstance(r_u[c], bool) else None)
+                elif isinstance(v, (np.integer,)):
+                    v = int(v)
+                elif isinstance(v, (np.floating,)):
+                    v = float(v)
+                elif isinstance(v, (np.bool_, bool)):
+                    v = bool(v)
+                r_u[c] = v
+        unified_rows.append(r_u)
+
+    summary_sections = {"voz_turista_estrellas", "topico_queja_gmaps", "infraestructura_lote"}
+    for _, sr in df_csv3[df_csv3["seccion"].isin(summary_sections)].iterrows():
+        r_u = _empty_unified(str(sr["seccion"]))
+        r_u["id_registro"] = str(sr.get("id_registro") or "")
+        r_u["valle_corredor"] = str(sr.get("valle_corredor") or "Todos")
+        r_u["barrio_localidad"] = str(sr.get("barrio_localidad") or "Sierras de Córdoba")
+        r_u["titulo_publicacion"] = str(sr.get("titulo_publicacion") or "")
+        r_u["metrica_nombre"] = str(sr.get("metrica_turismo_o_topico") or "")
+        r_u["metrica_cantidad"] = int(sr["cantidad_o_menciones"]) if pd.notna(sr.get("cantidad_o_menciones")) else None
+        r_u["metrica_porcentaje"] = float(sr["porcentaje_o_share"]) if pd.notna(sr.get("porcentaje_o_share")) else None
+        unified_rows.append(r_u)
+
+    for _, er in df_csv2[df_csv2["bloque"] == "correlacion_features"].iterrows():
+        var_name = str(er.get("variable_o_grupo") or "")
+        r_u = _empty_unified("eda_correlacion")
+        r_u["id_registro"] = f"EDA-{var_name}"
+        r_u["valle_corredor"] = "Todos"
+        r_u["barrio_localidad"] = "Sierras de Córdoba"
+        r_u["titulo_publicacion"] = f"Correlación {var_name} vs precio_m2_usd"
+        r_u["metrica_nombre"] = var_name
+        r_u["metrica_cantidad"] = int(er["n"]) if pd.notna(er.get("n")) else None
+        r_u["eda_pearson_m2"] = float(er["pearson_m2"]) if pd.notna(er.get("pearson_m2")) else None
+        r_u["eda_spearman_m2"] = float(er["spearman_m2"]) if pd.notna(er.get("spearman_m2")) else None
+        unified_rows.append(r_u)
+
+    df_unico = pd.DataFrame(unified_rows, columns=extra_summary_cols[:1] + lot_base_cols + extra_summary_cols[1:])
+
     xlsx_bytes = build_multisheet_xlsx_bytes({
         "hoja1": df_csv1,
         "hoja2": df_csv2,
@@ -697,6 +779,7 @@ def run_eda_pipeline(
         "csv_1_localidades_y_riesgo": df_csv1,
         "csv_2_correlaciones_y_distribuciones": df_csv2,
         "csv_3_oportunidades_y_voz_turista": df_csv3,
+        "dashboard_consolidado": df_unico,
         "xlsx_bytes": xlsx_bytes,
         "summary": {
             "total_lotes_limpios": int(len(df)),
@@ -705,5 +788,6 @@ def run_eda_pipeline(
             "filas_csv1": int(len(df_csv1)),
             "filas_csv2": int(len(df_csv2)),
             "filas_csv3": int(len(df_csv3)),
+            "filas_consolidado": int(len(df_unico)),
         },
     }
