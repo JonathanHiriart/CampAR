@@ -41,7 +41,7 @@ from terrascout_actor.my_actor.camping_scraper import (
     load_localities_centroids,
     scrape_all_real_campings,
 )
-from terrascout_actor.my_actor.main import (
+from terrascout_actor.my_actor.nlp_analysis import (
     SentenceIndex,
     find_topics,
     fuzzy_count,
