@@ -1,8 +1,6 @@
 # TerraScout AI Apify Actor dependencies
 apify >= 4.0.0, < 5.0.0
-beautifulsoup4[lxml] >= 4.0.0, < 5.0.0
-httpx2 >= 2.5.0, < 3.0.0
+numpy >= 1.26.0
+pandas >= 2.0.0
 rapidfuzz >= 3.0.0, < 4.0.0
 scikit-learn >= 1.7.0, < 2.0.0
-pandas >= 2.0.0
-types-beautifulsoup4 >= 4.0.0, < 5.0.0
