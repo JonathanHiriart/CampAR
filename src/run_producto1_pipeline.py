@@ -117,17 +117,20 @@ def run_producto1_end_to_end(
     csv1_path = dash_dir / "csv_1_localidades_y_riesgo.csv"
     csv2_path = dash_dir / "csv_2_correlaciones_y_distribuciones.csv"
     csv3_path = dash_dir / "csv_3_oportunidades_y_voz_turista.csv"
+    unico_path = dash_dir / "dashboard_consolidado.csv"
     xlsx_path = dash_dir / "contenido_graficas_dashboard.xlsx"
 
     eda_res["csv_1_localidades_y_riesgo"].to_csv(csv1_path, index=False, encoding="utf-8")
     eda_res["csv_2_correlaciones_y_distribuciones"].to_csv(csv2_path, index=False, encoding="utf-8")
     eda_res["csv_3_oportunidades_y_voz_turista"].to_csv(csv3_path, index=False, encoding="utf-8")
+    eda_res["dashboard_consolidado"].to_csv(unico_path, index=False, encoding="utf-8")
     xlsx_path.write_bytes(eda_res["xlsx_bytes"])
 
     logger.info("Salidas Dashboard listas en: %s", dash_dir)
     logger.info("  * csv_1 (hoja1): %s (%d filas)", csv1_path.name, len(eda_res["csv_1_localidades_y_riesgo"]))
     logger.info("  * csv_2 (hoja2): %s (%d filas)", csv2_path.name, len(eda_res["csv_2_correlaciones_y_distribuciones"]))
     logger.info("  * csv_3 (hoja3): %s (%d filas)", csv3_path.name, len(eda_res["csv_3_oportunidades_y_voz_turista"]))
+    logger.info("  * dashboard_consolidado: %s (%d filas)", unico_path.name, len(eda_res["dashboard_consolidado"]))
     logger.info("  * xlsx consolidado: %s (%d bytes)", xlsx_path.name, len(eda_res["xlsx_bytes"]))
 
     return {
@@ -135,6 +138,7 @@ def run_producto1_end_to_end(
         "csv_1": str(csv1_path),
         "csv_2": str(csv2_path),
         "csv_3": str(csv3_path),
+        "dashboard_consolidado": str(unico_path),
         "xlsx": str(xlsx_path),
         "funnel": funnel,
         "summary": eda_res["summary"],

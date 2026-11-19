@@ -7,6 +7,11 @@
             "type": "string",
             "title": "Results",
             "template": "{{links.apiDefaultDatasetUrl}}/items"
+        },
+        "topics_res": {
+            "type": "string",
+            "title": "Tópicos NLP (KV Store)",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/topics_res.json"
         }
     }
 }

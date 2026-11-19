@@ -1,5 +1,5 @@
 {
-  "name": "TerraScout AI - Producto 1 (ETL -> Drive -> EDA -> Drive)",
+  "name": "TerraScout AI - Producto 1 (ETL -> Drive -> EDA JSON -> Google Sheets)",
   "nodes": [
     {
       "parameters": {},
@@ -32,9 +32,15 @@
               "type": "string"
             },
             {
-              "id": "cfg-graficas",
-              "name": "folder_graficas_id",
-              "value": "root",
+              "id": "cfg-sheet-id",
+              "name": "google_sheet_id",
+              "value": "PEGA_EL_ID_DE_TU_GOOGLE_SHEET_AQUI",
+              "type": "string"
+            },
+            {
+              "id": "cfg-sheet-tab",
+              "name": "google_sheet_tab",
+              "value": "Datos",
               "type": "string"
             }
           ]
@@ -46,6 +52,28 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.google_sheet_tab }}"
+        },
+        "clear": "wholeSheet",
+        "keepFirstRow": true
+      },
+      "id": "sheets-clear-3",
+      "name": "0. LIMPIAR Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [440, 0]
     },
     {
       "parameters": {
@@ -72,11 +100,11 @@
           }
         }
       },
-      "id": "apify-etl-3",
+      "id": "apify-etl-4",
       "name": "1. APIFY ETL",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 0]
+      "position": [680, 0]
     },
     {
       "parameters": {
@@ -95,16 +123,16 @@
         },
         "options": {}
       },
-      "id": "drive-limpio-4",
+      "id": "drive-limpio-5",
       "name": "2. DRIVE Dataset Limpio",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [700, 0]
+      "position": [920, 0]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.apify.com/v2/acts/YZH8ti7zjLt6410Hx/run-sync?outputRecordKey=contenido_graficas_dashboard.xlsx",
+        "url": "https://api.apify.com/v2/acts/YZH8ti7zjLt6410Hx/run-sync-get-dataset-items",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -120,40 +148,41 @@
         "options": {
           "response": {
             "response": {
-              "responseFormat": "file",
-              "outputPropertyName": "data"
+              "responseFormat": "json"
             }
           }
         }
       },
-      "id": "apify-eda-5",
-      "name": "3. APIFY EDA",
+      "id": "apify-eda-6",
+      "name": "3. APIFY EDA (JSON)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [940, 0]
+      "position": [1160, 0]
     },
     {
       "parameters": {
-        "operation": "upload",
-        "inputDataFieldName": "data",
-        "name": "contenido_graficas_dashboard.xlsx",
-        "driveId": {
-          "__rl": true,
-          "mode": "list",
-          "value": "My Drive"
-        },
-        "folderId": {
+        "operation": "append",
+        "documentId": {
           "__rl": true,
           "mode": "id",
-          "value": "={{ $('Config').first().json.folder_graficas_id }}"
+          "value": "={{ $('Config').first().json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.google_sheet_tab }}"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
         },
         "options": {}
       },
-      "id": "drive-graficas-6",
-      "name": "4. DRIVE Contenido Graficas",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
-      "position": [1180, 0]
+      "id": "sheets-append-7",
+      "name": "4. GOOGLE SHEETS Dashboard",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1400, 0]
     }
   ],
   "connections": {
@@ -161,16 +190,19 @@
       "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
     },
     "Config": {
+      "main": [[{ "node": "0. LIMPIAR Google Sheet", "type": "main", "index": 0 }]]
+    },
+    "0. LIMPIAR Google Sheet": {
       "main": [[{ "node": "1. APIFY ETL", "type": "main", "index": 0 }]]
     },
     "1. APIFY ETL": {
       "main": [[{ "node": "2. DRIVE Dataset Limpio", "type": "main", "index": 0 }]]
     },
     "2. DRIVE Dataset Limpio": {
-      "main": [[{ "node": "3. APIFY EDA", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "3. APIFY EDA (JSON)", "type": "main", "index": 0 }]]
     },
-    "3. APIFY EDA": {
-      "main": [[{ "node": "4. DRIVE Contenido Graficas", "type": "main", "index": 0 }]]
+    "3. APIFY EDA (JSON)": {
+      "main": [[{ "node": "4. GOOGLE SHEETS Dashboard", "type": "main", "index": 0 }]]
     }
   },
   "active": false,

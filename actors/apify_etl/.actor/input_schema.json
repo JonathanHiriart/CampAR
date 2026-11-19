@@ -52,6 +52,27 @@
             "description": "Si > 0 sobrescribe temporalmente tipo_cambio_ars_usd de business_rules.json.",
             "editor": "number",
             "default": 0
+        },
+        "kv_store_id": {
+            "title": "ID Key-Value Store origen (SDK Apify, opcional)",
+            "type": "string",
+            "description": "Permite leer insumos directamente desde Apify Key-Value Store sin HTTP externo (Regla R1).",
+            "editor": "textfield",
+            "default": ""
+        },
+        "raw_workbook_kv_key": {
+            "title": "Clave XLSX en Key-Value Store (opcional)",
+            "type": "string",
+            "description": "Clave dentro del Key-Value Store con el libro Excel consolidado.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "raw_workbook_b64": {
+            "title": "Libro Excel RAW en Base64 (opcional)",
+            "type": "string",
+            "description": "Carga directa por Actor.get_input() en Base64 sin requests/urllib.",
+            "editor": "textarea",
+            "default": ""
         }
     }
 }

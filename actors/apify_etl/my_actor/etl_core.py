@@ -7,6 +7,7 @@ trazable sin imputación ciega ni datos sintéticos y JOIN espacial Haversine.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
@@ -23,6 +24,11 @@ import numpy as np
 import pandas as pd
 
 _PLACEHOLDER_PRICES = {101010101.0, 111111111.0, 99999999.0, 123456789.0}
+
+
+def sha256_bytes(payload: bytes) -> str:
+    """Calcula el hash SHA-256 hexadecimal de un artefacto o insumo (Regla R3)."""
+    return hashlib.sha256(payload).hexdigest()
 
 
 def normalize_drive_url(url_or_path: str, output_format: str = "csv") -> str:
@@ -68,7 +74,15 @@ def resolve_repo_path(*candidates: str) -> Path | None:
 class _StripAuthOnRedirect(urllib.request.HTTPRedirectHandler):
     """Evita reenviar Authorization a redirecciones externas (ej. S3 presigned URLs)."""
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> urllib.request.Request | None:
         new_req = super().redirect_request(req, fp, code, msg, headers, newurl)
         if new_req is not None and new_req.host != req.host:
             new_req.remove_header("Authorization")
@@ -185,19 +199,26 @@ def _read_xlsx_sheets_stdlib(raw_bytes: bytes) -> dict[str, pd.DataFrame]:
     return out
 
 
-def load_workbook_sheets(url_or_path: str, timeout: int = 90) -> dict[str, pd.DataFrame]:
+def load_workbook_sheets(
+    url_or_path: str,
+    timeout: int = 90,
+    raw_bytes_override: bytes | None = None,
+) -> dict[str, pd.DataFrame]:
     """Carga todas las pestañas de un libro Google Sheets / Excel (.xlsx)."""
-    src = str(url_or_path or "").strip()
-    if not src:
-        return {}
-    if src.startswith(("http://", "https://")):
-        direct_url = normalize_drive_url(src, output_format="xlsx")
-        raw_bytes = _http_get_bytes(direct_url, timeout=timeout)
+    if raw_bytes_override is not None:
+        raw_bytes = raw_bytes_override
     else:
-        resolved = resolve_repo_path(src)
-        if resolved is None:
-            raise FileNotFoundError(f"No se encontró el libro RAW '{src}'.")
-        raw_bytes = resolved.read_bytes()
+        src = str(url_or_path or "").strip()
+        if not src:
+            return {}
+        if src.startswith(("http://", "https://")):
+            direct_url = normalize_drive_url(src, output_format="xlsx")
+            raw_bytes = _http_get_bytes(direct_url, timeout=timeout)
+        else:
+            resolved = resolve_repo_path(src)
+            if resolved is None:
+                raise FileNotFoundError(f"No se encontró el libro RAW '{src}'.")
+            raw_bytes = resolved.read_bytes()
     try:
         return pd.read_excel(io.BytesIO(raw_bytes), sheet_name=None, engine="openpyxl")
     except ImportError:
@@ -294,11 +315,21 @@ def run_etl_pipeline(
     rules_json_source: str = "",
     tipo_cambio_override: float = 0.0,
     raw_workbook_source: str = "",
+    sdk_texts: dict[str, str] | None = None,
+    sdk_workbook_bytes: bytes | None = None,
 ) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
     """Ejecuta el ETL completo de Producto 1 y retorna `(df_limpio, funnel)`."""
-    wb_sheets = load_workbook_sheets(raw_workbook_source) if raw_workbook_source else {}
+    texts = sdk_texts or {}
+    wb_sheets = (
+        load_workbook_sheets(raw_workbook_source, raw_bytes_override=sdk_workbook_bytes)
+        if (sdk_workbook_bytes is not None or raw_workbook_source)
+        else {}
+    )
 
-    if not rules_json_source and "business_rules" in wb_sheets:
+    if "rules_json" in texts:
+        rules_raw = texts["rules_json"]
+        rules = json.loads(rules_raw)
+    elif not rules_json_source and "business_rules" in wb_sheets:
         rules = _rules_from_dataframe(wb_sheets["business_rules"])
     else:
         rules_raw = read_text_source(rules_json_source, "config/business_rules.json")
@@ -323,15 +354,17 @@ def run_etl_pipeline(
     min_muestra_seg = int(seg_cfg.get("minimo_muestra_segmento", 5))
     ocultar_pii = bool((rules.get("seguridad") or {}).get("ocultar_pii_en_salidas", True))
 
-    def _sheet_or_csv(sheet_name: str, src: str, fallback: str) -> pd.DataFrame:
+    def _sheet_or_csv(sheet_name: str, src: str, fallback: str, sdk_key: str) -> pd.DataFrame:
+        if sdk_key in texts:
+            return pd.read_csv(io.StringIO(texts[sdk_key]))
         if not src and sheet_name in wb_sheets:
             return wb_sheets[sheet_name].copy()
         return pd.read_csv(io.StringIO(read_text_source(src, fallback)))
 
-    df_ml = _sheet_or_csv("ml_terrenos", ml_csv_source, "data/raw/mercadolibre_terrenos_calamuchita_punilla_raw.csv")
-    df_campings = _sheet_or_csv("campings", campings_csv_source, "data/raw/campings_zona_real_raw.csv")
-    df_places = _sheet_or_csv("places", places_csv_source, "data/raw/google_maps_campings_places_raw.csv")
-    df_topo = _sheet_or_csv("topografia", topo_csv_source, "data/aux_topografia_cordoba.csv")
+    df_ml = _sheet_or_csv("ml_terrenos", ml_csv_source, "data/raw/mercadolibre_terrenos_calamuchita_punilla_raw.csv", "ml_csv_text")
+    df_campings = _sheet_or_csv("campings", campings_csv_source, "data/raw/campings_zona_real_raw.csv", "campings_csv_text")
+    df_places = _sheet_or_csv("places", places_csv_source, "data/raw/google_maps_campings_places_raw.csv", "places_csv_text")
+    df_topo = _sheet_or_csv("topografia", topo_csv_source, "data/aux_topografia_cordoba.csv", "topo_csv_text")
 
     funnel: list[dict[str, Any]] = [{"etapa": "0. Crudo Mercado Libre", "registros": int(len(df_ml))}]
     df_clean = df_ml.copy()
@@ -528,3 +561,36 @@ def run_etl_pipeline(
         item["retencion_pct"] = round(item["registros"] / total_crudo * 100.0, 1)
 
     return df_out, funnel
+
+
+def execute_etl_actor(
+    inp: dict[str, Any],
+    sdk_texts: dict[str, str] | None = None,
+    sdk_workbook_bytes: bytes | None = None,
+) -> dict[str, Any]:
+    """Ejecuta ETL y serializa CSV/JSON listos para persistencia vía SDK en `main.py`."""
+    df_clean, funnel = run_etl_pipeline(
+        ml_csv_source=str(inp.get("ml_csv_url") or ""),
+        campings_csv_source=str(inp.get("campings_csv_url") or ""),
+        places_csv_source=str(inp.get("places_csv_url") or ""),
+        topo_csv_source=str(inp.get("topo_csv_url") or ""),
+        rules_json_source=str(inp.get("rules_json_url") or ""),
+        tipo_cambio_override=float(inp.get("tipo_cambio_ars_usd_override") or 0.0),
+        raw_workbook_source=str(inp.get("raw_workbook_url") or ""),
+        sdk_texts=sdk_texts,
+        sdk_workbook_bytes=sdk_workbook_bytes,
+    )
+    csv_bytes = df_clean.to_csv(index=False).encode("utf-8")
+    dataset_rows = json.loads(df_clean.to_json(orient="records"))
+    total_clean = int(len(df_clean))
+    return {
+        "df_clean": df_clean,
+        "csv_bytes": csv_bytes,
+        "dataset_rows": dataset_rows,
+        "total_clean": total_clean,
+        "funnel_payload": {
+            "funnel": funnel,
+            "total_clean": total_clean,
+            "dataset_limpio_sha256": sha256_bytes(csv_bytes),
+        },
+    }

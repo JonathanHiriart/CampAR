@@ -40,22 +40,22 @@ from terrascout_actor.my_actor.camping_scraper import (
     merge_campings_deduplicated,
     normalize_text,
 )
-from terrascout_actor.my_actor.main import (
+from terrascout_actor.my_actor.ml_scraper import (
+    _parse_jsonld,
+    enrich_listing_detail,
+    enrich_listings_with_details,
+    extraer_superficie_m2,
+    parse_mercadolibre_html,
+)
+from terrascout_actor.my_actor.nlp_analysis import (
     CALAMUCHITA_LOCALITIES,
     PUNILLA_LOCALITIES,
     SentenceIndex,
-    extraer_superficie_m2,
     find_topics,
     fuzzy_count,
     normalize,
     split_sentences,
     tokenize,
-)
-from terrascout_actor.my_actor.ml_scraper import (
-    _parse_jsonld,
-    enrich_listing_detail,
-    enrich_listings_with_details,
-    parse_mercadolibre_html,
 )
 
 

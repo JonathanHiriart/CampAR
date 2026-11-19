@@ -89,24 +89,36 @@ class TestPipelineProducto1EndToEnd:
         csv1 = Path(res["csv_1"])
         csv2 = Path(res["csv_2"])
         csv3 = Path(res["csv_3"])
+        unico = Path(res["dashboard_consolidado"])
         xlsx = Path(res["xlsx"])
 
         assert csv_limpio.is_file()
         assert csv1.is_file()
         assert csv2.is_file()
         assert csv3.is_file()
+        assert unico.is_file()
         assert xlsx.is_file()
 
         assert res["summary"]["total_lotes_limpios"] >= 700
         assert res["summary"]["oportunidades_p1"] > 0
         assert res["summary"]["filas_csv1"] == 16
         assert res["summary"]["oportunidades_segmento"] > 0
+        assert res["summary"]["filas_consolidado"] > 900
 
         import pandas as pd
         df_clean = pd.read_csv(csv_limpio)
         df_csv1 = pd.read_csv(csv1)
         df_csv3 = pd.read_csv(csv3)
+        df_unico = pd.read_csv(unico)
         df_topo = pd.read_csv(REPO_ROOT / "data" / "aux_topografia_cordoba.csv")
+
+        assert "tipo_tabla" in df_unico.columns
+        assert (df_unico["tipo_tabla"] == "lote").sum() == len(df_clean)
+        assert {"voz_turista_estrellas", "topico_queja_gmaps", "infraestructura_lote", "eda_correlacion"}.issubset(
+            set(df_unico["tipo_tabla"].unique())
+        )
+        assert "telefono_en_descripcion" not in df_unico.columns
+        assert "vendedor_nombre" not in df_unico.columns
 
         # 1. Consistencia valle_corredor vs topografía y clave única en hoja1
         merged_v = df_clean[["barrio_localidad", "valle_corredor"]].merge(
@@ -147,3 +159,54 @@ class TestPipelineProducto1EndToEnd:
             REPO_ROOT / "actors" / "apify_eda" / "my_actor" / "eda_core.py",
         ):
             assert "np.random" not in p.read_text(encoding="utf-8")
+
+
+class TestReglasDisenoApifyR1aR4:
+    def test_main_py_puro_sin_logica_ni_loops_r4(self):
+        import ast
+
+        main_paths = (
+            REPO_ROOT / "actors" / "apify_etl" / "my_actor" / "main.py",
+            REPO_ROOT / "actors" / "apify_eda" / "my_actor" / "main.py",
+            REPO_ROOT / "terrascout_actor" / "my_actor" / "main.py",
+        )
+        for mp in main_paths:
+            src = mp.read_text(encoding="utf-8")
+            tree = ast.parse(src)
+            assert not any(isinstance(n, (ast.For, ast.While, ast.AsyncFor)) for n in ast.walk(tree)), (
+                f"{mp} viola R4: contiene loops en main.py"
+            )
+            assert not any(isinstance(n, ast.ClassDef) for n in ast.walk(tree)), (
+                f"{mp} viola R4: define clases en main.py"
+            )
+            for forbidden in ("urllib", "requests", "sklearn", "pandas"):
+                assert forbidden not in src, f"{mp} importa/usa '{forbidden}' directamente en main.py"
+
+    def test_flujo_sdk_en_memoria_etl_a_eda(self):
+        from actors.apify_eda.my_actor.eda_core import execute_eda_actor
+        from actors.apify_etl.my_actor.etl_core import execute_etl_actor
+
+        etl_out = execute_etl_actor(
+            inp={},
+            sdk_texts={
+                "ml_csv_text": (REPO_ROOT / "data" / "raw" / "mercadolibre_terrenos_calamuchita_punilla_raw.csv").read_text(encoding="utf-8"),
+                "campings_csv_text": (REPO_ROOT / "data" / "raw" / "campings_zona_real_raw.csv").read_text(encoding="utf-8"),
+                "places_csv_text": (REPO_ROOT / "data" / "raw" / "google_maps_campings_places_raw.csv").read_text(encoding="utf-8"),
+                "topo_csv_text": (REPO_ROOT / "data" / "aux_topografia_cordoba.csv").read_text(encoding="utf-8"),
+                "rules_json": (REPO_ROOT / "config" / "business_rules.json").read_text(encoding="utf-8"),
+            },
+        )
+        assert etl_out["total_clean"] == 894
+        assert len(etl_out["funnel_payload"]["dataset_limpio_sha256"]) == 64
+
+        eda_out = execute_eda_actor(
+            inp={"top_oportunidades_limit": 50},
+            sdk_records=etl_out["dataset_rows"],
+            sdk_texts={
+                "topo_csv_text": (REPO_ROOT / "data" / "aux_topografia_cordoba.csv").read_text(encoding="utf-8"),
+                "reviews_csv_text": (REPO_ROOT / "data" / "raw" / "google_maps_campings_reviews_raw.csv").read_text(encoding="utf-8"),
+                "topicos_json": (REPO_ROOT / "data" / "raw" / "topicos_nlp_real_raw.json").read_text(encoding="utf-8"),
+            },
+        )
+        assert eda_out["summary"]["total_lotes_limpios"] == 894
+        assert len(eda_out["summary_payload"]["artifacts_sha256"]["dashboard_consolidado"]) == 64
