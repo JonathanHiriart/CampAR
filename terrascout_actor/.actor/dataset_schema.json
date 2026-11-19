@@ -54,6 +54,10 @@
             "type": "string",
             "description": "Enlace directo permanente a la publicación en Mercado Libre."
         },
+        "url_busqueda": {
+            "type": "string",
+            "description": "URL de búsqueda origen en Mercado Libre."
+        },
         "fuente_extraccion": {
             "type": "string",
             "description": "Fuente de datos de extracción ('MercadoLibre Córdoba')."

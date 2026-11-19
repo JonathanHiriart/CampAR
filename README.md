@@ -42,7 +42,7 @@ pip install -r requirements.txt
 # 3. Correr el pipeline completo Producto 1 (ETL -> dataset_limpio.csv -> EDA -> Dashboard CSVs/XLSX)
 python3 src/run_producto1_pipeline.py
 
-# 4. Ejecutar toda la suite de verificación (33 tests)
+# 4. Ejecutar toda la suite de verificación (36 tests, incluye R1-R4 Apify)
 PYTHONPATH=terrascout_actor python3 -m pytest tests/test_scraper_node.py tests/test_producto1_actors.py -v
 
 # 5. (Opcional) Re-ejecutar extracción en vivo hacia data/raw/
