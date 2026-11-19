@@ -10,6 +10,7 @@ las salidas listas para Dashboard (`Looker Studio` / `Google Sheets`):
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import math
@@ -26,6 +27,11 @@ import numpy as np
 import pandas as pd
 from scipy.stats import kendalltau
 from sklearn.feature_selection import mutual_info_regression
+
+
+def sha256_bytes(payload: bytes) -> str:
+    """Calcula el hash SHA-256 hexadecimal de una salida o artefacto (Regla R3)."""
+    return hashlib.sha256(payload).hexdigest()
 
 
 def normalize_drive_url(url_or_path: str, output_format: str = "csv") -> str:
@@ -71,7 +77,15 @@ def resolve_repo_path(*candidates: str) -> Path | None:
 class _StripAuthOnRedirect(urllib.request.HTTPRedirectHandler):
     """Evita reenviar Authorization a redirecciones externas (ej. S3 presigned URLs)."""
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> urllib.request.Request | None:
         new_req = super().redirect_request(req, fp, code, msg, headers, newurl)
         if new_req is not None and new_req.host != req.host:
             new_req.remove_header("Authorization")
@@ -185,19 +199,26 @@ def _read_xlsx_sheets_stdlib(raw_bytes: bytes) -> dict[str, pd.DataFrame]:
     return out
 
 
-def load_workbook_sheets(url_or_path: str, timeout: int = 90) -> dict[str, pd.DataFrame]:
+def load_workbook_sheets(
+    url_or_path: str,
+    timeout: int = 90,
+    raw_bytes_override: bytes | None = None,
+) -> dict[str, pd.DataFrame]:
     """Carga pestañas desde un Google Sheet / Excel (.xlsx) consolidado."""
-    src = str(url_or_path or "").strip()
-    if not src:
-        return {}
-    if src.startswith(("http://", "https://")):
-        direct_url = normalize_drive_url(src, output_format="xlsx")
-        raw_bytes = _http_get_bytes(direct_url, timeout=timeout)
+    if raw_bytes_override is not None:
+        raw_bytes = raw_bytes_override
     else:
-        resolved = resolve_repo_path(src)
-        if resolved is None:
-            raise FileNotFoundError(f"No se encontró el libro RAW '{src}'.")
-        raw_bytes = resolved.read_bytes()
+        src = str(url_or_path or "").strip()
+        if not src:
+            return {}
+        if src.startswith(("http://", "https://")):
+            direct_url = normalize_drive_url(src, output_format="xlsx")
+            raw_bytes = _http_get_bytes(direct_url, timeout=timeout)
+        else:
+            resolved = resolve_repo_path(src)
+            if resolved is None:
+                raise FileNotFoundError(f"No se encontró el libro RAW '{src}'.")
+            raw_bytes = resolved.read_bytes()
     try:
         return pd.read_excel(io.BytesIO(raw_bytes), sheet_name=None, engine="openpyxl")
     except ImportError:
@@ -287,7 +308,7 @@ def build_multisheet_xlsx_bytes(sheets: dict[str, pd.DataFrame]) -> bytes:
             "[Content_Types].xml",
             '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.relationships+xml"/>'
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
             '<Default Extension="xml" ContentType="application/xml"/>'
             '<Override PartName="/xl/workbook.xml" '
             'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
@@ -333,8 +354,14 @@ def build_multisheet_xlsx_bytes(sheets: dict[str, pd.DataFrame]) -> bytes:
     return buf.getvalue()
 
 
-def _load_clean_dataframe(dataset_limpio_source: str) -> pd.DataFrame:
-    raw_text = read_optional_source(
+def _load_clean_dataframe(
+    dataset_limpio_source: str,
+    sdk_text: str | None = None,
+    sdk_records: list[dict[str, Any]] | None = None,
+) -> pd.DataFrame:
+    if sdk_records is not None:
+        return pd.DataFrame(sdk_records)
+    raw_text = sdk_text if sdk_text is not None else read_optional_source(
         dataset_limpio_source,
         "data/processed/dataset_limpio.csv",
         "data/processed/terrascout_dataset_producto1.csv",
@@ -359,10 +386,22 @@ def run_eda_pipeline(
     topo_csv_source: str = "",
     top_oportunidades_limit: int = 250,
     raw_workbook_source: str = "",
+    sdk_texts: dict[str, str] | None = None,
+    sdk_records: list[dict[str, Any]] | None = None,
+    sdk_workbook_bytes: bytes | None = None,
 ) -> dict[str, Any]:
     """Ejecuta el EDA y construye `csv_1`, `csv_2`, `csv_3` y el `.xlsx` multi-hoja."""
-    wb_sheets = load_workbook_sheets(raw_workbook_source) if raw_workbook_source else {}
-    df = _load_clean_dataframe(dataset_limpio_source)
+    texts = sdk_texts or {}
+    wb_sheets = (
+        load_workbook_sheets(raw_workbook_source, raw_bytes_override=sdk_workbook_bytes)
+        if (sdk_workbook_bytes is not None or raw_workbook_source)
+        else {}
+    )
+    df = _load_clean_dataframe(
+        dataset_limpio_source,
+        sdk_text=texts.get("dataset_limpio_csv"),
+        sdk_records=sdk_records,
+    )
     for col in [
         "precio_usd", "superficie_m2", "banda_orden", "precio_m2_usd", "score_servicios",
         "tiene_agua", "tiene_luz", "tiene_escritura", "tiene_arboleda", "tiene_rio",
@@ -384,7 +423,9 @@ def run_eda_pipeline(
         df["riesgo_orden"] = df["riesgo_ambiental"].map({"BAJO": 1, "MEDIO": 2, "ALTO": 3}).fillna(9)
 
     topo_centroids: dict[str, tuple[float, float]] = {}
-    if not topo_csv_source and "topografia" in wb_sheets:
+    if "topo_csv_text" in texts:
+        df_topo = pd.read_csv(io.StringIO(texts["topo_csv_text"]))
+    elif not topo_csv_source and "topografia" in wb_sheets:
         df_topo = wb_sheets["topografia"]
     else:
         topo_text = read_optional_source(topo_csv_source, "data/aux_topografia_cordoba.csv")
@@ -633,7 +674,9 @@ def run_eda_pipeline(
                 round(cnt_flag / total_lotes * 100.0, 2),
             ))
 
-    if not reviews_csv_source and "reviews" in wb_sheets:
+    if "reviews_csv_text" in texts:
+        df_rev = pd.read_csv(io.StringIO(texts["reviews_csv_text"]))
+    elif not reviews_csv_source and "reviews" in wb_sheets:
         df_rev = wb_sheets["reviews"]
     else:
         reviews_text = read_optional_source(
@@ -655,7 +698,9 @@ def run_eda_pipeline(
                 round(int(cnt) / total_rev * 100.0, 2),
             ))
 
-    if not topicos_json_source and "topicos_nlp" in wb_sheets:
+    if "topicos_json" in texts:
+        top_data = json.loads(texts["topicos_json"])
+    elif not topicos_json_source and "topicos_nlp" in wb_sheets:
         top_data = _topicos_from_dataframe(wb_sheets["topicos_nlp"])
     else:
         topicos_text = read_optional_source(
@@ -790,4 +835,48 @@ def run_eda_pipeline(
             "filas_csv3": int(len(df_csv3)),
             "filas_consolidado": int(len(df_unico)),
         },
+    }
+
+
+def execute_eda_actor(
+    inp: dict[str, Any],
+    sdk_texts: dict[str, str] | None = None,
+    sdk_records: list[dict[str, Any]] | None = None,
+    sdk_workbook_bytes: bytes | None = None,
+) -> dict[str, Any]:
+    """Ejecuta EDA y serializa CSVs, XLSX y JSON listos para persistir vía SDK en `main.py`."""
+    res = run_eda_pipeline(
+        dataset_limpio_source=str(inp.get("dataset_limpio_url") or ""),
+        reviews_csv_source=str(inp.get("reviews_csv_url") or ""),
+        topicos_json_source=str(inp.get("topicos_json_url") or ""),
+        topo_csv_source=str(inp.get("topo_csv_url") or ""),
+        top_oportunidades_limit=int(inp.get("top_oportunidades_limit") or 250),
+        raw_workbook_source=str(inp.get("raw_workbook_url") or ""),
+        sdk_texts=sdk_texts,
+        sdk_records=sdk_records,
+        sdk_workbook_bytes=sdk_workbook_bytes,
+    )
+    csv1_bytes = res["csv_1_localidades_y_riesgo"].to_csv(index=False).encode("utf-8")
+    csv2_bytes = res["csv_2_correlaciones_y_distribuciones"].to_csv(index=False).encode("utf-8")
+    csv3_bytes = res["csv_3_oportunidades_y_voz_turista"].to_csv(index=False).encode("utf-8")
+    unico_bytes = res["dashboard_consolidado"].to_csv(index=False).encode("utf-8")
+    xlsx_bytes = res["xlsx_bytes"]
+
+    summary_payload = dict(res["summary"])
+    summary_payload["artifacts_sha256"] = {
+        "csv_1": sha256_bytes(csv1_bytes),
+        "csv_2": sha256_bytes(csv2_bytes),
+        "csv_3": sha256_bytes(csv3_bytes),
+        "dashboard_consolidado": sha256_bytes(unico_bytes),
+        "xlsx": sha256_bytes(xlsx_bytes),
+    }
+    return {
+        "csv1_bytes": csv1_bytes,
+        "csv2_bytes": csv2_bytes,
+        "csv3_bytes": csv3_bytes,
+        "unico_bytes": unico_bytes,
+        "xlsx_bytes": xlsx_bytes,
+        "summary": res["summary"],
+        "summary_payload": summary_payload,
+        "dataset_rows": json.loads(res["dashboard_consolidado"].to_json(orient="records")),
     }
