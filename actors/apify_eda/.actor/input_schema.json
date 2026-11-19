@@ -45,6 +45,33 @@
             "description": "Tope de lotes ordenados por descuento vs mediana zonal incluidos en csv_3 / hoja3 (0 = todos).",
             "editor": "number",
             "default": 250
+        },
+        "kv_store_id": {
+            "title": "ID Key-Value Store origen (SDK Apify, opcional)",
+            "type": "string",
+            "description": "Lee `dataset_limpio_kv_key` o `raw_workbook_kv_key` vía SDK sin HTTP externo (Regla R1).",
+            "editor": "textfield",
+            "default": ""
+        },
+        "dataset_limpio_kv_key": {
+            "title": "Clave KV Store de dataset_limpio.csv (opcional)",
+            "type": "string",
+            "description": "Ej. `dataset_limpio.csv` dentro del Key-Value Store especificado.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "dataset_id": {
+            "title": "ID Apify Dataset de entrada (SDK Apify, opcional)",
+            "type": "string",
+            "description": "Lee registros directamente desde Actor.open_dataset(id=...) del Actor ETL.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "records": {
+            "title": "Registros limpios inline JSON (opcional)",
+            "type": "array",
+            "description": "Permite pasar las filas limpias directamente en Actor.get_input() (Regla R1).",
+            "editor": "json"
         }
     }
 }

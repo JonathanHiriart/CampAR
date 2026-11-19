@@ -3,14 +3,22 @@
     "fields": {},
     "views": {
         "overview": {
-            "title": "Contenido de Gráficas Dashboard",
+            "title": "Contenido de Gráficas Dashboard (Tabla Consolidada)",
             "transformation": {
                 "fields": [
-                    "origen_tabla",
+                    "tipo_tabla",
+                    "id_registro",
                     "valle_corredor",
                     "barrio_localidad",
-                    "metrica",
-                    "valor"
+                    "precio_usd",
+                    "superficie_m2",
+                    "precio_m2_usd",
+                    "riesgo_ambiental",
+                    "descuento_vs_mediana_pct",
+                    "es_oportunidad_p1",
+                    "metrica_nombre",
+                    "metrica_cantidad",
+                    "metrica_porcentaje"
                 ]
             },
             "display": {
