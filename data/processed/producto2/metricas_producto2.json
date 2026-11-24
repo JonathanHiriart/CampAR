@@ -1,37 +1,61 @@
 {
-  "modelo_ganador": "Random Forest",
+  "modelo_ganador": "Ensemble (2ET + GBR + HGBR)",
   "winner_metrics": {
-    "modelo": "Random Forest",
-    "r2_cv_mean": 0.526,
-    "r2_cv_std": 0.0491,
-    "r2_test_log": 0.5171,
-    "mae_test_usd_m2": 7.39,
-    "rmse_test_usd_m2": 12.83
+    "modelo": "Ensemble (2ET + GBR + HGBR)",
+    "r2_cv_mean": 0.5964,
+    "r2_cv_std": 0.0618,
+    "r2_test_log": 0.6037,
+    "mae_test_usd_m2": 6.45,
+    "rmse_test_usd_m2": 11.55
   },
   "model_comparison": [
     {
+      "modelo": "Ensemble (2ET + GBR + HGBR)",
+      "r2_cv_mean": 0.5964,
+      "r2_cv_std": 0.0618,
+      "r2_test_log": 0.6037,
+      "mae_test_usd_m2": 6.45,
+      "rmse_test_usd_m2": 11.55
+    },
+    {
+      "modelo": "ExtraTrees",
+      "r2_cv_mean": 0.5956,
+      "r2_cv_std": 0.0495,
+      "r2_test_log": 0.5824,
+      "mae_test_usd_m2": 6.58,
+      "rmse_test_usd_m2": 11.95
+    },
+    {
       "modelo": "Random Forest",
-      "r2_cv_mean": 0.526,
-      "r2_cv_std": 0.0491,
-      "r2_test_log": 0.5171,
-      "mae_test_usd_m2": 7.39,
-      "rmse_test_usd_m2": 12.83
+      "r2_cv_mean": 0.5771,
+      "r2_cv_std": 0.0647,
+      "r2_test_log": 0.5773,
+      "mae_test_usd_m2": 6.69,
+      "rmse_test_usd_m2": 11.89
+    },
+    {
+      "modelo": "GradientBoosting",
+      "r2_cv_mean": 0.5708,
+      "r2_cv_std": 0.0822,
+      "r2_test_log": 0.5742,
+      "mae_test_usd_m2": 6.57,
+      "rmse_test_usd_m2": 11.57
     },
     {
       "modelo": "HistGradientBoosting",
-      "r2_cv_mean": 0.4853,
-      "r2_cv_std": 0.0485,
-      "r2_test_log": 0.485,
-      "mae_test_usd_m2": 7.39,
-      "rmse_test_usd_m2": 12.99
+      "r2_cv_mean": 0.5673,
+      "r2_cv_std": 0.067,
+      "r2_test_log": 0.5927,
+      "mae_test_usd_m2": 6.71,
+      "rmse_test_usd_m2": 11.17
     },
     {
       "modelo": "Ridge Linear",
-      "r2_cv_mean": 0.3779,
-      "r2_cv_std": 0.0868,
-      "r2_test_log": 0.3914,
-      "mae_test_usd_m2": 8.36,
-      "rmse_test_usd_m2": 13.91
+      "r2_cv_mean": 0.4892,
+      "r2_cv_std": 0.0516,
+      "r2_test_log": 0.5268,
+      "mae_test_usd_m2": 7.48,
+      "rmse_test_usd_m2": 12.62
     },
     {
       "modelo": "Baseline (Dummy mediana)",
@@ -44,84 +68,84 @@
   ],
   "feature_importances": [
     {
+      "feature": "num__inv_sqrt_sup",
+      "importancia": 0.1643,
+      "importancia_pct": 16.43
+    },
+    {
       "feature": "num__superficie_m2",
-      "importancia": 0.518,
-      "importancia_pct": 51.8
+      "importancia": 0.1222,
+      "importancia_pct": 12.22
     },
     {
-      "feature": "num__lat_eff",
-      "importancia": 0.1503,
-      "importancia_pct": 15.03
+      "feature": "num__log_superficie",
+      "importancia": 0.114,
+      "importancia_pct": 11.4
     },
     {
-      "feature": "num__lon_eff",
-      "importancia": 0.0745,
-      "importancia_pct": 7.45
+      "feature": "num__log_reviews_5km",
+      "importancia": 0.024,
+      "importancia_pct": 2.4
     },
     {
-      "feature": "num__distancia_camping_min_km",
-      "importancia": 0.0613,
-      "importancia_pct": 6.13
+      "feature": "txt__truncatedsvd14",
+      "importancia": 0.0231,
+      "importancia_pct": 2.31
     },
     {
-      "feature": "num__nps_proxy_zona",
-      "importancia": 0.0487,
-      "importancia_pct": 4.87
+      "feature": "num__lat_lon_rot2",
+      "importancia": 0.0193,
+      "importancia_pct": 1.93
     },
     {
-      "feature": "num__campings_5km",
-      "importancia": 0.032,
-      "importancia_pct": 3.2
+      "feature": "num__kw_loteo",
+      "importancia": 0.0185,
+      "importancia_pct": 1.85
     },
     {
-      "feature": "num__distancia_rio_m",
-      "importancia": 0.0282,
-      "importancia_pct": 2.82
+      "feature": "txt__truncatedsvd10",
+      "importancia": 0.0177,
+      "importancia_pct": 1.77
+    },
+    {
+      "feature": "num__dist_loc_5",
+      "importancia": 0.0174,
+      "importancia_pct": 1.74
+    },
+    {
+      "feature": "num__kw_gas",
+      "importancia": 0.0166,
+      "importancia_pct": 1.66
     },
     {
       "feature": "cat__barrio_localidad_Villa del Dique",
-      "importancia": 0.0138,
-      "importancia_pct": 1.38
+      "importancia": 0.016,
+      "importancia_pct": 1.6
     },
     {
-      "feature": "num__tiene_escritura",
-      "importancia": 0.0134,
-      "importancia_pct": 1.34
+      "feature": "txt__truncatedsvd6",
+      "importancia": 0.0122,
+      "importancia_pct": 1.22
     },
     {
-      "feature": "num__score_servicios",
-      "importancia": 0.0131,
-      "importancia_pct": 1.31
+      "feature": "num__txt_len",
+      "importancia": 0.0115,
+      "importancia_pct": 1.15
     },
     {
-      "feature": "num__ndvi_sombra_verano",
-      "importancia": 0.0114,
-      "importancia_pct": 1.14
+      "feature": "txt__truncatedsvd8",
+      "importancia": 0.0113,
+      "importancia_pct": 1.13
     },
     {
-      "feature": "num__pendiente_media_grados",
-      "importancia": 0.009,
-      "importancia_pct": 0.9
-    },
-    {
-      "feature": "num__tiene_rio",
-      "importancia": 0.0084,
-      "importancia_pct": 0.84
-    },
-    {
-      "feature": "num__tiene_arboleda",
-      "importancia": 0.003,
-      "importancia_pct": 0.3
-    },
-    {
-      "feature": "cat__barrio_localidad_Villa Yacanto",
-      "importancia": 0.0029,
-      "importancia_pct": 0.29
+      "feature": "num__dist_loc_8",
+      "importancia": 0.0113,
+      "importancia_pct": 1.13
     }
   ],
   "total_lotes_evaluados": 894,
-  "oportunidades_ml": 203,
-  "oportunidades_a_revisar": 35,
+  "oportunidades_ml": 184,
+  "oportunidades_a_revisar": 30,
   "serialization_dif_max": 0.0,
   "precio_m2_max": 150.0,
   "sklearn_version": "1.9.1",
@@ -132,5 +156,5 @@
     "gap_sospechoso_pct": 50.0,
     "excluir_riesgo_alto": true
   },
-  "resumen_telegram": "TerraScout AI — Producto 2: 203 oportunidad(es) ML. Top 8:\n\n• La Cumbre (Valle de Punilla) [REVISAR]\n  USD 12,000 | 6,000 m² | 2.0 vs 11.1 USD/m² (gap 82.0%)\n  Pendiente 11.5° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-4114715118-vendemos-fracciones-sobre-ruta-38-la-cumbre-acceso-directo-y-vistas-360-a-las-sierras-_JM\n\n• Villa Rumipal (Valle de Calamuchita) [REVISAR]\n  USD 3,000 | 555 m² | 5.4 vs 29.3 USD/m² (gap 81.6%)\n  Pendiente 4.2° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-2282004101-loteo-francisco-rio-de-los-sauces-_JM\n\n• Santa Rosa de Calamuchita (Valle de Calamuchita) [REVISAR]\n  USD 12,500 | 2,307 m² | 5.4 vs 28.1 USD/m² (gap 80.8%)\n  Pendiente 7.2° | riesgo MEDIO\n  https://terreno.mercadolibre.com.ar/MLA-2282004997-lote-en-venta-san-ignacio-lt98-_JM\n\n• Huerta Grande (Valle de Punilla) [REVISAR]\n  USD 9,999 | 3,569 m² | 2.8 vs 14.1 USD/m² (gap 80.2%)\n  Pendiente 9.5° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-1854670867-terreno-en-huerta-grande-_JM\n\n• Villa Giardino (Valle de Punilla) [REVISAR]\n  USD 7,500 | 2,000 m² | 3.8 vs 15.4 USD/m² (gap 75.7%)\n  Pendiente 8.9° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-4071118058-huerta-grande-lote-en-barrio-romerillo-_JM\n\n• La Cumbre (Valle de Punilla) [REVISAR]\n  USD 8,500 | 880 m² | 9.7 vs 37.7 USD/m² (gap 74.4%)\n  Pendiente 11.5° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-3022781676-la-cumbre-lotes-en-barrio-santa-rita-a-metros-del-golf-_JM\n\n• Santa Rosa de Calamuchita (Valle de Calamuchita) [REVISAR]\n  USD 10,000 | 900 m² | 11.1 vs 43.0 USD/m² (gap 74.2%)\n  Pendiente 7.2° | riesgo MEDIO\n  https://terreno.mercadolibre.com.ar/MLA-2282004977-lote-en-venta-villa-yacanto-cod-lt88-_JM\n\n• Villa del Dique (Valle de Calamuchita) [REVISAR]\n  USD 5,000 | 600 m² | 8.3 vs 29.9 USD/m² (gap 72.2%)\n  Pendiente 5.1° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-3998457344-venta-terreno-san-ignacio-calamuchita-_JM"
+  "resumen_telegram": "TerraScout AI — Producto 2: 184 oportunidad(es) ML. Top 8:\n\n• Villa Rumipal (Valle de Calamuchita) [REVISAR]\n  USD 3,000 | 555 m² | 5.4 vs 41.3 USD/m² (gap 86.9%)\n  Pendiente 4.2° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-2282004101-loteo-francisco-rio-de-los-sauces-_JM\n\n• La Cumbre (Valle de Punilla) [REVISAR]\n  USD 12,000 | 6,000 m² | 2.0 vs 10.4 USD/m² (gap 80.8%)\n  Pendiente 11.5° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-4114715118-vendemos-fracciones-sobre-ruta-38-la-cumbre-acceso-directo-y-vistas-360-a-las-sierras-_JM\n\n• Huerta Grande (Valle de Punilla) [REVISAR]\n  USD 9,999 | 3,569 m² | 2.8 vs 14.1 USD/m² (gap 80.2%)\n  Pendiente 9.5° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-1854670867-terreno-en-huerta-grande-_JM\n\n• Villa Giardino (Valle de Punilla) [REVISAR]\n  USD 7,500 | 2,000 m² | 3.8 vs 13.5 USD/m² (gap 72.2%)\n  Pendiente 8.9° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-4071118058-huerta-grande-lote-en-barrio-romerillo-_JM\n\n• Santa Rosa de Calamuchita (Valle de Calamuchita) [REVISAR]\n  USD 6,000 | 1,000 m² | 6.0 vs 20.1 USD/m² (gap 70.1%)\n  Pendiente 7.2° | riesgo MEDIO\n  https://terreno.mercadolibre.com.ar/MLA-3310527104-amplios-lotes-zona-tranquila-_JM\n\n• La Cumbre (Valle de Punilla) [REVISAR]\n  USD 33,000 | 15,000 m² | 2.2 vs 7.3 USD/m² (gap 70.0%)\n  Pendiente 11.5° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-3932112334-chacra-venta-finca-amelia-la-cumbre-sierras-de-cordoba-oportunidad-_JM\n\n• La Falda (Valle de Punilla) [REVISAR]\n  USD 42,000 | 14,486 m² | 2.9 vs 9.5 USD/m² (gap 69.5%)\n  Pendiente 10.2° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-2681072310-terrenos-en-venta-en-chacras-de-la-falda-100-financiados-lotes-en-las-sierras-de-cordoba-valle-de-punilla-_JM\n\n• Villa Carlos Paz (Valle de Punilla) [REVISAR]\n  USD 15,000 | 3,075 m² | 4.9 vs 15.9 USD/m² (gap 69.3%)\n  Pendiente 5.8° | riesgo BAJO\n  https://terreno.mercadolibre.com.ar/MLA-3510790140-le203-cuesta-blanca-lote-3075-mts-sserv-excelente-ubicacion-_JM"
 }
