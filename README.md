@@ -1,111 +1,195 @@
-# TerraScout & EcoCamp AI — Capstone Project (Samsung Innovation Campus 2026)
+# TerraScout & EcoCamp AI — Pipeline de Tierras Turísticas (MercadoLibre + Apify + ML)
 
-> **Inteligencia Geoespacial y Radar de Oportunidades para Tierras Turísticas (Campings / Glampings) en las Sierras de Córdoba.**
-
----
-
-## 1. La Idea del Proyecto
-
-En los valles de **Punilla y Calamuchita (Córdoba)**, evaluar dónde comprar o comercializar terrenos para proyectos turísticos de camping/glamping suele hacerse de manera manual e imprecisa: hay avisos duplicados, precios mezclados en pesos y dólares, zonas con pendientes extremas o riesgo ambiental, y poca visibilidad sobre qué reclaman hoy los turistas en los campings vecinos.
-
-**TerraScout AI** resuelve esa pregunta de negocio en dos entregas:
-* **Pregunta central (Producto 1):** *¿Dónde y qué terrenos en Punilla y Calamuchita conviene comprar o intermediar hoy para campings/glampings, combinando precio por m² subvaluado (`≥ 20%` bajo la mediana de su zona), aptitud topográfica/ambiental y demanda turística insatisfecha?*
-* **Qué tenemos armado hoy (Producto 1):**
-  * Base real sin datos sintéticos (`1.200` avisos crudos → **`894` terrenos únicos validados**, **`244` oportunidades detectadas**).
-  * Cruce geográfico real con `288` campings, `237` perfiles y `1.754` reseñas de Google Maps, más topografía/riesgo ambiental de `16` localidades.
-  * **Dos Actores productivos en Apify Cloud (`APIFY ETL` y `APIFY EDA`)** conectados automáticamente mediante **n8n → Google Drive** hasta dejar listo el archivo multi-hoja para graficar.
-* **Qué queda para cerrar y avanzar a Producto 2:**
-  * Conectar el archivo final `contenido_graficas_dashboard.xlsx` (`hoja1`, `hoja2`, `hoja3`) en **Looker Studio** para armar el tablero visual.
-  * Entrenar el modelo predictivo de valuación hedónica sobre `log(precio_m2_usd)` (Producto 2) y automatizar el refresco periódico de datos nuevos.
-
-> Si querés leer la explicación completa en lenguaje simple (el plan seguido y qué resuelve cada archivo para perfiles no técnicos), revisá [**Documentación Completa del Proyecto**](./docs/DOCUMENTACION_COMPLETA.md).
+> **Scraping, ETL geoespacial, EDA y valuación hedónica con Machine Learning para detectar oportunidades de arbitraje en terrenos turísticos (campings / glampings) en las Sierras de Córdoba (Punilla y Calamuchita).**
+>
+> *Samsung Innovation Campus 2026 — Capstone Project (Producto 1 + Producto 2)*
 
 ---
 
-## 2. Cómo Usar Todo
+## 1. Arquitectura y flujo
 
-### Opción A — Flujo automático en la nube (n8n + Apify + Google Drive)
-1. **Datos de entrada (1 solo archivo):** subí [`data/raw/dataset_raw_consolidado.xlsx`](./data/raw/dataset_raw_consolidado.xlsx) a Google Drive (o abrilo con Google Sheets) y compartilo como *Cualquiera con el enlace → Lector*.
-2. **Importar el flujo:** en **n8n**, importá [`workflows/n8n_producto1_terrascout.json`](./workflows/n8n_producto1_terrascout.json).
-3. **Configurar:** en el nodo `Config`, completá tu `apify_token`, el link de entrada `raw_workbook_url` (o dejalo vacío para usar el fallback embebido) y los IDs de tus carpetas de Drive; vinculá tu credencial de Google Drive en los nodos `2` y `4` (recomendado usar `Operation: Update` tras la primera subida para conservar siempre el mismo `File ID` hacia Looker Studio).
-4. **Ejecutar:** apretá *Execute workflow* y n8n corre el pipeline completo (`ETL → Drive Limpio → EDA → Drive Dashboard`). Ver detalle técnico en [**Guía Make / n8n**](./docs/flujo_make_n8n_producto1.md) y paso a paso de vistas en [**Guía Looker Studio**](./docs/guia_looker_studio_producto1.md).
-
-### Opción B — Ejecución y pruebas en local (Python)
-
-```bash
-# 1. Crear archivo de entorno local (sin subir credenciales a Git)
-cp .env.example .env
-
-# 2. Instalar dependencias
-pip install -r requirements.txt
-
-# 3. Correr el pipeline completo Producto 1 (ETL -> dataset_limpio.csv -> EDA -> Dashboard CSVs/XLSX)
-python3 src/run_producto1_pipeline.py
-
-# 4. Correr Producto 2 (Entrenamiento hedónico anti-leakage + arbitraje ML + models/terrascout_pipeline.pkl)
-python3 src/run_producto2_pipeline.py
-
-# 5. (Opcional) Inferencia Producto 2 sobre lote nuevo sin reentrenar
-python3 src/run_producto2_pipeline.py --infer-only --input data/processed/dataset_limpio.csv
-
-# 6. Ejecutar toda la suite de verificación (43 tests, incluye R1-R4 Apify y Producto 2)
-PYTHONPATH=terrascout_actor python3 -m pytest tests/test_scraper_node.py tests/test_producto1_actors.py tests/test_producto2_ml.py -v
-
-# 7. (Opcional) Re-ejecutar extracción en vivo hacia data/raw/
-PYTHONPATH=terrascout_actor python3 src/run_scraper_node.py --max-items-per-valley 600 --max-pages-per-valley 15
+```mermaid
+flowchart LR
+    T["Trigger<br/>(Manual / Schedule n8n)"] --> S["Apify Scraper<br/>(terrascout_actor)<br/>MercadoLibre + OSM + GMaps"]
+    S --> E["ETL<br/>(actors/apify_etl)<br/>Limpieza + Moneda + Haversine"]
+    E --> P["Preprocessing<br/>(ml_core.py)<br/>Features espaciales + TF-IDF/SVD + KMeans"]
+    P --> I["Inferencia ML<br/>(actors/apify_ml)<br/>Ensemble 2ET+GBR+HGBR (.pkl)"]
+    I --> D["Destino<br/>(Google Sheets + Looker Studio<br/>+ Resumen Telegram n8n)"]
 ```
 
+* **Política ZERO DUMMY DATA:** `100%` datos reales (`1.200` avisos de Mercado Libre, `288` campings OSM/SoloCampings, `237` perfiles y `1.754` reseñas de Google Maps, `16` localidades topográficas NASA SRTM/MODIS/IGN).
+* **Reglas desacopladas:** todos los umbrales de negocio y parámetros ML viven en [`config/business_rules.json`](./config/business_rules.json) (auditoría Samsung).
+
 ---
 
-## 3. Apartado Técnico y Estructura del Repositorio
-
-### Arquitectura Técnica (Producto 1 y Producto 2)
-1. **Reglas desacopladas (`config/business_rules.json`):** tipo de cambio ARS/USD (`1280.0`), rango de superficie (`500–20.000 m²`), pendiente alerta (`12°`), umbral de oportunidad (`20%` bajo mediana/modelo), umbral de revisión (`50%`), exclusión de riesgo `ALTO`, ocultamiento de PII (`ocultar_pii_en_salidas: true`) y configuración `modelo_ml`.
-2. **Actor 1 — `terrascout-etl-actor` (`ypvpGbmD1vpqraNXA`, Python 3.14 en Apify):**
-   * Soporta ingesta desde **1 único libro Google Sheets / `.xlsx`** (`raw_workbook_url`) o URLs individuales de Google Drive (`#gid=` incluido) con fallback local embebido (`fallback_data/`).
-   * Normalización monetaria, regex defensiva de superficie (evita capturar distancias al río), IQR conservador en `precio_m2_usd`, deduplicación por ID + coordenada redondeada (`1.200 → 894` filas, `74.5%` retención) y **JOIN espacial vectorizado Haversine** (topografía, densidad de campings a `5 km`, NPS proxy ponderado por reseñas).
-3. **Actor 2 — `terrascout-eda-actor` (`YZH8ti7zjLt6410Hx`, Python 3.14 en Apify):**
-   * Calcula estadísticas zonales con coordenadas GPS, correlaciones lineales y no lineales (**Pearson, Spearman, Kendall e Información Mutua**), validación de asimetría (`skew = 2.214 → -0.40` con `log(precio_m2_usd)`), cruce `valle × riesgo` y síntesis de `1.754` reseñas/tópicos NLP.
-   * Exporta `csv_1_localidades_y_riesgo.csv` (`hoja1`), `csv_2_correlaciones_y_distribuciones.csv` (`hoja2`), `csv_3_oportunidades_y_voz_turista.csv` (`hoja3`) y `contenido_graficas_dashboard.xlsx`, más URLs públicas firmadas en `etl_funnel.json` y `eda_summary.json` (y soporte directo `/run-sync?outputRecordKey=...` para n8n).
-4. **Actor 3 — `terrascout-ml-actor` (`actors/apify_ml/`, Producto 2):**
-   * Consume `dataset_limpio.csv` de `APIFY ETL` (sin duplicar lógica ETL), enriquece señales espaciales y textuales (fix de localidades sin GPS, distancias Haversine, `KMeans` geo y `TF-IDF/SVD`) y compara 7 modelos (`DummyRegressor`, `Ridge`, `RandomForest`, `ExtraTrees`, `GradientBoosting`, `HistGradientBoosting`, `Ensemble Voting`) con split 80/20 estratificado anti-leakage y 5-Fold CV sobre `log(precio_m2_usd)`.
-   * Detecta oportunidades de arbitraje Out-of-Fold + Test (`184` oportunidades ML sobre `894` lotes, `Ensemble (2ET + GBR + HGBR)` con `R² CV = 0.5964`, `R² Test = 0.6037`, `MAE = 6.45 USD/m²`), serializa `models/terrascout_pipeline.pkl` con verificación `dif_max < 1e-6`, y soporta modo `--infer-only` con deduplicación de alertas (`workflows/n8n_producto2_terrascout.json`).
-
-### Estructura de Carpetas
+## 2. Estructura del repositorio
 
 ```text
 Capstone/
-├── README.md                              # Visión general, uso rápido y arquitectura
-├── config/
-│   └── business_rules.json                # Reglas, umbrales y config ML desacoplados
+├── terrascout_actor/                     # Actor Scraper (MercadoLibre, OSM, SoloCampings, GMaps, NLP)
+│   ├── my_actor/main.py
+│   ├── .actor/
+│   ├── Dockerfile
+│   └── requirements.txt
 ├── actors/
-│   ├── apify_etl/                         # Actor 1: APIFY ETL (limpieza + Haversine + fallback)
-│   ├── apify_eda/                         # Actor 2: APIFY EDA (correlaciones + CSVs + XLSX)
-│   └── apify_ml/                          # Actor 3: APIFY ML (Producto 2: modelo hedónico + arbitraje)
-├── terrascout_actor/                      # Scraper Apify original (ML, OSM, SoloCampings, GMaps, NLP)
-├── workflows/
-│   ├── n8n_producto1_terrascout.json      # Workflow n8n Producto 1 (ETL -> Drive -> EDA -> Sheets)
-│   └── n8n_producto2_terrascout.json      # Workflow n8n Producto 2 (ETL -> Drive -> ML -> Sheets)
-├── notebooks/
-│   └── 02_modelado_hedonico.ipynb         # Notebook limpio Producto 2 (consume ml_core)
-├── models/
-│   └── terrascout_pipeline.pkl            # Bundle Pickle verificado (dif_max = 0.0)
+│   ├── apify_etl/                        # Actor 1: ETL (limpieza, moneda, superficie, JOIN Haversine)
+│   │   ├── my_actor/{main.py, etl_core.py, sdk_compat.py}
+│   │   ├── .actor/{actor.json, input_schema.json, output_schema.json, dataset_schema.json}
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   ├── apify_eda/                        # Actor 2: EDA (correlaciones, tablas y Excel Dashboard)
+│   │   ├── my_actor/{main.py, eda_core.py, sdk_compat.py}
+│   │   ├── .actor/
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   └── apify_ml/                         # Actor 3: Inferencia y Entrenamiento ML (Producto 2)
+│       ├── my_actor/{main.py, ml_core.py, sdk_compat.py}
+│       ├── .actor/
+│       ├── Dockerfile
+│       └── requirements.txt
+├── notebooks/                            # Notebooks de análisis (EDA) y entrenamiento (ML)
+│   ├── 01_etl_y_eda.ipynb                # Analytics: ETL trazable, correlaciones y voz del turista
+│   └── 02_modelado_hedonico.ipynb        # Training: CV 5-Fold, Ensemble, arbitraje y verificación .pkl
 ├── data/
-│   ├── aux_topografia_cordoba.csv         # Relieve, NDVI y riesgo de 16 localidades
-│   ├── raw/                               # Fuentes reales + dataset_raw_consolidado.xlsx (7 pestañas)
-│   └── processed/                         # dataset_limpio.csv + dashboard/ + producto2/
+│   ├── aux_topografia_cordoba.csv        # Relieve, NDVI y riesgo ambiental de 16 localidades
+│   ├── raw/                              # Fuentes reales crudas + dataset_raw_consolidado.xlsx
+│   └── processed/                        # dataset_limpio.csv, dashboard/ (P1) y producto2/ (P2)
+├── models/
+│   └── terrascout_pipeline.pkl           # Modelo hedónico serializado en Pickle (dif_max = 0.0)
+├── workflows/                            # Automatización en n8n
+│   ├── README-n8n.md                     # Guía rápida de importación y configuración n8n
+│   ├── n8n_producto1_terrascout.json     # Flujo Producto 1 (ETL -> Drive -> EDA -> Sheets)
+│   └── n8n_producto2_terrascout.json     # Flujo Producto 2 (ETL -> Drive -> ML -> Sheets)
+├── config/
+│   └── business_rules.json               # Reglas de negocio y parámetros ML desacoplados
 ├── src/
-│   ├── run_producto1_pipeline.py          # Ejecutor local del pipeline Producto 1 (ETL + EDA)
-│   ├── run_producto2_pipeline.py          # Ejecutor local del pipeline Producto 2 (Train / Infer)
-│   └── run_scraper_node.py                # CLI de extracción en vivo hacia data/raw/
-├── tests/
-│   ├── test_producto1_actors.py           # Tests ETL, EDA, XLSX y cero np.random
-│   ├── test_producto2_ml.py               # Tests ML, anti-leakage, Pickle dif_max e inferencia
-│   └── test_scraper_node.py               # Tests unitarios de scrapers y datos reales
-└── docs/
-    ├── DOCUMENTACION_COMPLETA.md          # Explicación no técnica de plan y archivos
-    ├── guia_looker_studio_producto1.md    # Guía paso a paso del tablero en Looker Studio
-    ├── flujo_make_n8n_producto1.md        # Guía Make / n8n + conexión Apify
-    ├── diagrama_flujo_producto1.png       # Diagrama de referencia de la cátedra
-    └── planificacion/                     # Propuesta base, marco satelital y guías de producto
+│   ├── run_scraper_node.py               # CLI local de extracción en vivo hacia data/raw/
+│   ├── run_producto1_pipeline.py         # CLI local Producto 1 (ETL + EDA + Dashboard)
+│   └── run_producto2_pipeline.py         # CLI local Producto 2 (Entrenamiento e inferencia --infer-only)
+├── tests/                                # 43 tests automatizados (pytest, incluye R1-R4 Apify)
+├── docs/                                 # Documentación completa, guía Looker Studio y planificación
+└── README.md
 ```
+
+---
+
+## 3. Actores de Apify
+
+Todos los actores cumplen las reglas de diseño Apify R1–R4 (`my_actor/main.py` puro sin lógica pesada ni loops, lectura/escritura por SDK Apify y fallback local).
+
+| Actor | Código | Input Schema | Output Schema | Cómo correrlo |
+| :--- | :--- | :--- | :--- | :--- |
+| **Scraper (`terrascout_actor`)** | [`terrascout_actor/my_actor/main.py`](./terrascout_actor/my_actor/main.py) | [`input_schema.json`](./terrascout_actor/.actor/input_schema.json) | [`output_schema.json`](./terrascout_actor/.actor/output_schema.json) | `cd terrascout_actor && apify run` |
+| **Actor 1: ETL (`ypvpGbmD1vpqraNXA`)** | [`actors/apify_etl/my_actor/main.py`](./actors/apify_etl/my_actor/main.py) | [`input_schema.json`](./actors/apify_etl/.actor/input_schema.json) | [`output_schema.json`](./actors/apify_etl/.actor/output_schema.json) | `cd actors/apify_etl && apify run` |
+| **Actor 2: EDA (`YZH8ti7zjLt6410Hx`)** | [`actors/apify_eda/my_actor/main.py`](./actors/apify_eda/my_actor/main.py) | [`input_schema.json`](./actors/apify_eda/.actor/input_schema.json) | [`output_schema.json`](./actors/apify_eda/.actor/output_schema.json) | `cd actors/apify_eda && apify run` |
+| **Actor 3: Inferencia ML (`terrascout-ml-actor`)** | [`actors/apify_ml/my_actor/main.py`](./actors/apify_ml/my_actor/main.py) | [`input_schema.json`](./actors/apify_ml/.actor/input_schema.json) | [`output_schema.json`](./actors/apify_ml/.actor/output_schema.json) | `cd actors/apify_ml && apify run` |
+
+---
+
+## 4. Funciones de ETL, preprocessing y modelo
+
+| Función | Archivo | Input | Output | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `scrape_mercadolibre()` / `execute_terrascout_pipeline()` | [`ml_scraper.py`](./terrascout_actor/my_actor/ml_scraper.py) / [`nlp_analysis.py`](./terrascout_actor/my_actor/nlp_analysis.py) | HTML / JSON-LD MercadoLibre, OSM, GMaps | CSVs / JSON crudos (`data/raw/`) | Extrae terrenos, campings, reseñas y tópicos NLP |
+| `run_etl_pipeline()` | [`etl_core.py`](./actors/apify_etl/my_actor/etl_core.py) | Datos crudos + `business_rules.json` | `dataset_limpio.csv` (`894` filas) + funnel | Normaliza ARS→USD, rescata m² con regex segura, filtra IQR, deduplica y hace JOIN espacial Haversine |
+| `enrich_ml_features()` + `build_preprocessor()` | [`ml_core.py`](./actors/apify_ml/my_actor/ml_core.py) | `dataset_limpio.csv` + reglas | Matriz de features + `ColumnTransformer` | Corrige localidades sin GPS por alias, calcula `log1p(m²)`, distancias a 16 centroides, `KMeans` geo y `TF-IDF + TruncatedSVD` |
+| `train_and_evaluate_hedonic_model()` | [`ml_core.py`](./actors/apify_ml/my_actor/ml_core.py) | Datos limpios enriquecidos | `terrascout_pipeline.pkl` + métricas CV/Test | Split 80/20 anti-leakage, 5-Fold CV sobre 7 modelos, selección objetiva y check Pickle `dif_max < 1e-6` |
+| `score_opportunities()` | [`ml_core.py`](./actors/apify_ml/my_actor/ml_core.py) | Lotes limpios + `.pkl` + reglas | `predicciones_producto2.csv` + `oportunidades_producto2.csv` | Estima valor justo USD/m², calcula `gap_arbitraje_pct`, aplica reglas ambientales y marca `flag_revision` |
+
+### Modelo seleccionado
+
+* **Modelo ganador:** `Ensemble (2 × ExtraTrees + GradientBoosting + HistGradientBoosting)` (`VotingRegressor`, target `log(precio_m2_usd)`).
+* **¿Por qué?** Obtuvo el mejor desempeño conjunto en validación cruzada 5-Fold (`R² CV = 0.5964 ± 0.0618`) y en el conjunto de test no visto (`R² Test = 0.6037`, `MAE = 6.45 USD/m²`, `RMSE = 11.55 USD/m²`), combinando la estabilidad de árboles aleatorizados (`ExtraTrees`) con la capacidad de capturar relaciones no lineales de boosting (`GBR` + `HGBR`).
+* **Alternativas evaluadas y descartadas:**
+  * `ExtraTrees` solo (`R² CV = 0.5956 ± 0.0495`, `R² Test = 0.5824`, `MAE = 6.58`, `RMSE = 11.95`): ligeramente menor generalización en test.
+  * `RandomForestRegressor` (`R² CV = 0.5771 ± 0.0647`, `R² Test = 0.5773`, `MAE = 6.69`, `RMSE = 11.89`): mayor error medio que el ensemble.
+  * `GradientBoostingRegressor` (`R² CV = 0.5708 ± 0.0822`, `R² Test = 0.5742`, `MAE = 6.57`, `RMSE = 11.57`): mayor varianza entre folds (`std = 0.0822`).
+  * `HistGradientBoostingRegressor` (`R² CV = 0.5673 ± 0.0670`, `R² Test = 0.5927`, `MAE = 6.71`, `RMSE = 11.17`): buen RMSE pero menor `R² CV` individual.
+  * `Ridge Linear` (`R² CV = 0.4892 ± 0.0516`, `R² Test = 0.5268`, `MAE = 7.48`, `RMSE = 12.62`): subajusta relaciones espaciales no lineales.
+  * `Baseline DummyRegressor` (`R² CV = -0.0204 ± 0.0373`, `R² Test = -0.0157`, `MAE = 10.19`, `RMSE = 15.73`): línea base de referencia superada en `-36.7%` de MAE.
+
+---
+
+## 5. Contrato del actor de inferencia (`actors/apify_ml`)
+
+| Campo | Dirección | Tipo de dato | Descripción |
+| :--- | :---: | :---: | :--- |
+| `dataset_limpio_url` / `records` | `input` | `string` / `array` | URL (Drive / KV Store / ruta local) o registros JSON de `dataset_limpio.csv` |
+| `rules_json_url` | `input` | `string` | Ruta o URL a `config/business_rules.json` (reglas y umbrales de arbitraje) |
+| `model_pkl_url` | `input` | `string` | Ruta o URL a `terrascout_pipeline.pkl` (opcional; si se provee con `reentrenar=false`, corre solo inferencia) |
+| `reentrenar` | `input` | `boolean` | Si es `true`, entrena y evalúa los 7 modelos; si es `false`, usa el `.pkl` guardado |
+| `ids_ya_alertados` | `input` | `array<string>` | Lista opcional de `id_registro` previos para evitar alertas duplicadas |
+| `precio_modelo_m2` | `output` | `float` | Valor justo estimado por el modelo hedónico en `USD/m²` |
+| `precio_modelo_total_usd` | `output` | `float` | Valuación total estimada del lote (`precio_modelo_m2 × superficie_m2`) |
+| `gap_arbitraje_pct` | `output` | `float` | Porcentaje de subvaluación `(precio_modelo_m2 - precio_m2_usd) / precio_modelo_m2 × 100` |
+| `es_oportunidad_ml` | `output` | `boolean` | `true` si `gap >= 20%`, `pendiente <= 12°` y `riesgo_ambiental != "ALTO"` |
+| `flag_revision` | `output` | `string` | `"REVISAR"` si `gap_arbitraje_pct >= 50%` (posible error de publicación), sino `"OK"` |
+
+---
+
+## 6. Métricas
+
+* **Métricas de negocio (objetivo comercial para Diana):**
+  * **Tasa de inviabilidad técnica:** reducción del `10%` al `0%` en alertas enviadas (exclusión automática de riesgo ambiental `ALTO` y pendientes `> 12°`).
+  * **Margen de arbitraje objetivo:** detección automática de lotes publicados con descuento `>= 20%` (`244` oportunidades P1 por mediana zonal y `184` oportunidades P2 validadas por modelo hedónico ML).
+  * **Impacto financiero:** ahorro de `12 hs/semana` de relevamiento manual, costo operativo de `USD 65/mes` (vs. tope `USD 150/mes`), **Payback en `2,34 meses`** y **ROI Neto Año 1 de `+411%`**.
+* **Métricas del modelo ML (conjunto real `894` terrenos, split `80/20` estratificado + 5-Fold CV):**
+  * `R² CV (5-Fold)`: **`0.5964 ± 0.0618`**
+  * `R² Test (log)`: **`0.6037`**
+  * `MAE Test`: **`6.45 USD/m²`** *(vs. `10.19 USD/m²` del baseline Dummy)*
+  * `RMSE Test`: **`11.55 USD/m²`** *(vs. `15.73 USD/m²` del baseline Dummy)*
+  * Verificación serialización Pickle: **`dif_max = 0.00e+00`** (`< 1e-6`).
+
+---
+
+## 7. Costo computacional de una corrida de inferencia
+
+Medición real ejecutando `run_producto2_inference()` sobre los **`894` registros** de `dataset_limpio.csv` con `models/terrascout_pipeline.pkl`:
+
+| Concepto | Inferencia (`--infer-only`) | Reentrenamiento completo (`7` modelos + 5-Fold CV) |
+| :--- | :--- | :--- |
+| **Tiempo por corrida** | **`0.31 s`** local (`~10 s` en Apify con cold-start) | `~61 s` local (`~75 s` en Apify) |
+| **Memoria / CPU / GPU** | **`412.3 MB` RAM pico** → `512 MB – 1 GB / 1 vCPU / Sin GPU` | `512 MB – 1 GB / 1 vCPU / Sin GPU` |
+| **Costo en Apify (`~$0.30/CU`)** | **`~0.0028 CU`** ≈ **`USD 0.0008`** por corrida *(1 GB × 10 s)* | `~0.021 CU` ≈ **`USD 0.006`** por corrida |
+| **Costo estimado por 1.000 registros** | **`< USD 0.001`** *(CPU puro, sin LLM ni GPU)* | `~USD 0.007` |
+
+*(Nota: el presupuesto operativo mensual de `USD 65/mes` está dominado por el plan Apify Starter `USD 39/mes` y orquestación `USD 10.59/mes`; el cómputo de inferencia ML es prácticamente despreciable).*
+
+---
+
+## 8. Cómo correr el proyecto
+
+1. **Actores Apify:**
+   ```bash
+   cd actors/apify_etl && apify run   # Paso 1: ETL -> dataset_limpio.csv
+   cd actors/apify_eda && apify run   # Paso 2: EDA -> Dashboard CSVs/XLSX
+   cd actors/apify_ml  && apify run   # Paso 3: ML  -> predicciones + oportunidades + .pkl
+   ```
+2. **Notebooks (Google Colab o Jupyter):**
+   * Análisis y EDA: abrir [`notebooks/01_etl_y_eda.ipynb`](./notebooks/01_etl_y_eda.ipynb).
+   * Entrenamiento, arbitraje y prueba Pickle: abrir [`notebooks/02_modelado_hedonico.ipynb`](./notebooks/02_modelado_hedonico.ipynb).
+3. **Ver datos y salidas:**
+   * Crudos reales en [`data/raw/`](./data/raw/) y topografía en [`data/aux_topografia_cordoba.csv`](./data/aux_topografia_cordoba.csv).
+   * Procesados en [`data/processed/dataset_limpio.csv`](./data/processed/dataset_limpio.csv), [`data/processed/dashboard/`](./data/processed/dashboard/) y [`data/processed/producto2/`](./data/processed/producto2/).
+4. **Automatización n8n:** ver [`workflows/README-n8n.md`](./workflows/README-n8n.md) (flujos listos para importar de Producto 1 y Producto 2).
+
+### Ejecución rápida en local (Python)
+
+```bash
+cp .env.example .env
+pip install -r requirements.txt
+
+# Producto 1 (ETL -> dataset_limpio.csv -> EDA -> Dashboard CSVs/XLSX)
+python3 src/run_producto1_pipeline.py
+
+# Producto 2 (Entrenamiento 7 modelos + models/terrascout_pipeline.pkl + oportunidades ML)
+python3 src/run_producto2_pipeline.py
+
+# Producto 2 solo inferencia sobre lote nuevo (sin reentrenar)
+python3 src/run_producto2_pipeline.py --infer-only --input data/processed/dataset_limpio.csv
+
+# Suite completa de verificación (43 tests: scrapers, ETL, EDA, ML, R1-R4 Apify)
+PYTHONPATH=terrascout_actor python3 -m pytest tests/test_scraper_node.py tests/test_producto1_actors.py tests/test_producto2_ml.py -v
+```
+
+> Con este pipeline podés extraer terrenos y campings reales de Córdoba, limpiarlos y cruzarlos espacialmente, predecir su valor justo por m² con Machine Learning y detectar oportunidades de compra subvaluadas con blindaje ambiental.
