@@ -84,7 +84,7 @@ Todos los actores cumplen las reglas de diseño Apify R1–R4 (`my_actor/main.py
 | **Scraper (`terrascout_actor`)** | [`terrascout_actor/my_actor/main.py`](./terrascout_actor/my_actor/main.py) | [`input_schema.json`](./terrascout_actor/.actor/input_schema.json) | [`output_schema.json`](./terrascout_actor/.actor/output_schema.json) | `cd terrascout_actor && apify run` |
 | **Actor 1: ETL (`ypvpGbmD1vpqraNXA`)** | [`actors/apify_etl/my_actor/main.py`](./actors/apify_etl/my_actor/main.py) | [`input_schema.json`](./actors/apify_etl/.actor/input_schema.json) | [`output_schema.json`](./actors/apify_etl/.actor/output_schema.json) | `cd actors/apify_etl && apify run` |
 | **Actor 2: EDA (`YZH8ti7zjLt6410Hx`)** | [`actors/apify_eda/my_actor/main.py`](./actors/apify_eda/my_actor/main.py) | [`input_schema.json`](./actors/apify_eda/.actor/input_schema.json) | [`output_schema.json`](./actors/apify_eda/.actor/output_schema.json) | `cd actors/apify_eda && apify run` |
-| **Actor 3: Inferencia ML (`terrascout-ml-actor`)** | [`actors/apify_ml/my_actor/main.py`](./actors/apify_ml/my_actor/main.py) | [`input_schema.json`](./actors/apify_ml/.actor/input_schema.json) | [`output_schema.json`](./actors/apify_ml/.actor/output_schema.json) | `cd actors/apify_ml && apify run` |
+| **Actor 3: Inferencia ML (`9bGh3PnH5lMWm3cjc`)** | [`actors/apify_ml/my_actor/main.py`](./actors/apify_ml/my_actor/main.py) | [`input_schema.json`](./actors/apify_ml/.actor/input_schema.json) | [`output_schema.json`](./actors/apify_ml/.actor/output_schema.json) | `cd actors/apify_ml && apify run` |
 
 ---
 
