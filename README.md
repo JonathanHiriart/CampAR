@@ -12,8 +12,8 @@
 flowchart LR
     T["Trigger<br/>(Manual / Schedule n8n)"] --> S["Apify Scraper<br/>(terrascout_actor)<br/>MercadoLibre + OSM + GMaps"]
     S --> E["ETL<br/>(actors/apify_etl)<br/>Limpieza + Moneda + Haversine"]
-    E --> P["Preprocessing<br/>(ml_core.py)<br/>Features espaciales + TF-IDF/SVD + KMeans"]
-    P --> I["Inferencia ML<br/>(actors/apify_ml)<br/>Ensemble 2ET+GBR+HGBR (.pkl)"]
+    E --> P["Preprocessing<br/>(preprocessing.py)<br/>Features espaciales + TF-IDF/SVD + KMeans"]
+    P --> I["Inferencia ML (Solo Inferencia)<br/>(actors/apify_ml)<br/>Ensemble 2ET+GBR+HGBR (.pkl)"]
     I --> D["Destino<br/>(Google Sheets + Looker Studio<br/>+ Resumen Telegram n8n)"]
 ```
 
@@ -42,8 +42,8 @@ Capstone/
 │   │   ├── .actor/
 │   │   ├── Dockerfile
 │   │   └── requirements.txt
-│   └── apify_ml/                         # Actor 3: Inferencia y Entrenamiento ML (Producto 2)
-│       ├── my_actor/{main.py, ml_core.py, sdk_compat.py}
+│   └── apify_ml/                         # Actor 3: Solo Inferencia ML (Producto 2)
+│       ├── my_actor/{main.py, preprocessing.py, tooling_business.py, sdk_compat.py}
 │       ├── .actor/
 │       ├── Dockerfile
 │       └── requirements.txt
@@ -65,6 +65,7 @@ Capstone/
 ├── src/
 │   ├── run_scraper_node.py               # CLI local de extracción en vivo hacia data/raw/
 │   ├── run_producto1_pipeline.py         # CLI local Producto 1 (ETL + EDA + Dashboard)
+│   ├── training.py                       # Entrenamiento anti-leakage y validación CV (fuera del Actor)
 │   └── run_producto2_pipeline.py         # CLI local Producto 2 (Entrenamiento e inferencia --infer-only)
 ├── tests/                                # 43 tests automatizados (pytest, incluye R1-R4 Apify)
 ├── docs/                                 # Documentación completa, guía Looker Studio y planificación
@@ -92,9 +93,9 @@ Todos los actores cumplen las reglas de diseño Apify R1–R4 (`my_actor/main.py
 | :--- | :--- | :--- | :--- | :--- |
 | `scrape_mercadolibre()` / `execute_terrascout_pipeline()` | [`ml_scraper.py`](./terrascout_actor/my_actor/ml_scraper.py) / [`nlp_analysis.py`](./terrascout_actor/my_actor/nlp_analysis.py) | HTML / JSON-LD MercadoLibre, OSM, GMaps | CSVs / JSON crudos (`data/raw/`) | Extrae terrenos, campings, reseñas y tópicos NLP |
 | `run_etl_pipeline()` | [`etl_core.py`](./actors/apify_etl/my_actor/etl_core.py) | Datos crudos + `business_rules.json` | `dataset_limpio.csv` (`894` filas) + funnel | Normaliza ARS→USD, rescata m² con regex segura, filtra IQR, deduplica y hace JOIN espacial Haversine |
-| `enrich_ml_features()` + `build_preprocessor()` | [`ml_core.py`](./actors/apify_ml/my_actor/ml_core.py) | `dataset_limpio.csv` + reglas | Matriz de features + `ColumnTransformer` | Corrige localidades sin GPS por alias, calcula `log1p(m²)`, distancias a 16 centroides, `KMeans` geo y `TF-IDF + TruncatedSVD` |
-| `train_and_evaluate_hedonic_model()` | [`ml_core.py`](./actors/apify_ml/my_actor/ml_core.py) | Datos limpios enriquecidos | `terrascout_pipeline.pkl` + métricas CV/Test | Split 80/20 anti-leakage, 5-Fold CV sobre 7 modelos, selección objetiva y check Pickle `dif_max < 1e-6` |
-| `score_opportunities()` | [`ml_core.py`](./actors/apify_ml/my_actor/ml_core.py) | Lotes limpios + `.pkl` + reglas | `predicciones_producto2.csv` + `oportunidades_producto2.csv` | Estima valor justo USD/m², calcula `gap_arbitraje_pct`, aplica reglas ambientales y marca `flag_revision` |
+| `enrich_ml_features()` | [`preprocessing.py`](./actors/apify_ml/my_actor/preprocessing.py) | `dataset_limpio.csv` + reglas | Matriz de features enriquecidas | Corrige localidades sin GPS por alias, calcula `log1p(m²)`, distancias a 16 centroides y señales de texto |
+| `build_preprocessor()` + `train_and_evaluate_hedonic_model()` | [`src/training.py`](./src/training.py) | Datos limpios enriquecidos | `terrascout_pipeline.pkl` + métricas CV/Test | Entrenamiento fuera del Actor: split 80/20 anti-leakage, `ColumnTransformer` (`KMeans` geo + `TF-IDF/SVD`), 5-Fold CV sobre 7 modelos y check Pickle `dif_max < 1e-6` |
+| `score_opportunities()` + `execute_ml_actor()` | [`tooling_business.py`](./actors/apify_ml/my_actor/tooling_business.py) | Lotes limpios + `.pkl` + reglas | `predicciones_producto2.csv` + `oportunidades_producto2.csv` | Inferencia pura en Apify: estima valor justo USD/m², calcula `gap_arbitraje_pct`, aplica reglas ambientales y marca `flag_revision` |
 
 ### Modelo seleccionado
 
@@ -116,8 +117,7 @@ Todos los actores cumplen las reglas de diseño Apify R1–R4 (`my_actor/main.py
 | :--- | :---: | :---: | :--- |
 | `dataset_limpio_url` / `records` | `input` | `string` / `array` | URL (Drive / KV Store / ruta local) o registros JSON de `dataset_limpio.csv` |
 | `rules_json_url` | `input` | `string` | Ruta o URL a `config/business_rules.json` (reglas y umbrales de arbitraje) |
-| `model_pkl_url` | `input` | `string` | Ruta o URL a `terrascout_pipeline.pkl` (opcional; si se provee con `reentrenar=false`, corre solo inferencia) |
-| `reentrenar` | `input` | `boolean` | Si es `true`, entrena y evalúa los 7 modelos; si es `false`, usa el `.pkl` guardado |
+| `model_pkl_url` | `input` | `string` | Ruta o URL a `terrascout_pipeline.pkl` pre-entrenado con `src/training.py` para inferencia pura |
 | `ids_ya_alertados` | `input` | `array<string>` | Lista opcional de `id_registro` previos para evitar alertas duplicadas |
 | `precio_modelo_m2` | `output` | `float` | Valor justo estimado por el modelo hedónico en `USD/m²` |
 | `precio_modelo_total_usd` | `output` | `float` | Valuación total estimada del lote (`precio_modelo_m2 × superficie_m2`) |
@@ -163,7 +163,7 @@ Medición real ejecutando `run_producto2_inference()` sobre los **`894` registro
    ```bash
    cd actors/apify_etl && apify run   # Paso 1: ETL -> dataset_limpio.csv
    cd actors/apify_eda && apify run   # Paso 2: EDA -> Dashboard CSVs/XLSX
-   cd actors/apify_ml  && apify run   # Paso 3: ML  -> predicciones + oportunidades + .pkl
+   cd actors/apify_ml  && apify run   # Paso 3: ML  -> inferencia (predicciones + oportunidades)
    ```
 2. **Notebooks (Google Colab o Jupyter):**
    * Análisis y EDA: abrir [`notebooks/01_etl_y_eda.ipynb`](./notebooks/01_etl_y_eda.ipynb).

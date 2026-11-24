@@ -14,18 +14,20 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from actors.apify_etl.my_actor.etl_core import run_etl_pipeline  # noqa: E402
-from actors.apify_ml.my_actor.ml_core import (  # noqa: E402
-    build_validation_sample,
-    execute_ml_actor,
+from actors.apify_ml.my_actor.preprocessing import (  # noqa: E402
     load_business_rules,
     load_clean_dataset,
+)
+from actors.apify_ml.my_actor.tooling_business import (  # noqa: E402
+    build_validation_sample,
+    execute_ml_actor,
     score_opportunities,
-    train_and_evaluate_hedonic_model,
 )
 from src.run_producto2_pipeline import (  # noqa: E402
     run_producto2_inference,
     run_producto2_train,
 )
+from src.training import train_and_evaluate_hedonic_model  # noqa: E402
 
 
 def _get_clean_df() -> pd.DataFrame:
@@ -47,7 +49,8 @@ class TestActorMLEstructuraYReglasR1aR4:
         assert (actor_dir / ".actor" / "output_schema.json").is_file()
         assert (actor_dir / "my_actor" / "main.py").is_file()
         assert (actor_dir / "my_actor" / "__main__.py").is_file()
-        assert (actor_dir / "my_actor" / "ml_core.py").is_file()
+        assert (actor_dir / "my_actor" / "preprocessing.py").is_file()
+        assert (actor_dir / "my_actor" / "tooling_business.py").is_file()
         assert (actor_dir / "my_actor" / "sdk_compat.py").is_file()
 
     def test_main_py_puro_sin_logica_ni_loops_r4(self):
@@ -59,9 +62,30 @@ class TestActorMLEstructuraYReglasR1aR4:
         for forbidden in ("urllib", "requests", "sklearn", "pandas"):
             assert forbidden not in src
 
+    def test_actor_ml_solo_inferencia_sin_entrenamiento(self):
+        actor_dir = REPO_ROOT / "actors" / "apify_ml"
+        forbidden_tokens = (
+            "train_and_evaluate_hedonic_model",
+            "train_test_split",
+            "cross_val_score",
+            "VotingRegressor",
+            "ExtraTreesRegressor",
+            '"reentrenar"',
+        )
+        files_to_check = list((actor_dir / "my_actor").glob("*.py")) + [
+            actor_dir / ".actor" / "input_schema.json",
+            actor_dir / ".actor" / "output_schema.json",
+        ]
+        for path in files_to_check:
+            txt = path.read_text(encoding="utf-8")
+            for tok in forbidden_tokens:
+                assert tok not in txt, f"Se encontró token de entrenamiento '{tok}' en {path}"
+
     def test_sin_np_random_en_producto2(self):
         for p in (
-            REPO_ROOT / "actors" / "apify_ml" / "my_actor" / "ml_core.py",
+            REPO_ROOT / "actors" / "apify_ml" / "my_actor" / "preprocessing.py",
+            REPO_ROOT / "actors" / "apify_ml" / "my_actor" / "tooling_business.py",
+            REPO_ROOT / "src" / "training.py",
             REPO_ROOT / "src" / "run_producto2_pipeline.py",
         ):
             assert "np.random" not in p.read_text(encoding="utf-8")
@@ -139,28 +163,26 @@ class TestModeladoHedonicoYArbitraje:
         )
         assert inf2["summary"]["alertas_nuevas"] == 0
 
-    def test_execute_ml_actor_sdk_entrenamiento_e_inferencia(self):
-        clean_records = json.loads(_get_clean_df().to_json(orient="records"))
+    def test_execute_ml_actor_sdk_inferencia(self):
+        df_clean = _get_clean_df()
+        clean_records = json.loads(df_clean.to_json(orient="records"))
         rules_text = (REPO_ROOT / "config" / "business_rules.json").read_text(encoding="utf-8")
+        rules = json.loads(rules_text)
 
-        out_train = execute_ml_actor(
-            inp={"reentrenar": True},
-            sdk_texts={"rules_json": rules_text},
-            sdk_records=clean_records,
-        )
-        assert out_train["summary"]["modo"] == "entrenamiento_y_evaluacion"
-        assert out_train["summary"]["total_lotes_evaluados"] == 894
-        assert len(out_train["metricas_payload"]["artifacts_sha256"]["terrascout_pipeline_pkl"]) == 64
+        train_res = train_and_evaluate_hedonic_model(df_clean, rules)
+        first_id = str(train_res["df_oportunidades"].iloc[0]["id_registro"])
 
         out_inf = execute_ml_actor(
-            inp={"reentrenar": False, "ids_ya_alertados": [out_train["df_oportunidades"].iloc[0]["id_registro"]]},
+            inp={"ids_ya_alertados": [first_id]},
             sdk_texts={"rules_json": rules_text},
             sdk_records=clean_records[:50],
-            sdk_pkl_bytes=out_train["pkl_bytes"],
+            sdk_pkl_bytes=train_res["pkl_bytes"],
         )
         assert out_inf["summary"]["modo"] == "inferencia"
         assert out_inf["summary"]["total_lotes_evaluados"] == 50
-        first_id = str(out_train["df_oportunidades"].iloc[0]["id_registro"])
+        assert len(out_inf["metricas_payload"]["artifacts_sha256"]["predicciones_producto2_csv"]) == 64
+        assert len(out_inf["metricas_payload"]["artifacts_sha256"]["oportunidades_producto2_csv"]) == 64
+        assert "terrascout_pipeline_pkl" not in out_inf["metricas_payload"]["artifacts_sha256"]
         assert first_id not in set(out_inf["df_oportunidades"]["id_registro"].astype(str))
 
     def test_score_opportunities_soporta_dataframe_vacio(self):
