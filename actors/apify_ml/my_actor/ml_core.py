@@ -1,12 +1,16 @@
 """Núcleo de Machine Learning Hedónico y Arbitraje para TerraScout AI (Producto 2).
 
 Consume `dataset_limpio.csv` producido por `APIFY ETL` (`etl_core.py`) y reglas de
-`config/business_rules.json`. Implementa:
+`config/business_rules.json` (con enriquecimiento opcional desde fuentes RAW locales
+para corregir localidades sin GPS y extraer señales espaciales/NLP). Implementa:
 1. Split anti-leakage (train/test estratificado) previo a cualquier preprocesamiento.
-2. Pipeline `ColumnTransformer` + comparación 5-Fold CV (`DummyRegressor`, `Ridge`,
-   `RandomForestRegressor`, `HistGradientBoostingRegressor`) sobre `log(precio_m2_usd)`.
-3. Detección de arbitraje out-of-fold (train) + out-of-sample (test) o inferencia en producción.
-4. Serialización Pickle (`.pkl`) con verificación exacta `dif_max < 1e-6`.
+2. Feature engineering espacial y textual sin datos sintéticos ni data leakage.
+3. Pipeline `ColumnTransformer` (`StandardScaler` + `OneHotEncoder` + `KMeans` geo +
+   `TfidfVectorizer`/`TruncatedSVD`) y comparación 5-Fold CV (`DummyRegressor`,
+   `Ridge`, `RandomForest`, `ExtraTrees`, `GradientBoosting`, `HistGradientBoosting`,
+   `Ensemble Voting`).
+4. Detección de arbitraje out-of-fold (train) + out-of-sample (test) o inferencia.
+5. Serialización Pickle (`.pkl`) con verificación exacta `dif_max < 1e-6`.
 """
 
 from __future__ import annotations
@@ -17,6 +21,7 @@ import json
 import os
 import pickle
 import re
+import unicodedata
 import urllib.request
 from datetime import date
 from pathlib import Path
@@ -26,9 +31,18 @@ import numpy as np
 import pandas as pd
 import sklearn
 from sklearn.base import clone
+from sklearn.cluster import KMeans
 from sklearn.compose import ColumnTransformer
+from sklearn.decomposition import TruncatedSVD
 from sklearn.dummy import DummyRegressor
-from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.ensemble import (
+    ExtraTreesRegressor,
+    GradientBoostingRegressor,
+    HistGradientBoostingRegressor,
+    RandomForestRegressor,
+    VotingRegressor,
+)
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -36,7 +50,7 @@ from sklearn.model_selection import KFold, cross_val_predict, cross_val_score, t
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-_DEFAULT_FEATURES = [
+_BASE_FEATURES = [
     "superficie_m2",
     "lat_eff",
     "lon_eff",
@@ -199,9 +213,8 @@ def load_model_bundle(model_pkl_source: str = "", sdk_pkl_bytes: bytes | None = 
 
 def _ml_config(rules: dict[str, Any]) -> dict[str, Any]:
     cfg = rules.get("modelo_ml") or {}
-    feature_cols = list(cfg.get("feature_columns") or _DEFAULT_FEATURES)
-    cat_cols = [c for c in (cfg.get("categorical_columns") or _DEFAULT_CATEGORICAL) if c in feature_cols]
-    num_cols = [c for c in feature_cols if c not in cat_cols]
+    base_feats = list(cfg.get("feature_columns") or _BASE_FEATURES)
+    cat_cols = [c for c in (cfg.get("categorical_columns") or _DEFAULT_CATEGORICAL) if c in base_feats]
     return {
         "target_col": str(cfg.get("target_column", "precio_m2_usd")),
         "target_log": bool(cfg.get("target_log_transform", True)),
@@ -209,9 +222,8 @@ def _ml_config(rules: dict[str, Any]) -> dict[str, Any]:
         "random_state": int(cfg.get("random_state", 42)),
         "cv_folds": int(cfg.get("cv_folds", 5)),
         "stratify_col": str(cfg.get("stratify_column", "valle_corredor")),
-        "feature_cols": feature_cols,
+        "base_features": base_feats,
         "cat_cols": cat_cols,
-        "num_cols": num_cols,
     }
 
 
@@ -228,25 +240,289 @@ def _arbitrage_rules(rules: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_preprocessor(num_features: list[str], cat_features: list[str]) -> ColumnTransformer:
-    """Construye `ColumnTransformer` anti-leakage para variables numéricas y categóricas."""
-    return ColumnTransformer(
-        transformers=[
-            (
-                "num",
-                Pipeline([("imp", SimpleImputer(strategy="median")), ("scaler", StandardScaler())]),
-                num_features,
-            ),
-            (
-                "cat",
-                Pipeline([
-                    ("imp", SimpleImputer(strategy="most_frequent")),
-                    ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
-                ]),
-                cat_features,
-            ),
-        ]
+def _norm_txt(s: object) -> str:
+    clean = unicodedata.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode("ascii").lower()
+    return re.sub(r"[^a-z0-9\s]", " ", clean).strip()
+
+
+def _haversine_matrix(
+    lats1: np.ndarray, lons1: np.ndarray, lats2: np.ndarray, lons2: np.ndarray
+) -> np.ndarray:
+    earth_r_km = 6371.0
+    p1 = np.radians(lats1)[:, None]
+    p2 = np.radians(lats2)[None, :]
+    l1 = np.radians(lons1)[:, None]
+    l2 = np.radians(lons2)[None, :]
+    a = np.sin((p2 - p1) / 2.0) ** 2 + np.cos(p1) * np.cos(p2) * np.sin((l2 - l1) / 2.0) ** 2
+    return 2.0 * earth_r_km * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0)))
+
+
+def _load_optional_csv(rel_path: str) -> pd.DataFrame | None:
+    resolved = resolve_repo_path(rel_path)
+    if resolved is None:
+        return None
+    return pd.read_csv(resolved)
+
+
+def _normalize_id_column(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    if "id_registro" not in out.columns and "id_publicacion" in out.columns:
+        out["id_registro"] = out["id_publicacion"]
+    if "id_registro" in out.columns:
+        out["id_registro"] = out["id_registro"].astype(str)
+    return out
+
+
+def _fix_missing_gps_localities(
+    df: pd.DataFrame,
+    rules: dict[str, Any],
+    df_topo: pd.DataFrame | None,
+) -> pd.DataFrame:
+    """Corrige asignaciones de localidad en filas sin GPS usando alias de `business_rules.json`."""
+    catalogo = rules.get("localidades_catalogo") or {}
+    if df_topo is None or not catalogo or "localidad_raw" not in df.columns:
+        return df
+    if "latitud" not in df.columns or "longitud" not in df.columns:
+        return df
+
+    alias_map: dict[str, str] = {}
+    for loc, meta in catalogo.items():
+        alias_map[_norm_txt(loc)] = loc
+        for alias in (meta.get("alias") or []):
+            alias_map[_norm_txt(alias)] = loc
+    sorted_aliases = sorted(alias_map.items(), key=lambda x: -len(x[0]))
+    topo_idx = df_topo.set_index("barrio_localidad")
+
+    out = df.copy()
+    missing_gps = out["latitud"].isna() | out["longitud"].isna()
+    for idx, row in out.loc[missing_gps].iterrows():
+        haystack = f"{_norm_txt(row.get('localidad_raw', ''))} {_norm_txt(row.get('titulo_publicacion', ''))}"
+        matched = next(
+            (canon for a_norm, canon in sorted_aliases if a_norm and re.search(rf"\b{re.escape(a_norm)}\b", haystack)),
+            None,
+        )
+        if matched and matched in topo_idx.index and matched != row.get("barrio_localidad"):
+            t = topo_idx.loc[matched]
+            out.loc[idx, "barrio_localidad"] = matched
+            out.loc[idx, "valle_corredor"] = str(t["valle_corredor"])
+            out.loc[idx, "lat_eff"] = float(t["latitud_centroide"])
+            out.loc[idx, "lon_eff"] = float(t["longitud_centroide"])
+            out.loc[idx, "pendiente_media_grados"] = float(t["pendiente_media_grados"])
+            out.loc[idx, "ndvi_sombra_verano"] = float(t["ndvi_sombra_verano"])
+            out.loc[idx, "distancia_rio_m"] = float(t["distancia_rio_m"])
+            out.loc[idx, "riesgo_ambiental"] = str(t["riesgo_ambiental"])
+    return out
+
+
+def enrich_ml_features(
+    df_clean: pd.DataFrame,
+    rules: dict[str, Any],
+    topo_df: pd.DataFrame | None = None,
+    campings_df: pd.DataFrame | None = None,
+    places_df: pd.DataFrame | None = None,
+    raw_ml_df: pd.DataFrame | None = None,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Enriquece `dataset_limpio` con señales reales espaciales y textuales sin fuga de datos."""
+    df = _normalize_id_column(df_clean)
+    df_topo = topo_df if topo_df is not None else _load_optional_csv("data/aux_topografia_cordoba.csv")
+    df_camp = campings_df if campings_df is not None else _load_optional_csv("data/raw/campings_zona_real_raw.csv")
+    df_places = places_df if places_df is not None else _load_optional_csv("data/raw/google_maps_campings_places_raw.csv")
+    df_raw = raw_ml_df if raw_ml_df is not None else _load_optional_csv(
+        "data/raw/mercadolibre_terrenos_calamuchita_punilla_raw.csv"
     )
+
+    if df_raw is not None and "id_publicacion" in df_raw.columns and "id_registro" in df.columns:
+        raw_cols = [c for c in ("descripcion_completa", "localidad_raw", "es_tienda_oficial", "latitud", "longitud")
+                    if c in df_raw.columns and c not in df.columns]
+        if raw_cols:
+            raw_idx = df_raw.drop_duplicates("id_publicacion").assign(
+                id_publicacion=lambda d: d["id_publicacion"].astype(str)
+            ).set_index("id_publicacion")
+            df = df.merge(raw_idx[raw_cols], left_on="id_registro", right_index=True, how="left")
+
+    df = _fix_missing_gps_localities(df, rules, df_topo)
+
+    # Asegurar indicadores individuales si solo vienen columnas base
+    for col in ("tiene_agua", "tiene_luz", "tiene_escritura", "tiene_arboleda", "tiene_rio", "tiene_servicios"):
+        if col not in df.columns:
+            df[col] = 0
+
+    sup = pd.to_numeric(df["superficie_m2"], errors="coerce").clip(lower=1.0)
+    df["log_superficie"] = np.log1p(sup)
+    df["inv_sqrt_sup"] = 1.0 / np.sqrt(sup)
+    lat_arr = pd.to_numeric(df["lat_eff"], errors="coerce").to_numpy(dtype=float)
+    lon_arr = pd.to_numeric(df["lon_eff"], errors="coerce").to_numpy(dtype=float)
+    df["lat_lon_rot1"] = lat_arr + lon_arr
+    df["lat_lon_rot2"] = lat_arr - lon_arr
+
+    # Distancias Haversine a los 16 centroides de localidades (siempre consistente con topo)
+    dist_loc_cols: list[str] = []
+    if df_topo is not None and not df_topo.empty:
+        d_topo = _haversine_matrix(
+            lat_arr,
+            lon_arr,
+            df_topo["latitud_centroide"].to_numpy(dtype=float),
+            df_topo["longitud_centroide"].to_numpy(dtype=float),
+        )
+        for i in range(len(df_topo)):
+            col = f"dist_loc_{i}"
+            df[col] = d_topo[:, i]
+            dist_loc_cols.append(col)
+        df["dist_centroide_min"] = d_topo.min(axis=1)
+    else:
+        df["dist_centroide_min"] = 0.0
+
+    # Densidad multi-radio de campings y demanda Google Maps
+    if df_camp is not None and not df_camp.empty:
+        c_valid = df_camp.dropna(subset=["latitud", "longitud"])
+        d_camp = _haversine_matrix(
+            lat_arr,
+            lon_arr,
+            pd.to_numeric(c_valid["latitud"], errors="coerce").to_numpy(dtype=float),
+            pd.to_numeric(c_valid["longitud"], errors="coerce").to_numpy(dtype=float),
+        )
+        df["campings_2km"] = (d_camp <= 2.0).sum(axis=1)
+        df["campings_10km"] = (d_camp <= 10.0).sum(axis=1)
+    else:
+        df["campings_2km"] = 0
+        df["campings_10km"] = pd.to_numeric(df.get("campings_5km", 0), errors="coerce").fillna(0)
+
+    if df_places is not None and not df_places.empty:
+        p_valid = df_places.dropna(subset=["latitud", "longitud"])
+        d_pl = _haversine_matrix(
+            lat_arr,
+            lon_arr,
+            pd.to_numeric(p_valid["latitud"], errors="coerce").to_numpy(dtype=float),
+            pd.to_numeric(p_valid["longitud"], errors="coerce").to_numpy(dtype=float),
+        )
+        df["places_5km"] = (d_pl <= 5.0).sum(axis=1)
+        rev_w = pd.to_numeric(p_valid["reviews_count"], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+        df["log_reviews_5km"] = np.log1p(np.where(d_pl <= 5.0, rev_w[None, :], 0.0).sum(axis=1))
+    else:
+        df["places_5km"] = 0
+        df["log_reviews_5km"] = 0.0
+
+    # Señales reales de texto (título + descripción si está disponible)
+    tit = df["titulo_publicacion"].fillna("") if "titulo_publicacion" in df.columns else pd.Series("", index=df.index)
+    desc = df["descripcion_completa"].fillna("") if "descripcion_completa" in df.columns else pd.Series("", index=df.index)
+    txt_all = (tit + " " + desc).str.lower()
+    df["kw_lago_dique"] = txt_all.str.contains(r"\blago\b|\bdique\b|costa del lago|frente al lago", regex=True).astype(int)
+    df["kw_barrio_privado"] = txt_all.str.contains(
+        r"barrio privado|barrio cerrado|country|condominio|club de campo", regex=True
+    ).astype(int)
+    df["kw_ruta_asfalto"] = txt_all.str.contains(r"sobre ruta|asfalto|asfaltada|pavimento|ruta \d+", regex=True).astype(int)
+    df["kw_construido"] = txt_all.str.contains(
+        r"casa|cabana|cabaña|construid|preventa|complejo|quincho|pileta|piscina|galpon", regex=True
+    ).astype(int)
+    df["kw_financiacion"] = txt_all.str.contains(r"financiaci|cuotas|anticipo|entrega|permuta", regex=True).astype(int)
+    df["kw_esquina"] = txt_all.str.contains(r"\besquina\b|doble frente", regex=True).astype(int)
+    df["kw_vista"] = txt_all.str.contains(r"vista panoramica|vista a las sierras|vista al lago|vistas", regex=True).astype(int)
+    df["kw_loteo"] = txt_all.str.contains(r"loteo|urbanizaci|parcela|fraccion|fracción", regex=True).astype(int)
+    df["kw_gas"] = txt_all.str.contains(r"gas natural", regex=True).astype(int)
+    df["kw_alambrado"] = txt_all.str.contains(r"alambrado|perimetrado|cerrado", regex=True).astype(int)
+    df["txt_len"] = np.log1p(desc.str.len())
+    df["es_tienda_oficial_int"] = (
+        df["es_tienda_oficial"].fillna(False).astype(int) if "es_tienda_oficial" in df.columns else 0
+    )
+    df["texto_full"] = (tit + " " + desc).str.strip()
+
+    num_features = [
+        "superficie_m2",
+        "log_superficie",
+        "inv_sqrt_sup",
+        "lat_eff",
+        "lon_eff",
+        "lat_lon_rot1",
+        "lat_lon_rot2",
+        "score_servicios",
+        "tiene_agua",
+        "tiene_luz",
+        "tiene_escritura",
+        "tiene_arboleda",
+        "tiene_rio",
+        "tiene_servicios",
+        "pendiente_media_grados",
+        "ndvi_sombra_verano",
+        "distancia_rio_m",
+        "campings_2km",
+        "campings_5km",
+        "campings_10km",
+        "distancia_camping_min_km",
+        "nps_proxy_zona",
+        "places_5km",
+        "log_reviews_5km",
+        "dist_centroide_min",
+        "kw_lago_dique",
+        "kw_barrio_privado",
+        "kw_ruta_asfalto",
+        "kw_construido",
+        "kw_financiacion",
+        "kw_esquina",
+        "kw_vista",
+        "kw_loteo",
+        "kw_gas",
+        "kw_alambrado",
+        "txt_len",
+        "es_tienda_oficial_int",
+    ] + dist_loc_cols
+
+    meta = {
+        "num_features": num_features,
+        "cat_features": list(_DEFAULT_CATEGORICAL),
+        "text_column": "texto_full",
+        "feature_columns": num_features + list(_DEFAULT_CATEGORICAL) + ["texto_full"],
+    }
+    return df, meta
+
+
+def build_preprocessor(
+    num_features: list[str],
+    cat_features: list[str],
+    text_column: str = "texto_full",
+    n_samples: int = 894,
+    random_state: int = 42,
+    use_text_and_clusters: bool = True,
+) -> ColumnTransformer:
+    """Construye `ColumnTransformer` anti-leakage con escalado, OHE, KMeans geo y TF-IDF/SVD."""
+    transformers: list[tuple[str, Any, Any]] = [
+        (
+            "num",
+            Pipeline([("imp", SimpleImputer(strategy="median")), ("scaler", StandardScaler())]),
+            num_features,
+        ),
+        (
+            "cat",
+            Pipeline([
+                ("imp", SimpleImputer(strategy="most_frequent")),
+                ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+            ]),
+            cat_features,
+        ),
+    ]
+    if use_text_and_clusters and n_samples >= 60:
+        n_clusters = min(30, max(5, n_samples // 25))
+        transformers.append(
+            (
+                "geo_cl",
+                Pipeline([
+                    ("imp", SimpleImputer(strategy="median")),
+                    ("scaler", StandardScaler()),
+                    ("km", KMeans(n_clusters=n_clusters, n_init=10, random_state=random_state)),
+                ]),
+                ["lat_eff", "lon_eff"],
+            )
+        )
+        transformers.append(
+            (
+                "txt",
+                Pipeline([
+                    ("tf", TfidfVectorizer(max_features=400, ngram_range=(1, 2), min_df=3)),
+                    ("svd", TruncatedSVD(n_components=20, random_state=random_state)),
+                ]),
+                text_column,
+            )
+        )
+    return ColumnTransformer(transformers=transformers)
 
 
 def _extract_feature_importances(pipeline: Pipeline, top_n: int = 15) -> list[dict[str, Any]]:
@@ -257,6 +533,11 @@ def _extract_feature_importances(pipeline: Pipeline, top_n: int = 15) -> list[di
         raw_imp = np.asarray(model.feature_importances_, dtype=float)
     elif hasattr(model, "coef_"):
         raw_imp = np.abs(np.asarray(model.coef_, dtype=float)).ravel()
+    elif hasattr(model, "estimators_"):
+        imps = [np.asarray(est.feature_importances_, dtype=float) for est in model.estimators_ if hasattr(est, "feature_importances_")]
+        if not imps:
+            return []
+        raw_imp = np.mean(imps, axis=0)
     else:
         return []
     total = float(raw_imp.sum()) or 1.0
@@ -290,15 +571,6 @@ def verify_pickle_roundtrip(
     return dif_max
 
 
-def _normalize_id_column(df: pd.DataFrame) -> pd.DataFrame:
-    out = df.copy()
-    if "id_registro" not in out.columns and "id_publicacion" in out.columns:
-        out["id_registro"] = out["id_publicacion"]
-    if "id_registro" in out.columns:
-        out["id_registro"] = out["id_registro"].astype(str)
-    return out
-
-
 def score_opportunities(
     df_clean: pd.DataFrame,
     bundle: dict[str, Any],
@@ -313,10 +585,6 @@ def score_opportunities(
     target_log = bool(bundle.get("target_log_transformed", True))
     df = _normalize_id_column(df_clean)
 
-    missing = [c for c in feature_cols if c not in df.columns]
-    if missing:
-        raise ValueError(f"Faltan features requeridas por el modelo: {missing}")
-
     if df.empty:
         for col in (
             "precio_modelo_m2",
@@ -328,6 +596,13 @@ def score_opportunities(
         ):
             df[col] = pd.Series(dtype=object)
         return df, df.copy()
+
+    missing = [c for c in feature_cols if c not in df.columns]
+    if missing:
+        df, _ = enrich_ml_features(df, rules)
+        for col in missing:
+            if col not in df.columns:
+                df[col] = 0.0
 
     if pred_m2_override is not None:
         pred_m2 = np.asarray(pred_m2_override.loc[df.index], dtype=float)
@@ -362,8 +637,10 @@ def score_opportunities(
     alertados_set = {str(x) for x in (ids_ya_alertados or set())}
     df["ya_alertada"] = df["id_registro"].isin(alertados_set) if "id_registro" in df.columns else False
 
+    drop_internal = [c for c in df.columns if c.startswith("dist_loc_") or c in ("texto_full", "descripcion_completa", "localidad_raw", "latitud", "longitud")]
     if arb["ocultar_pii"]:
-        df = df.drop(columns=[c for c in _PII_COLUMNS if c in df.columns])
+        drop_internal.extend([c for c in _PII_COLUMNS if c in df.columns])
+    df = df.drop(columns=[c for c in dict.fromkeys(drop_internal) if c in df.columns])
 
     oportunidades = (
         df[df["es_oportunidad_ml"] & (~df["ya_alertada"])]
@@ -427,18 +704,21 @@ def train_and_evaluate_hedonic_model(
     df_clean: pd.DataFrame,
     rules: dict[str, Any],
 ) -> dict[str, Any]:
-    """Entrena y evalúa 4 modelos hedónicos sin data leakage y retorna bundle + predicciones OOF/Test."""
+    """Entrena y evalúa 7 modelos hedónicos sin data leakage y retorna bundle + predicciones OOF/Test."""
     cfg = _ml_config(rules)
-    df = _normalize_id_column(df_clean)
-    required = cfg["feature_cols"] + [cfg["target_col"], cfg["stratify_col"]]
-    missing = [c for c in required if c not in df.columns]
+    df_norm = _normalize_id_column(df_clean)
+    required_base = cfg["base_features"] + [cfg["target_col"], cfg["stratify_col"]]
+    missing = [c for c in required_base if c not in df_norm.columns]
     if missing:
         raise ValueError(f"Faltan columnas requeridas en dataset_limpio: {missing}")
 
-    df_model = df.dropna(subset=[cfg["target_col"]]).copy()
+    df_model, feat_meta = enrich_ml_features(df_norm, rules)
+    df_model = df_model.dropna(subset=[cfg["target_col"]]).copy()
     target_vals = df_model[cfg["target_col"]].to_numpy(dtype=float)
     y = np.log(target_vals) if cfg["target_log"] else target_vals
-    X = df_model[cfg["feature_cols"]].copy()
+
+    feature_cols = feat_meta["feature_columns"]
+    X = df_model[feature_cols].copy()
 
     strat = df_model[cfg["stratify_col"]] if df_model[cfg["stratify_col"]].nunique() > 1 else None
     X_train, X_test, y_train, y_test = train_test_split(
@@ -449,15 +729,37 @@ def train_and_evaluate_hedonic_model(
         stratify=strat,
     )
 
-    preprocessor = build_preprocessor(cfg["num_cols"], cfg["cat_cols"])
+    preprocessor = build_preprocessor(
+        feat_meta["num_features"],
+        feat_meta["cat_features"],
+        text_column=feat_meta["text_column"],
+        n_samples=len(X_train),
+        random_state=cfg["random_state"],
+        use_text_and_clusters=True,
+    )
+
+    et_est = ExtraTreesRegressor(
+        n_estimators=500, min_samples_leaf=2, max_features=0.5, random_state=cfg["random_state"]
+    )
+    gbr_est = GradientBoostingRegressor(
+        n_estimators=250, max_depth=3, learning_rate=0.04, subsample=0.8, random_state=cfg["random_state"]
+    )
+    hgbr_est = HistGradientBoostingRegressor(
+        max_depth=5, min_samples_leaf=10, learning_rate=0.04, max_iter=250, random_state=cfg["random_state"]
+    )
+
     candidates = {
         "Baseline (Dummy mediana)": DummyRegressor(strategy="median"),
-        "Ridge Linear": Ridge(alpha=5.0),
+        "Ridge Linear": Ridge(alpha=10.0),
         "Random Forest": RandomForestRegressor(
-            n_estimators=200, min_samples_leaf=3, random_state=cfg["random_state"]
+            n_estimators=300, min_samples_leaf=2, max_features=0.5, random_state=cfg["random_state"]
         ),
-        "HistGradientBoosting": HistGradientBoostingRegressor(
-            max_depth=5, min_samples_leaf=10, random_state=cfg["random_state"]
+        "ExtraTrees": et_est,
+        "GradientBoosting": gbr_est,
+        "HistGradientBoosting": hgbr_est,
+        "Ensemble (2ET + GBR + HGBR)": VotingRegressor(
+            [("et", clone(et_est)), ("gbr", clone(gbr_est)), ("hgbr", clone(hgbr_est))],
+            weights=[2, 1, 1],
         ),
     }
 
@@ -515,9 +817,9 @@ def train_and_evaluate_hedonic_model(
     bundle = {
         "pipeline": prod_pipe,
         "modelo_nombre": winner_name,
-        "feature_columns": cfg["feature_cols"],
-        "categorical_columns": cfg["cat_cols"],
-        "numeric_columns": cfg["num_cols"],
+        "feature_columns": feature_cols,
+        "categorical_columns": feat_meta["cat_features"],
+        "numeric_columns": feat_meta["num_features"],
         "target_column": cfg["target_col"],
         "target_log_transformed": cfg["target_log"],
         "sklearn_version": sklearn.__version__,
@@ -539,7 +841,7 @@ def train_and_evaluate_hedonic_model(
     }
     pkl_bytes = pickle.dumps(bundle)
     dif_max = verify_pickle_roundtrip(
-        prod_pipe, pkl_bytes, X_test, cfg["feature_cols"], target_log=cfg["target_log"]
+        prod_pipe, pkl_bytes, X_test, feature_cols, target_log=cfg["target_log"]
     )
     bundle["serialization_dif_max"] = dif_max
     pkl_bytes = pickle.dumps(bundle)
