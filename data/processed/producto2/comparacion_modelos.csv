@@ -1,0 +1,5 @@
+modelo,r2_cv_mean,r2_cv_std,r2_test_log,mae_test_usd_m2,rmse_test_usd_m2
+Random Forest,0.526,0.0491,0.5171,7.39,12.83
+HistGradientBoosting,0.4853,0.0485,0.485,7.39,12.99
+Ridge Linear,0.3779,0.0868,0.3914,8.36,13.91
+Baseline (Dummy mediana),-0.0204,0.0373,-0.0157,10.19,15.73
