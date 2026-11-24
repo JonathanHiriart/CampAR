@@ -84,7 +84,7 @@ Todos los actores cumplen las reglas de diseño Apify R1–R4 (`my_actor/main.py
 | **Scraper (`terrascout_actor`)** | [`terrascout_actor/my_actor/main.py`](./terrascout_actor/my_actor/main.py) | [`input_schema.json`](./terrascout_actor/.actor/input_schema.json) | [`output_schema.json`](./terrascout_actor/.actor/output_schema.json) | `cd terrascout_actor && apify run` |
 | **Actor 1: ETL (`ypvpGbmD1vpqraNXA`)** | [`actors/apify_etl/my_actor/main.py`](./actors/apify_etl/my_actor/main.py) | [`input_schema.json`](./actors/apify_etl/.actor/input_schema.json) | [`output_schema.json`](./actors/apify_etl/.actor/output_schema.json) | `cd actors/apify_etl && apify run` |
 | **Actor 2: EDA (`YZH8ti7zjLt6410Hx`)** | [`actors/apify_eda/my_actor/main.py`](./actors/apify_eda/my_actor/main.py) | [`input_schema.json`](./actors/apify_eda/.actor/input_schema.json) | [`output_schema.json`](./actors/apify_eda/.actor/output_schema.json) | `cd actors/apify_eda && apify run` |
-| **Actor 3: Inferencia ML (`9bGh3PnH5lMWm3cjc`)** | [`actors/apify_ml/my_actor/main.py`](./actors/apify_ml/my_actor/main.py) | [`input_schema.json`](./actors/apify_ml/.actor/input_schema.json) | [`output_schema.json`](./actors/apify_ml/.actor/output_schema.json) | `cd actors/apify_ml && apify run` |
+| **Actor 3: Inferencia ML ([`9bGh3PnH5lMWm3cjc`](https://console.apify.com/actors/9bGh3PnH5lMWm3cjc))** | [`actors/apify_ml/my_actor/main.py`](./actors/apify_ml/my_actor/main.py) | [`input_schema.json`](./actors/apify_ml/.actor/input_schema.json) | [`output_schema.json`](./actors/apify_ml/.actor/output_schema.json) | `cd actors/apify_ml && apify run` |
 
 ---
 
@@ -140,6 +140,15 @@ Todos los actores cumplen las reglas de diseño Apify R1–R4 (`my_actor/main.py
   * `MAE Test`: **`6.45 USD/m²`** *(vs. `10.19 USD/m²` del baseline Dummy)*
   * `RMSE Test`: **`11.55 USD/m²`** *(vs. `15.73 USD/m²` del baseline Dummy)*
   * Verificación serialización Pickle: **`dif_max = 0.00e+00`** (`< 1e-6`).
+
+### Cómo mejorar el performance hacia `0.70–0.80`
+
+El techo actual (`R² Test = 0.6037`) obedece a la granulometría de las fuentes públicas gratuitas disponibles hoy en Córdoba y al tamaño muestral (`894` avisos). Para escalar hacia `0.70–0.80` en una próxima iteración:
+
+1. **Aumentar registros y fuentes (`894` → `3.000+` lotes):** sumar portales adicionales (Zonaprop, Argenprop e inmobiliarias locales) para triplicar la densidad por localidad y bajar la varianza entre folds (`±0.06`).
+2. **Enriquecer datos a nivel parcela exacta:** reemplazar el cruce topográfico por centroide de localidad (`16` zonas) por consultas puntuales de **Sentinel-2 / SRTM** por coordenada exacta del lote e incorporar variables catastrales/municipales no siempre publicadas en el aviso (**zonificación FOS/FOT, frente/fondo, asfalto frentista y factibilidad de red de agua/energía**).
+3. **Capturar señal de precio real vs. precio publicado (*asking price*):** registrar historial temporal de permanencia y bajas de precio para reducir el ruido de sobrevaluación inicial del vendedor.
+4. **Modelos y representaciones de mayor capacidad con más volumen:** al superar `2.500–3.000` lotes, entrenar **CatBoost / LightGBM / XGBoost** con *target encoding* regularizado por micro-barrio y embeddings multimodales de descripción + imágenes satelitales/anuncio.
 
 ---
 
