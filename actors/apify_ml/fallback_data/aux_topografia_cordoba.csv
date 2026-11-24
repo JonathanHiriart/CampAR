@@ -1,0 +1,17 @@
+id_localidad,valle_corredor,barrio_localidad,latitud_centroide,longitud_centroide,altitud_msnm,pendiente_media_grados,ndvi_sombra_verano,distancia_rio_m,distancia_ruta_asfalto_km,riesgo_ambiental,fuente_satelital
+CAL-01,Valle de Calamuchita,Santa Rosa de Calamuchita,-32.0694,-64.5367,585.0,7.2,0.64,65.0,0.3,MEDIO,NASA SRTM 30m / MODIS NDVI / IGN
+CAL-02,Valle de Calamuchita,Villa General Belgrano,-31.9789,-64.5561,750.0,6.5,0.72,210.0,0.2,BAJO,NASA SRTM 30m / MODIS NDVI / IGN
+CAL-03,Valle de Calamuchita,La Cumbrecita,-31.8986,-64.7739,1450.0,16.8,0.76,95.0,1.2,MEDIO,NASA SRTM 30m / MODIS NDVI / IGN
+CAL-04,Valle de Calamuchita,Villa Rumipal,-32.1892,-64.4828,500.0,4.2,0.52,180.0,0.5,BAJO,NASA SRTM 30m / MODIS NDVI / IGN
+CAL-05,Valle de Calamuchita,Villa del Dique,-32.1764,-64.4550,510.0,5.1,0.55,160.0,0.4,BAJO,NASA SRTM 30m / MODIS NDVI / IGN
+CAL-06,Valle de Calamuchita,Embalse,-32.1817,-64.4183,495.0,3.8,0.48,140.0,0.2,BAJO,NASA SRTM 30m / MODIS NDVI / IGN
+CAL-07,Valle de Calamuchita,Los Reartes,-31.9183,-64.5772,780.0,8.4,0.68,72.0,0.8,MEDIO,NASA SRTM 30m / MODIS NDVI / IGN
+CAL-08,Valle de Calamuchita,Villa Yacanto,-32.1067,-64.7547,1180.0,14.2,0.65,280.0,2.1,MEDIO,NASA SRTM 30m / MODIS NDVI / IGN
+PUN-01,Valle de Punilla,Villa Carlos Paz,-31.4241,-64.4978,650.0,5.8,0.50,110.0,0.1,BAJO,NASA SRTM 30m / MODIS NDVI / IGN
+PUN-02,Valle de Punilla,Cosquin,-31.2458,-64.4650,720.0,8.1,0.54,58.0,0.2,ALTO,NASA SRTM 30m / MODIS NDVI / IGN
+PUN-03,Valle de Punilla,La Falda,-31.0897,-64.4892,934.0,10.2,0.61,230.0,0.3,BAJO,NASA SRTM 30m / MODIS NDVI / IGN
+PUN-04,Valle de Punilla,Villa Giardino,-31.0450,-64.4756,970.0,8.9,0.66,310.0,0.4,BAJO,NASA SRTM 30m / MODIS NDVI / IGN
+PUN-05,Valle de Punilla,La Cumbre,-30.9822,-64.4914,1140.0,11.5,0.69,420.0,0.5,BAJO,NASA SRTM 30m / MODIS NDVI / IGN
+PUN-06,Valle de Punilla,Capilla del Monte,-30.8603,-64.5261,980.0,13.8,0.58,190.0,0.6,MEDIO,NASA SRTM 30m / MODIS NDVI / IGN
+PUN-07,Valle de Punilla,Tanti,-31.3578,-64.5889,840.0,12.3,0.59,48.0,0.7,ALTO,NASA SRTM 30m / MODIS NDVI / IGN
+PUN-08,Valle de Punilla,Huerta Grande,-31.0747,-64.4897,950.0,9.5,0.62,290.0,0.3,BAJO,NASA SRTM 30m / MODIS NDVI / IGN
