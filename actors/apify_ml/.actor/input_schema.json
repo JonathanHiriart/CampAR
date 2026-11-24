@@ -1,6 +1,6 @@
 {
     "$schema": "https://apify.com/schemas/v1/input.ide.json",
-    "title": "TerraScout AI — APIFY ML (Producto 2) Input",
+    "title": "TerraScout AI — APIFY ML (Producto 2 — Inferencia) Input",
     "type": "object",
     "schemaVersion": 1,
     "properties": {
@@ -14,23 +14,16 @@
         "rules_json_url": {
             "title": "URL o ruta de config/business_rules.json",
             "type": "string",
-            "description": "Reglas desacopladas de negocio y parámetros de modelado ML.",
+            "description": "Reglas desacopladas de negocio y umbrales de arbitraje.",
             "editor": "textfield",
             "default": ""
         },
         "model_pkl_url": {
-            "title": "URL o ruta de terrascout_pipeline.pkl (opcional)",
+            "title": "URL o ruta de terrascout_pipeline.pkl",
             "type": "string",
-            "description": "Si se provee y reentrenar=false, ejecuta solo inferencia usando el modelo Pickle guardado.",
+            "description": "Link o ruta al modelo pre-entrenado terrascout_pipeline.pkl para ejecutar inferencia pura.",
             "editor": "textfield",
             "default": ""
-        },
-        "reentrenar": {
-            "title": "Reentrenar modelo hedónico sobre dataset_limpio",
-            "type": "boolean",
-            "description": "Si es true (o no se pasa model_pkl_url), entrena, compara 4 modelos con 5-Fold CV y guarda el nuevo .pkl.",
-            "editor": "checkbox",
-            "default": true
         },
         "ids_ya_alertados": {
             "title": "Lista de id_registro ya alertados (opcional)",

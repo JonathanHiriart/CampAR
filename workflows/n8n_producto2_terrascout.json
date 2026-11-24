@@ -156,7 +156,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ dataset_limpio_url: 'https://drive.google.com/file/d/' + $json.id + '/view', model_pkl_url: $('Config').first().json.model_pkl_url, reentrenar: !$('Config').first().json.model_pkl_url }) }}",
+        "jsonBody": "={{ JSON.stringify({ dataset_limpio_url: 'https://drive.google.com/file/d/' + $json.id + '/view', model_pkl_url: $('Config').first().json.model_pkl_url }) }}",
         "options": {
           "response": {
             "response": {

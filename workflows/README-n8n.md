@@ -8,7 +8,7 @@ Esta carpeta contiene los flujos listos para importar en **n8n** que orquestan l
 
 **Secuencia:** `Trigger -> Config -> 0. Limpiar Sheet -> 1. APIFY ETL -> 2. DRIVE Dataset Limpio -> 3. APIFY EDA -> 4. Google Sheets Dashboard`
 
-1. En **n8n**, hacé clic en **Import from file** y seleccioná [`workflows/n8n_producto1_terrascout.json`](./workflows/n8n_producto1_terrascout.json).
+1. En **n8n**, hacé clic en **Import from file** y seleccioná [`workflows/n8n_producto1_terrascout.json`](./n8n_producto1_terrascout.json).
 2. Abrí el nodo **`Config`** y completá:
    * `apify_token`: tu token personal de Apify (nunca subirlo a Git).
    * `raw_workbook_url`: link público de Google Sheets/Drive con [`data/raw/dataset_raw_consolidado.xlsx`](../data/raw/dataset_raw_consolidado.xlsx) *(o dejalo vacío para usar el fallback embebido en el actor)*.
@@ -30,7 +30,7 @@ Esta carpeta contiene los flujos listos para importar en **n8n** que orquestan l
 3. En el nodo **`Config`**, completá:
    * `apify_token`: tu token de Apify.
    * `apify_ml_actor_id`: el ID devuelto por Apify al desplegar `terrascout-ml-actor`.
-   * `model_pkl_url`: dejalo vacío para reentrenar y evaluar sobre el dataset limpio, o pegá la URL pública de `terrascout_pipeline.pkl` para correr en modo inferencia rápida (`reentrenar: false`).
+   * `model_pkl_url`: pegá la URL pública de `models/terrascout_pipeline.pkl` (el modelo pre-entrenado con `src/training.py`) para que el Actor 3 ejecute únicamente inferencia en la nube.
    * `google_sheet_id` y `google_sheet_tab` (por defecto `Oportunidades_ML`).
 4. *(Opcional — Alerta Telegram/Email)*: agregá un nodo **Telegram** o **Gmail** al final leyendo el campo `resumen_telegram` publicado en `metricas_producto2.json` del Key-Value Store del Actor 3.
 
