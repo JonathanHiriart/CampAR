@@ -1,7 +1,8 @@
 """Ejecutor local del flujo Producto 2: dataset_limpio -> Modelo Hedónico -> Arbitraje ML.
 
-Reutiliza `actors/apify_etl/my_actor/etl_core.py` (cero duplicación de ETL) y
-`actors/apify_ml/my_actor/ml_core.py` para:
+Reutiliza `actors/apify_etl/my_actor/etl_core.py` (cero duplicación de ETL),
+`src/training.py` (entrenamiento fuera del Actor Apify) y
+`actors/apify_ml/my_actor/{preprocessing.py, tooling_business.py}` para:
   1. Entrenar y comparar 4 modelos sobre `log(precio_m2_usd)` sin data leakage.
   2. Serializar `models/terrascout_pipeline.pkl` con verificación `dif_max < 1e-6`.
   3. Detectar oportunidades de arbitraje OOF + Test y exportar CSVs/JSON/muestra de auditoría.
@@ -34,15 +35,17 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import pandas as pd  # noqa: E402
 from actors.apify_etl.my_actor.etl_core import run_etl_pipeline  # noqa: E402
-from actors.apify_ml.my_actor.ml_core import (  # noqa: E402
-    build_validation_sample,
-    format_telegram_summary,
+from actors.apify_ml.my_actor.preprocessing import (  # noqa: E402
     load_business_rules,
     load_clean_dataset,
+)
+from actors.apify_ml.my_actor.tooling_business import (  # noqa: E402
+    build_validation_sample,
+    format_telegram_summary,
     load_model_bundle,
     score_opportunities,
-    train_and_evaluate_hedonic_model,
 )
+from src.training import train_and_evaluate_hedonic_model  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("run_producto2_pipeline")
