@@ -1,0 +1,8 @@
+modelo,r2_cv_mean,r2_cv_std,r2_test_log,mae_test_usd_m2,rmse_test_usd_m2
+Ensemble (2ET + GBR + HGBR),0.5964,0.0618,0.6037,6.45,11.55
+ExtraTrees,0.5956,0.0495,0.5824,6.58,11.95
+Random Forest,0.5771,0.0647,0.5773,6.69,11.89
+GradientBoosting,0.5708,0.0822,0.5742,6.57,11.57
+HistGradientBoosting,0.5673,0.067,0.5927,6.71,11.17
+Ridge Linear,0.4892,0.0516,0.5268,7.48,12.62
+Baseline (Dummy mediana),-0.0204,0.0373,-0.0157,10.19,15.73

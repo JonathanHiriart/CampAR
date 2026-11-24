@@ -1,0 +1,27 @@
+{
+    "$schema": "https://apify.com/schemas/v1/output.ide.json",
+    "actorOutputSchemaVersion": 1,
+    "title": "TerraScout ML Output (Producto 2: Predicciones + Oportunidades + Pickle)",
+    "properties": {
+        "predicciones_producto2_csv": {
+            "type": "string",
+            "title": "Predicciones completas Producto 2 (predicciones_producto2.csv)",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/predicciones_producto2.csv"
+        },
+        "oportunidades_producto2_csv": {
+            "type": "string",
+            "title": "Oportunidades de Arbitraje ML (oportunidades_producto2.csv)",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/oportunidades_producto2.csv"
+        },
+        "terrascout_pipeline_pkl": {
+            "type": "string",
+            "title": "Modelo Hedónico Serializado (terrascout_pipeline.pkl)",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/terrascout_pipeline.pkl"
+        },
+        "metricas_producto2_json": {
+            "type": "string",
+            "title": "Métricas CV/Test, dif_max y Resumen Telegram (metricas_producto2.json)",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/metricas_producto2.json"
+        }
+    }
+}
