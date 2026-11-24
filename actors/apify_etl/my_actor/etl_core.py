@@ -317,6 +317,7 @@ def run_etl_pipeline(
     raw_workbook_source: str = "",
     sdk_texts: dict[str, str] | None = None,
     sdk_workbook_bytes: bytes | None = None,
+    precio_m2_max_override: float | None = None,
 ) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
     """Ejecuta el ETL completo de Producto 1 y retorna `(df_limpio, funnel)`."""
     texts = sdk_texts or {}
@@ -399,9 +400,15 @@ def run_etl_pipeline(
 
     # 3. Target y filtro conservador IQR en USD/m²
     df_clean["precio_m2_usd"] = (df_clean["precio_usd"] / df_clean["superficie_m2"]).round(2)
-    q3 = float(df_clean["precio_m2_usd"].quantile(0.75))
-    q1 = float(df_clean["precio_m2_usd"].quantile(0.25))
-    lim_sup = max(q3 + 3.0 * (q3 - q1), 150.0)
+    if precio_m2_max_override is not None and float(precio_m2_max_override) > 0:
+        lim_sup = float(precio_m2_max_override)
+    elif len(df_clean) > 0:
+        q3 = float(df_clean["precio_m2_usd"].quantile(0.75))
+        q1 = float(df_clean["precio_m2_usd"].quantile(0.25))
+        iqr_lim = q3 + 3.0 * (q3 - q1)
+        lim_sup = max(iqr_lim, 150.0) if np.isfinite(iqr_lim) else 150.0
+    else:
+        lim_sup = 150.0
     df_clean = df_clean[(df_clean["precio_m2_usd"] >= 2.0) & (df_clean["precio_m2_usd"] <= lim_sup)].copy()
     funnel.append({"etapa": f"3. Precio/m² válido [2.0-{lim_sup:.1f}]", "registros": int(len(df_clean))})
 
