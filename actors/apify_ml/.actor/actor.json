@@ -2,8 +2,8 @@
     "$schema": "https://apify.com/schemas/v1/actor.ide.json",
     "actorSpecification": 1,
     "name": "terrascout-ml-actor",
-    "title": "TerraScout AI — Actor 3: APIFY ML (Producto 2: Valuación Hedónica y Arbitraje)",
-    "description": "Actor de Machine Learning (Producto 2) que consume dataset_limpio.csv desde APIFY ETL, entrena/evalúa o carga terrascout_pipeline.pkl sobre log(precio_m2_usd), detecta oportunidades de arbitraje con reglas de negocio desacopladas y publica predicciones + métricas.",
+    "title": "TerraScout AI - Actor 3: APIFY ML (Inferencia)",
+    "description": "Actor de Machine Learning solo inferencia (Producto 2) que consume dataset_limpio.csv desde APIFY ETL, carga terrascout_pipeline.pkl pre-entrenado sobre log(precio_m2_usd), detecta oportunidades de arbitraje con reglas de negocio desacopladas y publica predicciones + métricas.",
     "version": "1.0",
     "buildTag": "latest",
     "meta": {
