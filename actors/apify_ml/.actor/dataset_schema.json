@@ -1,0 +1,30 @@
+{
+    "actorSpecification": 1,
+    "fields": {},
+    "views": {
+        "overview": {
+            "title": "Oportunidades Producto 2 (Valuación Hedónica ML)",
+            "transformation": {
+                "fields": [
+                    "id_registro",
+                    "valle_corredor",
+                    "barrio_localidad",
+                    "precio_usd",
+                    "superficie_m2",
+                    "precio_m2_usd",
+                    "precio_modelo_m2",
+                    "precio_modelo_total_usd",
+                    "gap_arbitraje_pct",
+                    "es_oportunidad_ml",
+                    "flag_revision",
+                    "pendiente_media_grados",
+                    "riesgo_ambiental",
+                    "url_publicacion"
+                ]
+            },
+            "display": {
+                "component": "table"
+            }
+        }
+    }
+}
