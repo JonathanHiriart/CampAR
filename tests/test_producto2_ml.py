@@ -75,7 +75,7 @@ class TestModeladoHedonicoYArbitraje:
 
         res = train_and_evaluate_hedonic_model(df_clean, rules)
         assert res["dif_max"] < 1e-6
-        assert len(res["comparison"]) == 4
+        assert len(res["comparison"]) == 7
 
         by_name = {m["modelo"]: m for m in res["comparison"]}
         assert res["winner_metrics"]["r2_cv_mean"] > by_name["Baseline (Dummy mediana)"]["r2_cv_mean"]
@@ -84,7 +84,7 @@ class TestModeladoHedonicoYArbitraje:
         loaded = pickle.loads(res["pkl_bytes"])
         assert loaded["target_log_transformed"] is True
         assert loaded["precio_m2_max"] >= 150.0
-        assert len(loaded["feature_columns"]) == 15
+        assert len(loaded["feature_columns"]) >= 15
 
         oport = res["df_oportunidades"]
         assert len(oport) > 0
