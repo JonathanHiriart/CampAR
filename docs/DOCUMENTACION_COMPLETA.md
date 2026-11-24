@@ -28,9 +28,9 @@ En los valles de **Calamuchita y Punilla (Sierras de Córdoba)** hay cientos de 
 | **5. Automatizar todo con n8n y Google Drive** | Armamos un flujo de **6 pasos en línea recta** ([`workflows/n8n_producto1_terrascout.json`](../workflows/n8n_producto1_terrascout.json)) que llama al ETL, guarda el archivo limpio en Drive, llama al EDA y guarda el Excel final del Dashboard en Drive (con opción `Update` para pisar siempre el mismo archivo). | Con un clic en n8n se actualiza todo automáticamente sin descargar ni subir archivos a mano, y Looker Studio nunca pierde la conexión con el Excel. |
 | **6. Verificar todo antes de entregar** | Probamos ambos robots en vivo en Apify Cloud (`SUCCEEDED`), auditamos las cuentas estadísticas (`log(precio_m2_usd)`, correlaciones reales) y dejamos **33 pruebas automáticas** (`pytest`). | Garantiza que el sistema no se caiga en la demo ni dependa de rutas locales de una sola computadora. |
 
-### Qué nos falta todavía
-* **Para cerrar la parte visual de Producto 1:** conectar las 3 pestañas de `contenido_graficas_dashboard.xlsx` en **Looker Studio** para armar los gráficos finales y aceptar el Pull Request en GitHub hacia `main`.
-* **Para Producto 2 (próxima entrega):** entrenar el modelo de Machine Learning que predice el precio justo por `m²` (a partir de `dataset_limpio.csv`) y automatizar la extracción periódica de avisos nuevos hacia Google Sheets.
+### Estado actual y cierre de Producto 2
+* **Producto 1 (completo):** ETL + EDA en Apify Cloud, `894` lotes limpios, `244` oportunidades bajo mediana zonal y flujo n8n listo; solo resta vincular el Excel `contenido_graficas_dashboard.xlsx` en **Looker Studio** si aún no está conectado.
+* **Producto 2 (implementado y verificado):** Actor 3 [`actors/apify_ml/`](../actors/apify_ml/.actor/actor.json), ejecutor local [`src/run_producto2_pipeline.py`](../src/run_producto2_pipeline.py), workflow [`workflows/n8n_producto2_terrascout.json`](../workflows/n8n_producto2_terrascout.json), notebook [`notebooks/02_modelado_hedonico.ipynb`](../notebooks/02_modelado_hedonico.ipynb) y modelo serializado [`models/terrascout_pipeline.pkl`](../models/terrascout_pipeline.pkl) (`Ensemble 2ET+GBR+HGBR`, `R² CV = 0.5964`, `R² Test = 0.6037`, `MAE = 6.45 USD/m²`, `dif_max = 0.0`, `43` tests pasando). Solo resta desplegar el Actor 3 con `apify push` si se corre en la nube y completar la revisión manual de `validacion_30_alertas.csv`.
 
 ---
 
@@ -84,6 +84,3 @@ En los valles de **Calamuchita y Punilla (Sierras de Córdoba)** hay cientos de 
 * [`docs/flujo_make_n8n_producto1.md`](./flujo_make_n8n_producto1.md): Paso a paso técnico para conectar Make / n8n y los actores Apify.
 * [`docs/diagrama_flujo_producto1.png`](./diagrama_flujo_producto1.png): Diagrama de referencia de la cátedra que guía toda la arquitectura.
 * **`docs/planificacion/`**: Documentos originales de definición y sustento del proyecto TerraScout AI (`propuesta_terrascout_ai.md`, `proyecto_satelital_sin_series_temporales.md`, `plan_implementacion_producto_1.md`, `guia_ds_etl_eda_y_modelo.md`).
-
-### `_revisar_para_borrar/` *(solo en local, NO se sube a GitHub)*
-* Carpeta temporal ignorada por Git donde guardamos propuestas viejas de rubros descartados (como *ReTech / e-commerce*) y una copia exportada de n8n que contenía un token personal, para revisar con calma y borrar sin ensuciar el repositorio ni exponer credenciales.
