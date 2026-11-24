@@ -42,10 +42,16 @@ pip install -r requirements.txt
 # 3. Correr el pipeline completo Producto 1 (ETL -> dataset_limpio.csv -> EDA -> Dashboard CSVs/XLSX)
 python3 src/run_producto1_pipeline.py
 
-# 4. Ejecutar toda la suite de verificación (36 tests, incluye R1-R4 Apify)
-PYTHONPATH=terrascout_actor python3 -m pytest tests/test_scraper_node.py tests/test_producto1_actors.py -v
+# 4. Correr Producto 2 (Entrenamiento hedónico anti-leakage + arbitraje ML + models/terrascout_pipeline.pkl)
+python3 src/run_producto2_pipeline.py
 
-# 5. (Opcional) Re-ejecutar extracción en vivo hacia data/raw/
+# 5. (Opcional) Inferencia Producto 2 sobre lote nuevo sin reentrenar
+python3 src/run_producto2_pipeline.py --infer-only --input data/processed/dataset_limpio.csv
+
+# 6. Ejecutar toda la suite de verificación (43 tests, incluye R1-R4 Apify y Producto 2)
+PYTHONPATH=terrascout_actor python3 -m pytest tests/test_scraper_node.py tests/test_producto1_actors.py tests/test_producto2_ml.py -v
+
+# 7. (Opcional) Re-ejecutar extracción en vivo hacia data/raw/
 PYTHONPATH=terrascout_actor python3 src/run_scraper_node.py --max-items-per-valley 600 --max-pages-per-valley 15
 ```
 
@@ -53,14 +59,17 @@ PYTHONPATH=terrascout_actor python3 src/run_scraper_node.py --max-items-per-vall
 
 ## 3. Apartado Técnico y Estructura del Repositorio
 
-### Arquitectura Técnica (Producto 1)
-1. **Reglas desacopladas (`config/business_rules.json`):** tipo de cambio ARS/USD (`1280.0`), rango de superficie (`500–20.000 m²`), pendiente alerta (`12°`), umbral de oportunidad (`20%` bajo mediana zonal), exclusión de riesgo `ALTO` y vocabulario de infraestructura.
+### Arquitectura Técnica (Producto 1 y Producto 2)
+1. **Reglas desacopladas (`config/business_rules.json`):** tipo de cambio ARS/USD (`1280.0`), rango de superficie (`500–20.000 m²`), pendiente alerta (`12°`), umbral de oportunidad (`20%` bajo mediana/modelo), umbral de revisión (`50%`), exclusión de riesgo `ALTO`, ocultamiento de PII (`ocultar_pii_en_salidas: true`) y configuración `modelo_ml`.
 2. **Actor 1 — `terrascout-etl-actor` (`ypvpGbmD1vpqraNXA`, Python 3.14 en Apify):**
    * Soporta ingesta desde **1 único libro Google Sheets / `.xlsx`** (`raw_workbook_url`) o URLs individuales de Google Drive (`#gid=` incluido) con fallback local embebido (`fallback_data/`).
    * Normalización monetaria, regex defensiva de superficie (evita capturar distancias al río), IQR conservador en `precio_m2_usd`, deduplicación por ID + coordenada redondeada (`1.200 → 894` filas, `74.5%` retención) y **JOIN espacial vectorizado Haversine** (topografía, densidad de campings a `5 km`, NPS proxy ponderado por reseñas).
 3. **Actor 2 — `terrascout-eda-actor` (`YZH8ti7zjLt6410Hx`, Python 3.14 en Apify):**
    * Calcula estadísticas zonales con coordenadas GPS, correlaciones lineales y no lineales (**Pearson, Spearman, Kendall e Información Mutua**), validación de asimetría (`skew = 2.214 → -0.40` con `log(precio_m2_usd)`), cruce `valle × riesgo` y síntesis de `1.754` reseñas/tópicos NLP.
    * Exporta `csv_1_localidades_y_riesgo.csv` (`hoja1`), `csv_2_correlaciones_y_distribuciones.csv` (`hoja2`), `csv_3_oportunidades_y_voz_turista.csv` (`hoja3`) y `contenido_graficas_dashboard.xlsx`, más URLs públicas firmadas en `etl_funnel.json` y `eda_summary.json` (y soporte directo `/run-sync?outputRecordKey=...` para n8n).
+4. **Actor 3 — `terrascout-ml-actor` (`actors/apify_ml/`, Producto 2):**
+   * Consume `dataset_limpio.csv` de `APIFY ETL` (sin duplicar lógica ETL), entrena y compara 4 modelos (`DummyRegressor`, `Ridge`, `RandomForestRegressor`, `HistGradientBoostingRegressor`) con split 80/20 estratificado anti-leakage y 5-Fold CV sobre `log(precio_m2_usd)`.
+   * Detecta oportunidades de arbitraje Out-of-Fold + Test (`203` oportunidades ML sobre `894` lotes, `Random Forest` con `R² CV = 0.5260`, `R² Test = 0.5171`, `MAE = 7.39 USD/m²`), serializa `models/terrascout_pipeline.pkl` con verificación `dif_max < 1e-6`, y soporta modo `--infer-only` con deduplicación de alertas (`workflows/n8n_producto2_terrascout.json`).
 
 ### Estructura de Carpetas
 
@@ -68,22 +77,30 @@ PYTHONPATH=terrascout_actor python3 src/run_scraper_node.py --max-items-per-vall
 Capstone/
 ├── README.md                              # Visión general, uso rápido y arquitectura
 ├── config/
-│   └── business_rules.json                # Reglas y umbrales desacoplados
+│   └── business_rules.json                # Reglas, umbrales y config ML desacoplados
 ├── actors/
 │   ├── apify_etl/                         # Actor 1: APIFY ETL (limpieza + Haversine + fallback)
-│   └── apify_eda/                         # Actor 2: APIFY EDA (correlaciones + CSVs + XLSX)
+│   ├── apify_eda/                         # Actor 2: APIFY EDA (correlaciones + CSVs + XLSX)
+│   └── apify_ml/                          # Actor 3: APIFY ML (Producto 2: modelo hedónico + arbitraje)
 ├── terrascout_actor/                      # Scraper Apify original (ML, OSM, SoloCampings, GMaps, NLP)
 ├── workflows/
-│   └── n8n_producto1_terrascout.json      # Workflow n8n de 6 nodos listo para importar
+│   ├── n8n_producto1_terrascout.json      # Workflow n8n Producto 1 (ETL -> Drive -> EDA -> Sheets)
+│   └── n8n_producto2_terrascout.json      # Workflow n8n Producto 2 (ETL -> Drive -> ML -> Sheets)
+├── notebooks/
+│   └── 02_modelado_hedonico.ipynb         # Notebook limpio Producto 2 (consume ml_core)
+├── models/
+│   └── terrascout_pipeline.pkl            # Bundle Pickle verificado (dif_max = 0.0)
 ├── data/
 │   ├── aux_topografia_cordoba.csv         # Relieve, NDVI y riesgo de 16 localidades
 │   ├── raw/                               # Fuentes reales + dataset_raw_consolidado.xlsx (7 pestañas)
-│   └── processed/                         # dataset_limpio.csv + dashboard/{csv_1,csv_2,csv_3,.xlsx}
+│   └── processed/                         # dataset_limpio.csv + dashboard/ + producto2/
 ├── src/
-│   ├── run_producto1_pipeline.py          # Ejecutor local del pipeline ETL + EDA
+│   ├── run_producto1_pipeline.py          # Ejecutor local del pipeline Producto 1 (ETL + EDA)
+│   ├── run_producto2_pipeline.py          # Ejecutor local del pipeline Producto 2 (Train / Infer)
 │   └── run_scraper_node.py                # CLI de extracción en vivo hacia data/raw/
 ├── tests/
 │   ├── test_producto1_actors.py           # Tests ETL, EDA, XLSX y cero np.random
+│   ├── test_producto2_ml.py               # Tests ML, anti-leakage, Pickle dif_max e inferencia
 │   └── test_scraper_node.py               # Tests unitarios de scrapers y datos reales
 └── docs/
     ├── DOCUMENTACION_COMPLETA.md          # Explicación no técnica de plan y archivos
