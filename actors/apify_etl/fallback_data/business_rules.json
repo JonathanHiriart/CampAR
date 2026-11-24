@@ -11,7 +11,37 @@
   },
   "arbitraje": {
     "umbral_descuento_minimo_pct": 0.20,
+    "umbral_gap_sospechoso_pct": 0.50,
     "excluir_riesgo_alto": true
+  },
+  "modelo_ml": {
+    "target_column": "precio_m2_usd",
+    "target_log_transform": true,
+    "test_size": 0.20,
+    "random_state": 42,
+    "cv_folds": 5,
+    "stratify_column": "valle_corredor",
+    "feature_columns": [
+      "superficie_m2",
+      "lat_eff",
+      "lon_eff",
+      "score_servicios",
+      "tiene_escritura",
+      "tiene_arboleda",
+      "tiene_rio",
+      "pendiente_media_grados",
+      "ndvi_sombra_verano",
+      "distancia_rio_m",
+      "campings_5km",
+      "distancia_camping_min_km",
+      "nps_proxy_zona",
+      "valle_corredor",
+      "barrio_localidad"
+    ],
+    "categorical_columns": [
+      "valle_corredor",
+      "barrio_localidad"
+    ]
   },
   "segmentacion_superficie": {
     "cortes_m2": [1000.0, 3000.0, 10000.0],
