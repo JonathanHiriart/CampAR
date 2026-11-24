@@ -1,4 +1,4 @@
-# Guía Completa de Dashboard en Looker Studio — TerraScout AI (Producto 1)
+# Guía Completa de Dashboard en Looker Studio — CampAR (Producto 1)
 
 > Adapta el diseño analítico de Business (5 páginas, enfoque en mediana y descuento por segmento) directamente al stack **n8n → Apify → Google Drive/Sheets → Looker Studio**, con todos los bugs de datos y gráficos ya corregidos en el pipeline.
 
@@ -149,3 +149,26 @@ Si necesitan salir en vivo rápido, armen en este orden los **9 visuales esencia
 2. **Pág 2:** Dispersión log (`superficie_m2` vs `precio_m2_usd`) + Matriz `localidad × banda_superficie` + Tabla Top Oportunidades filtrada.
 3. **Pág 3:** Barras apiladas de riesgo por localidad (`81` lotes `ALTO`).
 4. **Pág 4:** Burbujas por localidad (`nps_proxy_zona` vs `ndvi_sombra_verano`) + Barras de Top Quejas (`topico_queja_gmaps`) y Servicios Reales (`infraestructura_lote`).
+
+---
+
+## 5. Integración Producto 2 (Pestaña `Oportunidades_ML`)
+
+El flujo unificado de n8n ([`n8n_terrascout_completo.json`](../workflows/n8n_terrascout_completo.json)) alimenta una segunda pestaña en el mismo Google Sheet llamada **`Oportunidades_ML`** con las **`894` valuaciones hedónicas** (donde **`184` lotes** califican como oportunidades ML válidas: `gap_arbitraje_pct >= 20%`, `pendiente_media_grados <= 12°` y `riesgo_ambiental != "ALTO"`).
+
+### Métricas y columnas clave de `Oportunidades_ML`
+* **`precio_modelo_m2`** y **`precio_modelo_total_usd`**: valor justo estimado por el ensamble `2ET + GBR + HGBR` (`R² Test = 0.6037`, `MAE = 6.45 USD/m²`).
+* **`gap_arbitraje_pct`**: porcentaje de subvaluación frente al valor hedónico estimado.
+* **`es_oportunidad_ml`**: booleano (`TRUE`/`FALSE`) que combina el umbral de arbitraje (`>= 20%`) con los filtros de viabilidad física y ambiental.
+* **`flag_revision`**: marca `"REVISAR"` cuando `gap_arbitraje_pct >= 50%` (`30` casos dentro de las `184` oportunidades) para auditoría humana de posibles errores en el aviso, o `"OK"` en el resto.
+
+### Campos calculados `HYPERLINK` recomendados en Looker Studio
+Para permitir acceso directo desde las tablas de oportunidades a la publicación original y a la ubicación satelital/mapa de la zona:
+* **`Ver Foto / Aviso`**:
+  ```sql
+  HYPERLINK(url_publicacion, "Ver Foto / Aviso")
+  ```
+* **`Ver Zona`**:
+  ```sql
+  HYPERLINK(url_google_maps, "Ver Zona")
+  ```

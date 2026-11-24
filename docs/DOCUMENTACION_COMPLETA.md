@@ -1,6 +1,6 @@
-# Documentación General del Proyecto — TerraScout AI (Producto 1)
+# Documentación General del Proyecto — CampAR (Producto 1 y Producto 2)
 
-> **Para todo el equipo (técnico y no técnico):** este documento resume qué problema resuelve TerraScout AI, cuál fue el plan que seguimos para construirlo y **para qué sirve cada carpeta y archivo** sin tecnicismos innecesarios.
+> **Para todo el equipo (técnico y no técnico):** este documento resume qué problema resuelve CampAR, cuál fue el plan que seguimos para construirlo y **para qué sirve cada carpeta y archivo** sin tecnicismos innecesarios.
 
 ---
 
@@ -10,7 +10,7 @@ En los valles de **Calamuchita y Punilla (Sierras de Córdoba)** hay cientos de 
 * Los avisos mezclan precios en **pesos y dólares**, repiten el mismo terreno varias veces y esconden costos o fallas (terrenos muy empinados, zonas inundables o sin agua/luz).
 * Por otro lado, en Google Maps miles de turistas dejan reseñas quejando de lo que **les falta a los campings actuales** (baños, sombra, atención, acceso al río).
 
-**TerraScout AI** junta toda esa información real, la limpia automáticamente, la cruza por ubicación geográfica y entrega un **Excel/tablas listas para graficar** que responden:
+**CampAR** junta toda esa información real, la limpia automáticamente, la cruza por ubicación geográfica y entrega un **Excel/tablas listas para graficar** que responden:
 1. **¿Dónde hay demanda insatisfecha?** Localidades con turismo activo y campings actuales con calificaciones bajas o quejas concretas.
 2. **¿Qué lotes convienen hoy?** Terrenos publicados **al menos un 20% más baratos** que el valor típico de su zona, con superficie apta (`500 a 20.000 m²`), pendiente moderada (`≤ 12°`) y sin riesgo ambiental alto.
 3. **¿A qué precio referencia comparar?** Mediana real en USD por `m²` de cada localidad (`894` terrenos validados y `244` oportunidades detectadas).
@@ -26,11 +26,37 @@ En los valles de **Calamuchita y Punilla (Sierras de Córdoba)** hay cientos de 
 | **3. Separar la Limpieza (ETL) del Análisis (EDA)** | Siguiendo el diagrama de la cátedra ([`diagrama_flujo_producto1.png`](./diagrama_flujo_producto1.png)), dividimos el trabajo en **2 módulos en la nube (Apify)**: uno que **limpia y cruza** (`APIFY ETL`) y otro que **calcula estadísticas y arma el Excel del tablero** (`APIFY EDA`). | Cada etapa queda ordenada y reutilizable: el Producto 1 queda listo para visualizar, y el Dataset Limpio queda preparado para entrenar modelos en el Producto 2. |
 | **4. Consolidar la entrada en 1 solo archivo** | Creamos [`data/raw/dataset_raw_consolidado.xlsx`](../data/raw/dataset_raw_consolidado.xlsx) con **7 pestañas** (terrenos, campings, lugares, topografía, reseñas, reglas y tópicos de quejas). | En lugar de subir y conectar 7 links distintos a mano, podés usar **1 solo Google Sheet / Excel** como entrada del sistema. |
 | **5. Automatizar todo con n8n y Google Drive** | Armamos un flujo de **6 pasos en línea recta** ([`workflows/n8n_producto1_terrascout.json`](../workflows/n8n_producto1_terrascout.json)) que llama al ETL, guarda el archivo limpio en Drive, llama al EDA y guarda el Excel final del Dashboard en Drive (con opción `Update` para pisar siempre el mismo archivo). | Con un clic en n8n se actualiza todo automáticamente sin descargar ni subir archivos a mano, y Looker Studio nunca pierde la conexión con el Excel. |
-| **6. Verificar todo antes de entregar** | Probamos ambos robots en vivo en Apify Cloud (`SUCCEEDED`), auditamos las cuentas estadísticas (`log(precio_m2_usd)`, correlaciones reales) y dejamos **33 pruebas automáticas** (`pytest`). | Garantiza que el sistema no se caiga en la demo ni dependa de rutas locales de una sola computadora. |
+| **6. Verificar todo antes de entregar** | Probamos ambos robots en vivo en Apify Cloud (`SUCCEEDED`), auditamos las cuentas estadísticas (`log(precio_m2_usd)`, correlaciones reales) y dejamos **44 pruebas automáticas (27 scraper, 9 Producto 1, 8 Producto 2)** (`pytest`). | Garantiza que el sistema no se caiga en la demo ni dependa de rutas locales de una sola computadora. |
 
 ### Estado actual y cierre de Producto 2
-* **Producto 1 (completo):** ETL + EDA en Apify Cloud, `894` lotes limpios, `244` oportunidades bajo mediana zonal y flujo n8n listo; solo resta vincular el Excel `contenido_graficas_dashboard.xlsx` en **Looker Studio** si aún no está conectado.
-* **Producto 2 (implementado, desplegado y verificado):** Actor 3 100% solo inferencia en [`actors/apify_ml/`](../actors/apify_ml/.actor/actor.json) desplegado en Apify Cloud ([`9bGh3PnH5lMWm3cjc`](https://console.apify.com/actors/9bGh3PnH5lMWm3cjc)), entrenamiento desacoplado en [`src/training.py`](../src/training.py), ejecutor local [`src/run_producto2_pipeline.py`](../src/run_producto2_pipeline.py), flujos n8n ([`workflows/n8n_producto2_terrascout.json`](../workflows/n8n_producto2_terrascout.json) y `n8n_terrascout_completo.json`), notebooks autocontenidos ([`01_etl_y_eda.ipynb`](../notebooks/01_etl_y_eda.ipynb) y [`02_modelado_hedonico.ipynb`](../notebooks/02_modelado_hedonico.ipynb)), modelo serializado [`models/terrascout_pipeline.pkl`](../models/terrascout_pipeline.pkl) (`Ensemble 2ET+GBR+HGBR`, `R² CV = 0.5964`, `R² Test = 0.6037`, `MAE = 6.45 USD/m²`, `dif_max = 0.0`) y `44` tests pasando.
+* **Producto 1 (completo):** ETL + EDA en Apify Cloud, `894` lotes limpios, `244` oportunidades bajo mediana zonal y flujo n8n unificado alimentando **Looker Studio** vía Google Sheets (pestañas `Datos` y `Oportunidades_ML`).
+* **Producto 2 (implementado, desplegado y verificado):** Actor 3 100% solo inferencia en [`actors/apify_ml/`](../actors/apify_ml/.actor/actor.json) desplegado en Apify Cloud ([`9bGh3PnH5lMWm3cjc`](https://console.apify.com/actors/9bGh3PnH5lMWm3cjc)), entrenamiento desacoplado en [`src/training.py`](../src/training.py), ejecutor local [`src/run_producto2_pipeline.py`](../src/run_producto2_pipeline.py), flujos n8n ([`workflows/n8n_producto2_terrascout.json`](../workflows/n8n_producto2_terrascout.json) y [`workflows/n8n_terrascout_completo.json`](../workflows/n8n_terrascout_completo.json)), notebooks autocontenidos ([`01_etl_y_eda.ipynb`](../notebooks/01_etl_y_eda.ipynb) y [`02_modelado_hedonico.ipynb`](../notebooks/02_modelado_hedonico.ipynb)), modelo serializado [`models/terrascout_pipeline.pkl`](../models/terrascout_pipeline.pkl) (`Ensemble 2ET+GBR+HGBR`, `R² CV = 0.5964`, `R² Test = 0.6037`, `MAE = 6.45 USD/m²`, `dif_max = 0.0`) y `44` tests pasando.
+
+#### Fundamentación Técnica y Metodológica del Modelo (Producto 2)
+1. **¿Qué problema resuelve y cuál es el objetivo?**
+   * El mercado de lotes en las sierras presenta alta dispersión de precios y asimetría de información.
+   * El objetivo es doble:
+     * **Valuación Objetiva (Precio Justo / Fair Value):** Estimar el valor real del suelo en base a sus características intrínsecas y extrínsecas.
+     * **Detección de Arbitraje:** Encontrar terrenos publicados con un descuento $\ge 20\%$ respecto a su valor estimado, que cumplan condiciones de viabilidad (pendiente apta y bajo/medio riesgo ambiental).
+2. **Metodología: Modelo de Precios Hedónicos**
+   * Descompone el precio del lote en la suma de sus atributos:
+     * **Físicos y servicios:** Superficie ($m^2$, con transformaciones no lineales $\ln$ e $1/\sqrt{sup}$), escritura, agua, luz y palabras clave del texto (NLP).
+     * **Satelitales:** Pendiente media en grados (DEM SRTM 30m) y vigor/sombra de arboleda en verano (`ndvi_sombra_verano`, MODIS/Sentinel).
+     * **Geográficos y turísticos:** Distancia a ríos, distancia al centroide urbano, microzonificación (K-Means espacial sobre lat/lon) y densidad turística (campings y atractivos a 2, 5 y 10 km).
+   * **Target:** Se modela $y = \ln(\text{precio\_m2\_usd})$ para estabilizar la varianza frente a colas largas de propiedades de lujo o atípicas.
+3. **¿Por qué NO Random Forest estándar y por qué el Ensamble Ponderado?**
+   * **Limitación de Random Forest:** RF genera cortes ortogonales rígidos paralelos a los ejes, creando mesetas discretas que no logran interpolar gradientes espaciales y continuos (distancias a ríos, curvas de nivel). Además, tiende a sobreajustar en los extremos cuando $N < 1000$ avisos con ruido.
+   * **La Solución: Voting Regressor ($2 \times \text{ExtraTrees} + 1 \times \text{GBR} + 1 \times \text{HistGBR}$):**
+     * **ExtraTrees (Peso doble):** Introduce aleatoriedad en los umbrales de división (*Extremely Randomized Trees*), neutralizando el ruido y los precios inflados de avisos atípicos de portales.
+     * **Gradient Boosting (GBR y HistGBR):** Modela iterativamente los residuos finos y ajusta gradientes suaves en variables geográficas continuas.
+   * **Evidencia Empírica de Validación Cruzada:**
+     * Baseline (mediana zonal): $R^2 = -0.01$, $MAE = 10.19\text{ USD}/m^2$.
+     * Random Forest: $R^2 = 0.577$, $MAE = 6.69\text{ USD}/m^2$.
+     * **Ensamble Ponderado (Ganador):** $R^2 = 0.604$, $MAE = 6.45\text{ USD}/m^2$ (mejora de **-36.7%** respecto al baseline).
+4. **Separación entre Machine Learning y Reglas de Riesgo:**
+   * El modelo de ML **solo estima el precio justo**.
+   * La **capa de reglas de negocio** aplica los filtros de seguridad: descarta terrenos con pendiente $> 12^\circ$, riesgo ambiental alto, y asigna bandera `REVISAR` a descuentos $\ge 50\%$ para auditar posibles errores de carga o avisos falsos.
+
 * **Cómo escalar el performance de `R² ~0.60` a `0.70–0.80`:** (1) ampliar de `894` a `3.000+` lotes incorporando Zonaprop/Argenprop/portales locales; (2) enriquecer a nivel parcela exacta (Sentinel-2/SRTM por coordenada del lote + zonificación municipal FOS/FOT, frente/fondo, asfalto y factibilidad de servicios); (3) seguir bajas históricas de *asking price* para acercarse al precio de cierre; y (4) con mayor volumen probar **CatBoost / LightGBM / XGBoost** con *target encoding* regularizado y embeddings multimodales.
 
 ---
@@ -62,26 +88,44 @@ En los valles de **Calamuchita y Punilla (Sierras de Córdoba)** hay cientos de 
   * `dashboard/csv_2_correlaciones_y_distribuciones.csv` (`hoja2`): Estadísticas reales de qué variables influyen más en el precio del terreno y cómo se distribuyen.
   * `dashboard/csv_3_oportunidades_y_voz_turista.csv` (`hoja3`): Top de lotes en oportunidad (con teléfono y links directos) + resumen de estrellas y quejas de turistas.
   * `dashboard/contenido_graficas_dashboard.xlsx`: Excel único con **`hoja1`, `hoja2` y `hoja3`** juntas para alimentar Looker Studio.
+  * **`producto2/`** *(salidas del modelo ML)*:
+    * [`data/processed/producto2/metricas_producto2.json`](../data/processed/producto2/metricas_producto2.json): Métricas de entrenamiento, comparación de 7 modelos (`R² Test = 0.6037`, `MAE = 6.45 USD/m²`), importancias y resumen Telegram.
+    * [`data/processed/producto2/comparacion_modelos.csv`](../data/processed/producto2/comparacion_modelos.csv): Tabla comparativa de validación cruzada y test entre el Ensemble ganador, Random Forest, ExtraTrees, GBR, HistGBR, Ridge y Baseline.
+    * [`data/processed/producto2/predicciones_producto2.csv`](../data/processed/producto2/predicciones_producto2.csv): Valuación hedónica completa de los `894` lotes (`precio_modelo_m2`, `gap_arbitraje_pct`, `es_oportunidad_ml`, `flag_revision`).
+    * [`data/processed/producto2/oportunidades_producto2.csv`](../data/processed/producto2/oportunidades_producto2.csv): Subconjunto filtrado de **`184` oportunidades ML** válidas (`>= 20%` descuento, pendiente `<= 12°` y sin riesgo `ALTO`).
+    * [`data/processed/producto2/validacion_30_alertas.csv`](../data/processed/producto2/validacion_30_alertas.csv): Muestra auditable de las principales alertas generadas para validación comercial.
+
+### `models/` y `notebooks/` — Modelo serializado, análisis y entrenamiento
+* [`models/terrascout_pipeline.pkl`](../models/terrascout_pipeline.pkl): Pipeline hedónico completo (`ColumnTransformer` + `Ensemble 2ET+GBR+HGBR`) serializado en Pickle (`dif_max = 0.0` respecto al modelo en memoria).
+* [`notebooks/01_etl_y_eda.ipynb`](../notebooks/01_etl_y_eda.ipynb): Notebook autocontenido de ETL trazable, correlaciones reales y voz del turista.
+* [`notebooks/02_modelado_hedonico.ipynb`](../notebooks/02_modelado_hedonico.ipynb): Notebook autocontenido de feature engineering, CV 5-Fold sobre 7 modelos, cálculo de arbitraje y verificación Pickle.
 
 ### `actors/` y `terrascout_actor/` — Los robots en la nube (Apify)
 * [`actors/apify_etl/`](../actors/apify_etl/.actor/actor.json) *(Actor `ypvpGbmD1vpqraNXA`)*: **Robot de Limpieza y Cruce Geográfico.** Toma los datos crudos (desde un Google Sheet único, links sueltos de Drive o su respaldo interno `fallback_data/`), limpia precios/superficies, elimina duplicados y calcula distancias a campings y zonas turísticas para entregar `dataset_limpio.csv`.
 * [`actors/apify_eda/`](../actors/apify_eda/.actor/actor.json) *(Actor `YZH8ti7zjLt6410Hx`)*: **Robot de Análisis y Salidas para Dashboard.** Toma `dataset_limpio.csv` (+ reseñas y tópicos), calcula métricas estadísticas reales y genera los 3 CSVs y el Excel multi-hoja `contenido_graficas_dashboard.xlsx`.
+* [`actors/apify_ml/`](../actors/apify_ml/.actor/actor.json) *(Actor `9bGh3PnH5lMWm3cjc`)*: **Robot de Inferencia ML (Producto 2).** Ejecuta inferencia pura cargando `models/terrascout_pipeline.pkl`, calcula `precio_modelo_m2` y `gap_arbitraje_pct`, aplica las reglas de negocio/riesgo y emite `predicciones_producto2.csv` y `oportunidades_producto2.csv`.
 * [`terrascout_actor/`](../terrascout_actor/.actor/actor.json): **Robot Extractor original (Scraper).** Contiene los módulos que consultan en vivo Mercado Libre, OpenStreetMap, SoloCampings y Google Maps para construir los archivos de `data/raw/`.
 
 ### `workflows/` — Automatización visual (n8n)
-* [`workflows/n8n_producto1_terrascout.json`](../workflows/n8n_producto1_terrascout.json): Archivo listo para importar en **n8n** con 6 nodos en línea recta (`Trigger → Config → APIFY ETL → DRIVE Limpio → APIFY EDA → DRIVE Gráficas`). **Resuelve:** ejecutar todo el flujo automáticamente y dejar los archivos finales en Google Drive sin trabajo manual.
+* [`workflows/n8n_producto1_terrascout.json`](../workflows/n8n_producto1_terrascout.json): Archivo listo para importar en **n8n** para Producto 1 (`Trigger → Config → Limpiar Sheet → APIFY ETL → DRIVE Limpio → APIFY EDA → Google Sheets`). **Resuelve:** actualizar automáticamente el tablero de Producto 1 sin trabajo manual.
+* [`workflows/n8n_producto2_terrascout.json`](../workflows/n8n_producto2_terrascout.json): Flujo de **Producto 2** que conecta `APIFY ETL` con `APIFY ML` (`9bGh3PnH5lMWm3cjc`) y vuelca las predicciones en la pestaña `Oportunidades_ML`.
+* [`workflows/n8n_terrascout_completo.json`](../workflows/n8n_terrascout_completo.json): **Flujo unificado para demo** que reutiliza un único `APIFY ETL` y bifurca en paralelo hacia `APIFY EDA` (`Datos`) y `APIFY ML` (`Oportunidades_ML`).
+* [`workflows/README-n8n.md`](../workflows/README-n8n.md): Guía rápida de importación, configuración de nodos `Config` y costo estimado en Apify.
 
 ### `src/` — Scripts para correr en tu computadora
 * [`src/run_producto1_pipeline.py`](../src/run_producto1_pipeline.py): Ejecuta localmente todo el flujo ETL + EDA en 1 segundo y regenera `dataset_raw_consolidado.xlsx`, `dataset_limpio.csv` y los archivos de `data/processed/dashboard/`.
+* [`src/training.py`](../src/training.py): Entrena y evalúa los 7 modelos hedónicos con split 80/20 anti-leakage y CV 5-Fold fuera del Actor, guardando `models/terrascout_pipeline.pkl`.
+* [`src/run_producto2_pipeline.py`](../src/run_producto2_pipeline.py): Ejecutor local de Producto 2 (entrenamiento completo e inferencia pura con `--infer-only`) que genera los entregables en `data/processed/producto2/`.
 * [`src/run_scraper_node.py`](../src/run_scraper_node.py): Ejecuta desde terminal la extracción de datos reales hacia `data/raw/`.
 
-### `tests/` — Pruebas automáticas de calidad
-* [`tests/test_producto1_actors.py`](../tests/test_producto1_actors.py): Verifica que la estructura de los actores Apify sea válida, que funcione la carga desde el Excel único consolidado, que no existan datos aleatorios inventados (`np.random`) y que el Excel de salida tenga `hoja1`, `hoja2` y `hoja3`.
-* [`tests/test_scraper_node.py`](../tests/test_scraper_node.py): Valida los scrapers, el cálculo geográfico Haversine, la detección de tópicos y la integridad de los datos crudos reales.
+### `tests/` — Pruebas automáticas de calidad (`44` tests en total)
+* [`tests/test_producto1_actors.py`](../tests/test_producto1_actors.py) *(`9` tests)*: Verifica que la estructura de los actores Apify sea válida, que funcione la carga desde el Excel único consolidado, que no existan datos aleatorios inventados (`np.random`) y que el Excel de salida tenga `hoja1`, `hoja2` y `hoja3`.
+* [`tests/test_producto2_ml.py`](../tests/test_producto2_ml.py) *(`8` tests)*: Valida el enriquecimiento de features, entrenamiento anti-leakage, equivalencia Pickle, inferencia pura del Actor 3, cálculo de arbitraje y reglas de riesgo.
+* [`tests/test_scraper_node.py`](../tests/test_scraper_node.py) *(`27` tests)*: Valida los scrapers, el cálculo geográfico Haversine, la detección de tópicos y la integridad de los datos crudos reales.
 
 ### `docs/` — Documentación y material de diseño
 * [`docs/DOCUMENTACION_COMPLETA.md`](./DOCUMENTACION_COMPLETA.md): Este resumen general pensado para todo el equipo.
 * [`docs/guia_looker_studio_producto1.md`](./guia_looker_studio_producto1.md): Guía paso a paso página por página (5 páginas, KPIs, mapas y tablas) para armar el tablero final en Looker Studio.
-* [`docs/flujo_make_n8n_producto1.md`](./docs/flujo_make_n8n_producto1.md): Paso a paso técnico para conectar Make / n8n y los actores Apify.
+* [`docs/flujo_make_n8n_producto1.md`](./flujo_make_n8n_producto1.md): Paso a paso técnico para conectar Make / n8n y los actores Apify.
 * [`docs/diagrama_flujo_producto1.png`](./diagrama_flujo_producto1.png): Diagrama de referencia de la cátedra que guía toda la arquitectura.
-* **`docs/planificacion/`**: Documentos originales de definición y sustento del proyecto TerraScout AI (`propuesta_terrascout_ai.md`, `proyecto_satelital_sin_series_temporales.md`, `plan_implementacion_producto_1.md`, `guia_ds_etl_eda_y_modelo.md`).
+* **`docs/planificacion/`**: Documentos originales de definición y sustento del proyecto CampAR (`propuesta_terrascout_ai.md`, `proyecto_satelital_sin_series_temporales.md`, `plan_implementacion_producto_1.md`, `guia_ds_etl_eda_y_modelo.md`).

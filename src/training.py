@@ -1,4 +1,4 @@
-"""Entrenamiento y evaluación anti-leakage del modelo hedónico TerraScout AI (fuera del Actor Apify).
+"""Entrenamiento y evaluación anti-leakage del modelo hedónico CampAR (fuera del Actor Apify).
 
 Reutiliza `actors.apify_ml.my_actor.preprocessing` (`enrich_ml_features`) y
 `actors.apify_ml.my_actor.tooling_business` (`score_opportunities`) para:

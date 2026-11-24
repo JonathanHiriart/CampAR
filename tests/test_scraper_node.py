@@ -1,4 +1,4 @@
-"""Tests para el Scraper Node y Actor de Apify de TerraScout AI (Arquitectura 100% Real).
+"""Tests para el Scraper Node y Actor de Apify de CampAR (Arquitectura 100% Real).
 
 Verifica:
 1. Funciones centrales del Actor: normalize, tokenize, SentenceIndex, fuzzy_count, find_topics, extraer_superficie_m2.

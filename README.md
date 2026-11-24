@@ -1,4 +1,4 @@
-# TerraScout & EcoCamp AI — Pipeline de Tierras Turísticas (MercadoLibre + Apify + ML)
+# CampAR — Pipeline de Tierras Turísticas (MercadoLibre + Apify + ML)
 
 > **Scraping, ETL geoespacial, EDA y valuación hedónica con Machine Learning para detectar oportunidades de arbitraje en terrenos turísticos (campings / glampings) en las Sierras de Córdoba (Punilla y Calamuchita).**
 >
@@ -68,7 +68,7 @@ Capstone/
 │   ├── run_producto1_pipeline.py         # CLI local Producto 1 (ETL + EDA + Dashboard)
 │   ├── training.py                       # Entrenamiento anti-leakage y validación CV (fuera del Actor)
 │   └── run_producto2_pipeline.py         # CLI local Producto 2 (Entrenamiento e inferencia --infer-only)
-├── tests/                                # 43 tests automatizados (pytest, incluye R1-R4 Apify)
+├── tests/                                # 44 tests automatizados (pytest, incluye R1-R4 Apify)
 ├── docs/                                 # Documentación completa, guía Looker Studio y planificación
 └── README.md
 ```
@@ -102,6 +102,8 @@ Todos los actores cumplen las reglas de diseño Apify R1–R4 (`my_actor/main.py
 
 * **Modelo ganador:** `Ensemble (2 × ExtraTrees + GradientBoosting + HistGradientBoosting)` (`VotingRegressor`, target `log(precio_m2_usd)`).
 * **¿Por qué?** Obtuvo el mejor desempeño conjunto en validación cruzada 5-Fold (`R² CV = 0.5964 ± 0.0618`) y en el conjunto de test no visto (`R² Test = 0.6037`, `MAE = 6.45 USD/m²`, `RMSE = 11.55 USD/m²`), combinando la estabilidad de árboles aleatorizados (`ExtraTrees`) con la capacidad de capturar relaciones no lineales de boosting (`GBR` + `HGBR`).
+* **¿Por qué no Random Forest?** RF realiza cortes ortogonales rígidos (mesetas) que interpolan peor gradientes espaciales continuos y sobreajustan el ruido de avisos informales; `ExtraTrees` (peso doble) neutraliza outliers con umbrales aleatorios y `GBR`/`HistGBR` ajustan residuos continuos.
+* **Separación ML vs. Reglas de negocio:** el modelo ML solo predice el precio justo (`precio_modelo_m2`); la capa de reglas de negocio (`config/business_rules.json`) filtra pendiente (`> 12°`), riesgo ambiental `ALTO` y marca `flag_revision = "REVISAR"` cuando `gap >= 50%`.
 * **Alternativas evaluadas y descartadas:**
   * `ExtraTrees` solo (`R² CV = 0.5956 ± 0.0495`, `R² Test = 0.5824`, `MAE = 6.58`, `RMSE = 11.95`): ligeramente menor generalización en test.
   * `RandomForestRegressor` (`R² CV = 0.5771 ± 0.0647`, `R² Test = 0.5773`, `MAE = 6.69`, `RMSE = 11.89`): mayor error medio que el ensemble.
@@ -198,7 +200,7 @@ python3 src/run_producto2_pipeline.py
 # Producto 2 solo inferencia sobre lote nuevo (sin reentrenar)
 python3 src/run_producto2_pipeline.py --infer-only --input data/processed/dataset_limpio.csv
 
-# Suite completa de verificación (43 tests: scrapers, ETL, EDA, ML, R1-R4 Apify)
+# Suite completa de verificación (44 tests: scrapers, ETL, EDA, ML, R1-R4 Apify)
 PYTHONPATH=terrascout_actor python3 -m pytest tests/test_scraper_node.py tests/test_producto1_actors.py tests/test_producto2_ml.py -v
 ```
 

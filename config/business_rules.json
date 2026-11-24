@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "proyecto": "TerraScout AI",
+  "proyecto": "CampAR",
   "tipo_cambio_ars_usd": 1280.0,
   "filtros_terreno": {
     "superficie_minima_m2": 500.0,

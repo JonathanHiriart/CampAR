@@ -204,7 +204,7 @@ def run_producto2_inference(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="TerraScout AI — Pipeline Producto 2 (ML Hedónico)")
+    parser = argparse.ArgumentParser(description="CampAR — Pipeline Producto 2 (ML Hedónico)")
     parser.add_argument("--from-raw", action="store_true", help="Ejecuta ETL oficial desde data/raw/ antes de entrenar")
     parser.add_argument("--infer-only", action="store_true", help="Solo inferencia usando models/terrascout_pipeline.pkl")
     parser.add_argument("--input", type=str, default="", help="CSV de entrada para --infer-only (limpio o crudo ML)")

@@ -146,7 +146,7 @@ def run_producto1_end_to_end(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="TerraScout AI — Pipeline Producto 1 (ETL + EDA)")
+    parser = argparse.ArgumentParser(description="CampAR — Pipeline Producto 1 (ETL + EDA)")
     parser.add_argument("--top-oportunidades", type=int, default=250, help="Tope de lotes en csv_3 (0 = todos)")
     parser.add_argument("--skip-raw-xlsx", action="store_true", help="No regenerar dataset_raw_consolidado.xlsx")
     args = parser.parse_args()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TerraScout AI — Scraper Node & Real Raw Pipeline.
+"""CampAR — Scraper Node & Real Raw Pipeline.
 
 Orquesta la extracción 100% real de datos de Mercado Libre y campings de Córdoba:
 1. Carga variables de entorno (.env) de forma nativa sin dependencias externas.
@@ -188,7 +188,7 @@ def run_scraper_pipeline(
     token = apify_token or os.getenv("APIFY_TOKEN")
 
     logger.info("=================================================================")
-    logger.info("   TerraScout AI — Scraper Node (Extracción 100% Real)          ")
+    logger.info("   CampAR — Scraper Node (Extracción 100% Real)                 ")
     logger.info("=================================================================")
     logger.info("Parámetros: max_items_per_valley=%d, max_pages_per_valley=%d", max_items_per_valley, max_pages_per_valley)
     logger.info("Apify Token configurado: %s", "SÍ" if bool(token) else "NO (Modo OSM/SoloCampings)")
@@ -536,7 +536,7 @@ def run_scraper_pipeline(
 def main() -> None:
     """Punto de entrada CLI para ejecución del nodo scraper."""
     parser = argparse.ArgumentParser(
-        description="TerraScout AI — Scraper Node (Extracción 100% Real)"
+        description="CampAR — Scraper Node (Extracción 100% Real)"
     )
     parser.add_argument(
         "--max-items-per-valley",
