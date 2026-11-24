@@ -1,1 +1,1 @@
-"""TerraScout AI — Actor 1 (APIFY ETL)."""
+"""CampAR — Actor 1 (APIFY ETL)."""

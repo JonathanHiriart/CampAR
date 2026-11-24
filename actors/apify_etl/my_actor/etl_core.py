@@ -1,4 +1,4 @@
-"""Núcleo ETL puro para TerraScout AI (Actor 1: APIFY ETL).
+"""Núcleo ETL puro para CampAR (Actor 1: APIFY ETL).
 
 Convierte los insumos crudos (Drive/HTTP o disco local) en `dataset_limpio.csv`
 aplicando las reglas desacopladas de `config/business_rules.json`, limpieza

@@ -1,4 +1,4 @@
-"""Preprocesamiento e ingeniería de features para TerraScout AI (Actor 3 — Inferencia ML).
+"""Preprocesamiento e ingeniería de features para CampAR (Actor 3 — Inferencia ML).
 
 Consume `dataset_limpio.csv` producido por `APIFY ETL` (`etl_core.py`) y reglas de
 `config/business_rules.json` (con enriquecimiento opcional desde fuentes RAW locales

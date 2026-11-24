@@ -1,4 +1,4 @@
-"""Núcleo EDA puro para TerraScout AI (Actor 2: APIFY EDA).
+"""Núcleo EDA puro para CampAR (Actor 2: APIFY EDA).
 
 Consume `dataset_limpio.csv` (+ reviews y tópicos NLP opcionales) y genera
 las salidas listas para Dashboard (`Looker Studio` / `Google Sheets`):

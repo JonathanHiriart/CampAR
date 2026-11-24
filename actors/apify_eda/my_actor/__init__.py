@@ -1,1 +1,1 @@
-"""TerraScout AI — Actor 2 (APIFY EDA)."""
+"""CampAR — Actor 2 (APIFY EDA)."""

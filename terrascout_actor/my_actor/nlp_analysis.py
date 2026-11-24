@@ -1,4 +1,4 @@
-"""Módulo de análisis NLP, similitud difusa y orquestación del pipeline TerraScout.
+"""Módulo de análisis NLP, similitud difusa y orquestación del pipeline CampAR.
 
 Concentra toda la lógica de negocio separada de `main.py` (Regla R4):
 - normalize(text)
@@ -420,7 +420,7 @@ def execute_terrascout_pipeline(
     ]
 
     log.info(
-        f"Iniciando TerraScout Actor (Real ML Scraper): "
+        f"Iniciando CampAR Scraper Actor (Real ML Scraper): "
         f"max_items_per_valley={max_items_per_valley}, max_pages_per_valley={max_pages_per_valley}"
     )
 

@@ -1,4 +1,4 @@
-"""Entrypoint Apify para TerraScout Actor (Regla R4: solo armado del Actor SDK)."""
+"""Entrypoint Apify para CampAR Scraper Actor (Regla R4: solo armado del Actor SDK)."""
 
 from __future__ import annotations
 

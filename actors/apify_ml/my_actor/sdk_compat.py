@@ -1,4 +1,4 @@
-"""Compatibilidad y helpers Apify SDK para TerraScout ML Actor (Regla R1/R4)."""
+"""Compatibilidad y helpers Apify SDK para CampAR ML Actor (Regla R1/R4)."""
 
 from __future__ import annotations
 

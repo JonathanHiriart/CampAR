@@ -1,4 +1,4 @@
-"""Entrypoint Apify para TerraScout Actor 3 (`APIFY ML`, solo inferencia, Regla R4)."""
+"""Entrypoint Apify para CampAR Actor 3 (`APIFY ML`, solo inferencia, Regla R4)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ async def main() -> None:
     """Lee `dataset_limpio` vía SDK Apify, ejecuta inferencia Producto 2 y publica resultados."""
     async with Actor:
         inp = await Actor.get_input() or {}
-        Actor.log.info("Iniciando TerraScout APIFY ML — Inferencia (Producto 2)...")
+        Actor.log.info("Iniciando CampAR APIFY ML — Inferencia (Producto 2)...")
         await Actor.set_status_message("APIFY ML: cargando dataset limpio, modelo .pkl y reglas...")
 
         sdk_texts, sdk_records, sdk_pkl_bytes = await resolve_ml_sdk_inputs(Actor, inp)

@@ -1,4 +1,4 @@
-"""TerraScout AI — Scraper de Mercado Libre Inmuebles (Sierras de Córdoba).
+"""CampAR — Scraper de Mercado Libre Inmuebles (Sierras de Córdoba).
 
 Extrae publicaciones reales de terrenos y lotes en los valles de Calamuchita y Punilla.
 Utiliza decodificación estructurada de datos embebidos (_n.ctx.r) con fallback

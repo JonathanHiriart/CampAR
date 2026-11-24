@@ -1,4 +1,4 @@
-"""Entrypoint Apify para TerraScout Actor 2 (`APIFY EDA`, Regla R4)."""
+"""Entrypoint Apify para CampAR Actor 2 (`APIFY EDA`, Regla R4)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ async def main() -> None:
     """Lee `dataset_limpio` vía SDK Apify, ejecuta EDA y exporta 3 CSVs + XLSX + Dataset."""
     async with Actor:
         inp = await Actor.get_input() or {}
-        Actor.log.info("Iniciando TerraScout APIFY EDA...")
+        Actor.log.info("Iniciando CampAR APIFY EDA...")
         await Actor.set_status_message("APIFY EDA: cargando insumos por SDK Apify...")
 
         sdk_texts, sdk_records, sdk_wb_bytes = await resolve_eda_sdk_inputs(Actor, inp)

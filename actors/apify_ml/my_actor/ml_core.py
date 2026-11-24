@@ -1,4 +1,4 @@
-"""Compatibilidad de re-export para TerraScout Actor 3 (Solo Inferencia).
+"""Compatibilidad de re-export para CampAR Actor 3 (Solo Inferencia).
 
 Los módulos principales viven en `preprocessing.py` y `tooling_business.py`.
 El entrenamiento del modelo fue movido fuera del Actor a `src/training.py`.

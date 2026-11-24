@@ -1,4 +1,4 @@
-"""Compatibilidad y helpers Apify SDK para TerraScout EDA Actor (Regla R1/R4)."""
+"""Compatibilidad y helpers Apify SDK para CampAR EDA Actor (Regla R1/R4)."""
 
 from __future__ import annotations
 

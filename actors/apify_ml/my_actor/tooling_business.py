@@ -1,4 +1,4 @@
-"""Lógica de negocio e inferencia hedónica para TerraScout AI (Actor 3 — Solo Inferencia).
+"""Lógica de negocio e inferencia hedónica para CampAR (Actor 3 — Solo Inferencia).
 
 Carga el modelo serializado `terrascout_pipeline.pkl` junto a `config/business_rules.json`,
 predice el valor justo en `USD/m²`, calcula el gap de arbitraje y genera alertas sin PII.
@@ -184,9 +184,9 @@ def build_validation_sample(df_oportunidades: pd.DataFrame, max_rows: int = 30) 
 def format_telegram_summary(df_oportunidades: pd.DataFrame, top_n: int = 8) -> str:
     """Genera resumen compacto sin PII listo para nodos de alerta (Telegram/Email en n8n)."""
     if df_oportunidades.empty:
-        return "TerraScout AI (Producto 2): no se detectaron oportunidades nuevas bajo las reglas activas."
+        return "CampAR (Producto 2): no se detectaron oportunidades nuevas bajo las reglas activas."
     lines = [
-        f"TerraScout AI — Producto 2: {len(df_oportunidades)} oportunidad(es) ML. Top {min(top_n, len(df_oportunidades))}:"
+        f"CampAR — Producto 2: {len(df_oportunidades)} oportunidad(es) ML. Top {min(top_n, len(df_oportunidades))}:"
     ]
     for _, r in df_oportunidades.head(top_n).iterrows():
         rev = " [REVISAR]" if r.get("flag_revision") == "REVISAR" else ""

@@ -1,4 +1,4 @@
-"""Entrypoint Apify para TerraScout Actor 1 (`APIFY ETL`, Regla R4)."""
+"""Entrypoint Apify para CampAR Actor 1 (`APIFY ETL`, Regla R4)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ async def main() -> None:
     """Lee insumos por SDK Apify, ejecuta ETL y publica `dataset_limpio.csv` + JSON."""
     async with Actor:
         inp = await Actor.get_input() or {}
-        Actor.log.info("Iniciando TerraScout APIFY ETL...")
+        Actor.log.info("Iniciando CampAR APIFY ETL...")
         await Actor.set_status_message("APIFY ETL: leyendo insumos por SDK Apify...")
 
         sdk_texts, sdk_wb_bytes = await resolve_etl_sdk_inputs(Actor, inp)
