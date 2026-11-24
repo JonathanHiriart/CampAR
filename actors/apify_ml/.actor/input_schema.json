@@ -1,0 +1,76 @@
+{
+    "$schema": "https://apify.com/schemas/v1/input.ide.json",
+    "title": "TerraScout AI — APIFY ML (Producto 2) Input",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "dataset_limpio_url": {
+            "title": "URL o ruta de dataset_limpio.csv",
+            "type": "string",
+            "description": "Link de Google Drive, URL del KV Store de APIFY ETL o ruta local de dataset_limpio.csv.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "rules_json_url": {
+            "title": "URL o ruta de config/business_rules.json",
+            "type": "string",
+            "description": "Reglas desacopladas de negocio y parámetros de modelado ML.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "model_pkl_url": {
+            "title": "URL o ruta de terrascout_pipeline.pkl (opcional)",
+            "type": "string",
+            "description": "Si se provee y reentrenar=false, ejecuta solo inferencia usando el modelo Pickle guardado.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "reentrenar": {
+            "title": "Reentrenar modelo hedónico sobre dataset_limpio",
+            "type": "boolean",
+            "description": "Si es true (o no se pasa model_pkl_url), entrena, compara 4 modelos con 5-Fold CV y guarda el nuevo .pkl.",
+            "editor": "checkbox",
+            "default": true
+        },
+        "ids_ya_alertados": {
+            "title": "Lista de id_registro ya alertados (opcional)",
+            "type": "array",
+            "description": "IDs ya enviados previamente para marcar ya_alertada y evitar alertas repetidas.",
+            "editor": "json"
+        },
+        "kv_store_id": {
+            "title": "ID Key-Value Store origen (SDK Apify, opcional)",
+            "type": "string",
+            "description": "Lee dataset_limpio o terrascout_pipeline.pkl vía SDK sin HTTP externo (Regla R1).",
+            "editor": "textfield",
+            "default": ""
+        },
+        "dataset_limpio_kv_key": {
+            "title": "Clave KV Store de dataset_limpio.csv (opcional)",
+            "type": "string",
+            "description": "Ej. dataset_limpio.csv en el KV Store especificado.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "model_pkl_kv_key": {
+            "title": "Clave KV Store de terrascout_pipeline.pkl (opcional)",
+            "type": "string",
+            "description": "Ej. terrascout_pipeline.pkl en el KV Store especificado.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "dataset_id": {
+            "title": "ID Apify Dataset de entrada (SDK Apify, opcional)",
+            "type": "string",
+            "description": "Lee registros limpios directamente desde Actor.open_dataset(id=...) del Actor ETL.",
+            "editor": "textfield",
+            "default": ""
+        },
+        "records": {
+            "title": "Registros limpios inline JSON (opcional)",
+            "type": "array",
+            "description": "Permite pasar filas limpias directamente en Actor.get_input() (Regla R1).",
+            "editor": "json"
+        }
+    }
+}
