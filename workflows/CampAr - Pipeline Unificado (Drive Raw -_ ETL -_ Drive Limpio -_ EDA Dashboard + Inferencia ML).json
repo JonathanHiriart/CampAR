@@ -1,0 +1,1502 @@
+{
+  "name": "CampAr - Pipeline Unificado (Drive Raw -> ETL -> Drive Limpio -> EDA Dashboard + Inferencia ML)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "d43ddfd5-dc1d-4cf9-b544-e288f22402fb",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -816,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "demo-cfg-token",
+              "name": "apify_token",
+              "value": "PEGA_TU_APIFY_TOKEN_AQUI",
+              "type": "string"
+            },
+            {
+              "id": "demo-cfg-drive-raw",
+              "name": "drive_raw_file_id",
+              "value": "1DDbm_EMSLd2X5HxOc2PPuDTrWR8TnOCv",
+              "type": "string"
+            },
+            {
+              "id": "demo-cfg-drive-file",
+              "name": "drive_limpio_file_id",
+              "value": "1y8F8WmbvaXI7QFljrk7KOJk0AagZq0Ji",
+              "type": "string"
+            },
+            {
+              "id": "demo-cfg-ml-actor",
+              "name": "apify_ml_actor_id",
+              "value": "9bGh3PnH5lMWm3cjc",
+              "type": "string"
+            },
+            {
+              "id": "demo-cfg-model-url",
+              "name": "model_pkl_url",
+              "value": "https://drive.google.com/file/d/1YoZGlO8xtmxy9NMwSjIPJfNS8dZZF85t/view",
+              "type": "string"
+            },
+            {
+              "id": "demo-cfg-sheet-id",
+              "name": "google_sheet_id",
+              "value": "1BNlgTgqtFIZQzcURtSuhogBMGLJ760-801peRsZrGvI",
+              "type": "string"
+            },
+            {
+              "id": "demo-cfg-tab-p1",
+              "name": "google_sheet_tab",
+              "value": "Datos",
+              "type": "string"
+            },
+            {
+              "id": "demo-cfg-tab-p2",
+              "name": "google_sheet_tab_ml",
+              "value": "Oportunidades_ML",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b883ea55-2ae2-4f76-8e2a-03cd368dc56f",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -592,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.drive_raw_file_id }}"
+        },
+        "options": {}
+      },
+      "id": "d49e9003-17ba-462c-b33d-bbb77567ccdd",
+      "name": "0. DRIVE Data Raw",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -384,
+        -160
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "wzRORZwkuluTfvvS",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/ypvpGbmD1vpqraNXA/run-sync?outputRecordKey=dataset_limpio.csv",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ raw_workbook_url: $json.webViewLink || ('https://docs.google.com/spreadsheets/d/' + $('Config').first().json.drive_raw_file_id + '/edit') }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "efac8fa4-1c30-4f48-bb21-311929fa268f",
+      "name": "1. APIFY ETL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -144,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.drive_limpio_file_id }}"
+        },
+        "changeFileContent": true,
+        "options": {}
+      },
+      "id": "09bce2bd-7d1b-415b-8699-70ab7d84e194",
+      "name": "2. DRIVE Dataset Limpio",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        112,
+        -160
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "wzRORZwkuluTfvvS",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/YZH8ti7zjLt6410Hx/run-sync-get-dataset-items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ dataset_limpio_url: 'https://drive.google.com/file/d/' + $json.id + '/view', raw_workbook_url: $('0. DRIVE Data Raw').first().json.webViewLink || ('https://docs.google.com/spreadsheets/d/' + $('Config').first().json.drive_raw_file_id + '/edit'), top_oportunidades_limit: 250 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "8046d0a6-7a11-40e5-ab11-d04364d29787",
+      "name": "3A. APIFY EDA (Producto 1)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        368,
+        -272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.google_sheet_tab }}"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "id_registro"
+          ],
+          "schema": [
+            {
+              "id": "tipo_tabla",
+              "displayName": "tipo_tabla",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "id_registro",
+              "displayName": "id_registro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha_extraccion",
+              "displayName": "fecha_extraccion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "valle_corredor",
+              "displayName": "valle_corredor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "barrio_localidad",
+              "displayName": "barrio_localidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "precio_usd",
+              "displayName": "precio_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "superficie_m2",
+              "displayName": "superficie_m2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "banda_superficie",
+              "displayName": "banda_superficie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "banda_orden",
+              "displayName": "banda_orden",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "precio_m2_usd",
+              "displayName": "precio_m2_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "score_servicios",
+              "displayName": "score_servicios",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_agua",
+              "displayName": "tiene_agua",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_luz",
+              "displayName": "tiene_luz",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_escritura",
+              "displayName": "tiene_escritura",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_arboleda",
+              "displayName": "tiene_arboleda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_rio",
+              "displayName": "tiene_rio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_servicios",
+              "displayName": "tiene_servicios",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "pendiente_media_grados",
+              "displayName": "pendiente_media_grados",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ndvi_sombra_verano",
+              "displayName": "ndvi_sombra_verano",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "distancia_rio_m",
+              "displayName": "distancia_rio_m",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "riesgo_ambiental",
+              "displayName": "riesgo_ambiental",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "riesgo_orden",
+              "displayName": "riesgo_orden",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "campings_5km",
+              "displayName": "campings_5km",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "distancia_camping_min_km",
+              "displayName": "distancia_camping_min_km",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nps_proxy_zona",
+              "displayName": "nps_proxy_zona",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "precio_referencia_zona_m2",
+              "displayName": "precio_referencia_zona_m2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "descuento_vs_mediana_pct",
+              "displayName": "descuento_vs_mediana_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "es_oportunidad_p1",
+              "displayName": "es_oportunidad_p1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segmento_n",
+              "displayName": "segmento_n",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "precio_referencia_segmento_m2",
+              "displayName": "precio_referencia_segmento_m2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "descuento_vs_segmento_pct",
+              "displayName": "descuento_vs_segmento_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "es_oportunidad_segmento",
+              "displayName": "es_oportunidad_segmento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "titulo_publicacion",
+              "displayName": "titulo_publicacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lat_eff",
+              "displayName": "lat_eff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lon_eff",
+              "displayName": "lon_eff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "coordenadas_gmaps",
+              "displayName": "coordenadas_gmaps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "url_publicacion",
+              "displayName": "url_publicacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "url_google_maps",
+              "displayName": "url_google_maps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metrica_nombre",
+              "displayName": "metrica_nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metrica_cantidad",
+              "displayName": "metrica_cantidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metrica_porcentaje",
+              "displayName": "metrica_porcentaje",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "eda_pearson_m2",
+              "displayName": "eda_pearson_m2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "eda_spearman_m2",
+              "displayName": "eda_spearman_m2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "d06f596d-a024-4191-8f79-2bdc083bdd01",
+      "name": "4A. GOOGLE SHEETS Dashboard",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        608,
+        -272
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "i2GiPmlmoX2yhudr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $('Config').first().json.apify_ml_actor_id }}/run-sync-get-dataset-items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ dataset_limpio_url: 'https://drive.google.com/file/d/' + $json.id + '/view', model_pkl_url: $('Config').first().json.model_pkl_url }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "ea24639f-98e3-44a9-a581-db011f6b5911",
+      "name": "3B. APIFY ML (Producto 2 - Inferencia)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        368,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.google_sheet_tab_ml }}"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "id_registro"
+          ],
+          "schema": [
+            {
+              "id": "id_registro",
+              "displayName": "id_registro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha_extraccion",
+              "displayName": "fecha_extraccion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "valle_corredor",
+              "displayName": "valle_corredor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "barrio_localidad",
+              "displayName": "barrio_localidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "precio_usd",
+              "displayName": "precio_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "superficie_m2",
+              "displayName": "superficie_m2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "banda_superficie",
+              "displayName": "banda_superficie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "banda_orden",
+              "displayName": "banda_orden",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "precio_m2_usd",
+              "displayName": "precio_m2_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "score_servicios",
+              "displayName": "score_servicios",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_agua",
+              "displayName": "tiene_agua",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_luz",
+              "displayName": "tiene_luz",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_escritura",
+              "displayName": "tiene_escritura",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_arboleda",
+              "displayName": "tiene_arboleda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_rio",
+              "displayName": "tiene_rio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tiene_servicios",
+              "displayName": "tiene_servicios",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "pendiente_media_grados",
+              "displayName": "pendiente_media_grados",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ndvi_sombra_verano",
+              "displayName": "ndvi_sombra_verano",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "distancia_rio_m",
+              "displayName": "distancia_rio_m",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "riesgo_ambiental",
+              "displayName": "riesgo_ambiental",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "riesgo_orden",
+              "displayName": "riesgo_orden",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "campings_5km",
+              "displayName": "campings_5km",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "distancia_camping_min_km",
+              "displayName": "distancia_camping_min_km",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nps_proxy_zona",
+              "displayName": "nps_proxy_zona",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "precio_referencia_zona_m2",
+              "displayName": "precio_referencia_zona_m2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "descuento_vs_mediana_pct",
+              "displayName": "descuento_vs_mediana_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "es_oportunidad_p1",
+              "displayName": "es_oportunidad_p1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segmento_n",
+              "displayName": "segmento_n",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "precio_referencia_segmento_m2",
+              "displayName": "precio_referencia_segmento_m2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "descuento_vs_segmento_pct",
+              "displayName": "descuento_vs_segmento_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "es_oportunidad_segmento",
+              "displayName": "es_oportunidad_segmento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "titulo_publicacion",
+              "displayName": "titulo_publicacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lat_eff",
+              "displayName": "lat_eff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lon_eff",
+              "displayName": "lon_eff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "coordenadas_gmaps",
+              "displayName": "coordenadas_gmaps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "url_publicacion",
+              "displayName": "url_publicacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "url_google_maps",
+              "displayName": "url_google_maps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "log_superficie",
+              "displayName": "log_superficie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "inv_sqrt_sup",
+              "displayName": "inv_sqrt_sup",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lat_lon_rot1",
+              "displayName": "lat_lon_rot1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lat_lon_rot2",
+              "displayName": "lat_lon_rot2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "dist_centroide_min",
+              "displayName": "dist_centroide_min",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "campings_2km",
+              "displayName": "campings_2km",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "campings_10km",
+              "displayName": "campings_10km",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "places_5km",
+              "displayName": "places_5km",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "log_reviews_5km",
+              "displayName": "log_reviews_5km",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kw_lago_dique",
+              "displayName": "kw_lago_dique",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kw_barrio_privado",
+              "displayName": "kw_barrio_privado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kw_ruta_asfalto",
+              "displayName": "kw_ruta_asfalto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kw_construido",
+              "displayName": "kw_construido",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kw_financiacion",
+              "displayName": "kw_financiacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kw_esquina",
+              "displayName": "kw_esquina",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kw_vista",
+              "displayName": "kw_vista",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kw_loteo",
+              "displayName": "kw_loteo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kw_gas",
+              "displayName": "kw_gas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kw_alambrado",
+              "displayName": "kw_alambrado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "txt_len",
+              "displayName": "txt_len",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "es_tienda_oficial_int",
+              "displayName": "es_tienda_oficial_int",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "precio_modelo_m2",
+              "displayName": "precio_modelo_m2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "precio_modelo_total_usd",
+              "displayName": "precio_modelo_total_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "gap_arbitraje_pct",
+              "displayName": "gap_arbitraje_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "split_evaluacion",
+              "displayName": "split_evaluacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "es_oportunidad_ml",
+              "displayName": "es_oportunidad_ml",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "flag_revision",
+              "displayName": "flag_revision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ya_alertada",
+              "displayName": "ya_alertada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "801b2f2a-f375-470a-9f18-5de1ffc10d33",
+      "name": "4B. GOOGLE SHEETS Oportunidades ML",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        608,
+        -32
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "i2GiPmlmoX2yhudr",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "0. DRIVE Data Raw",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "0. DRIVE Data Raw": {
+      "main": [
+        [
+          {
+            "node": "1. APIFY ETL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. APIFY ETL": {
+      "main": [
+        [
+          {
+            "node": "2. DRIVE Dataset Limpio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. DRIVE Dataset Limpio": {
+      "main": [
+        [
+          {
+            "node": "3A. APIFY EDA (Producto 1)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "3B. APIFY ML (Producto 2 - Inferencia)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3A. APIFY EDA (Producto 1)": {
+      "main": [
+        [
+          {
+            "node": "4A. GOOGLE SHEETS Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3B. APIFY ML (Producto 2 - Inferencia)": {
+      "main": [
+        [
+          {
+            "node": "4B. GOOGLE SHEETS Oportunidades ML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "44282d79-b8a7-4359-a1e4-7a8b87c92eb9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d44263854f0ec998cd219bca7b8a6fa9a91681db047c3494a1c369032bac7e6c"
+  },
+  "nodeGroups": [],
+  "id": "5W4rIfX42nkyrn1T",
+  "tags": []
+}
