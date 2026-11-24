@@ -1,0 +1,225 @@
+{
+  "name": "TerraScout AI - Producto 2 (APIFY ETL -> APIFY ML -> Google Sheets Oportunidades)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "p2-trigger-1",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p2-cfg-token",
+              "name": "apify_token",
+              "value": "PEGA_TU_APIFY_TOKEN_AQUI",
+              "type": "string"
+            },
+            {
+              "id": "p2-cfg-raw",
+              "name": "raw_workbook_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "p2-cfg-limpio-folder",
+              "name": "folder_limpio_id",
+              "value": "root",
+              "type": "string"
+            },
+            {
+              "id": "p2-cfg-ml-actor",
+              "name": "apify_ml_actor_id",
+              "value": "REEMPLAZAR_POR_ID_ACTOR_APIFY_ML",
+              "type": "string"
+            },
+            {
+              "id": "p2-cfg-model-url",
+              "name": "model_pkl_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "p2-cfg-sheet-id",
+              "name": "google_sheet_id",
+              "value": "PEGA_EL_ID_DE_TU_GOOGLE_SHEET_AQUI",
+              "type": "string"
+            },
+            {
+              "id": "p2-cfg-sheet-tab",
+              "name": "google_sheet_tab",
+              "value": "Oportunidades_ML",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "p2-config-2",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.google_sheet_tab }}"
+        },
+        "clear": "wholeSheet",
+        "keepFirstRow": true
+      },
+      "id": "p2-sheets-clear-3",
+      "name": "0. LIMPIAR Google Sheet ML",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/ypvpGbmD1vpqraNXA/run-sync?outputRecordKey=dataset_limpio.csv",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ raw_workbook_url: $('Config').first().json.raw_workbook_url }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "p2-apify-etl-4",
+      "name": "1. APIFY ETL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "name": "dataset_limpio.csv",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.folder_limpio_id }}"
+        },
+        "options": {}
+      },
+      "id": "p2-drive-limpio-5",
+      "name": "2. DRIVE Dataset Limpio",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [920, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{ $('Config').first().json.apify_ml_actor_id }}/run-sync-get-dataset-items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.apify_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ dataset_limpio_url: 'https://drive.google.com/file/d/' + $json.id + '/view', model_pkl_url: $('Config').first().json.model_pkl_url, reentrenar: !$('Config').first().json.model_pkl_url }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "p2-apify-ml-6",
+      "name": "3. APIFY ML (Producto 2)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.google_sheet_tab }}"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "p2-sheets-append-7",
+      "name": "4. GOOGLE SHEETS Oportunidades ML",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1400, 0]
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "0. LIMPIAR Google Sheet ML", "type": "main", "index": 0 }]]
+    },
+    "0. LIMPIAR Google Sheet ML": {
+      "main": [[{ "node": "1. APIFY ETL", "type": "main", "index": 0 }]]
+    },
+    "1. APIFY ETL": {
+      "main": [[{ "node": "2. DRIVE Dataset Limpio", "type": "main", "index": 0 }]]
+    },
+    "2. DRIVE Dataset Limpio": {
+      "main": [[{ "node": "3. APIFY ML (Producto 2)", "type": "main", "index": 0 }]]
+    },
+    "3. APIFY ML (Producto 2)": {
+      "main": [[{ "node": "4. GOOGLE SHEETS Oportunidades ML", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
