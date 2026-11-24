@@ -34,4 +34,20 @@ Esta carpeta contiene los flujos listos para importar en **n8n** que orquestan l
    * `google_sheet_id` y `google_sheet_tab` (por defecto `Oportunidades_ML`).
 4. *(Opcional — Alerta Telegram/Email)*: agregá un nodo **Telegram** o **Gmail** al final leyendo el campo `resumen_telegram` publicado en `metricas_producto2.json` del Key-Value Store del Actor 3.
 
+---
+
+## 3. Flujo Unificado para Demo ([`n8n_terrascout_completo.json`](./n8n_terrascout_completo.json))
+
+Ejecuta **ambos productos en una sola corrida** (ideal para la demo técnica de 2 minutos y medir el costo total de punta a punta), reutilizando un único run de `APIFY ETL` y bifurcando en paralelo:
+
+```text
+Trigger -> Config -> 1. APIFY ETL -> 2. DRIVE Dataset Limpio
+                                          ├─► 3A. Limpiar Sheet Dashboard -> 4A. APIFY EDA (P1) -> 5A. Google Sheets Dashboard
+                                          └─► 3B. Limpiar Sheet ML        -> 4B. APIFY ML (P2)  -> 5B. Google Sheets Oportunidades ML
+```
+
+1. Importá [`workflows/n8n_terrascout_completo.json`](./workflows/n8n_terrascout_completo.json) en **n8n** *(los dos flujos individuales siguen disponibles arriba por separado)*.
+2. Completá en **`Config`**: `apify_token`, `raw_workbook_url`, `folder_limpio_id`, `apify_ml_actor_id`, `model_pkl_url`, `google_sheet_id`, `sheet_tab_p1` (`Datos`) y `sheet_tab_p2` (`Oportunidades_ML`).
+3. **Costo estimado por corrida unificada (3 Actores en Apify a 1 GB / `~10 s` c/u):** `~0.0085 CU` ≈ **`USD 0.0025`** por ejecución completa.
+
 > Para el detalle completo de conexiones Apify/Make/n8n y el armado del tablero visual, ver [`docs/flujo_make_n8n_producto1.md`](../docs/flujo_make_n8n_producto1.md) y [`docs/guia_looker_studio_producto1.md`](../docs/guia_looker_studio_producto1.md).

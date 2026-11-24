@@ -59,7 +59,8 @@ Capstone/
 ├── workflows/                            # Automatización en n8n
 │   ├── README-n8n.md                     # Guía rápida de importación y configuración n8n
 │   ├── n8n_producto1_terrascout.json     # Flujo Producto 1 (ETL -> Drive -> EDA -> Sheets)
-│   └── n8n_producto2_terrascout.json     # Flujo Producto 2 (ETL -> Drive -> ML -> Sheets)
+│   ├── n8n_producto2_terrascout.json     # Flujo Producto 2 (ETL -> Drive -> ML -> Sheets)
+│   └── n8n_terrascout_completo.json      # Flujo unificado para demo (ETL -> EDA P1 + ML P2)
 ├── config/
 │   └── business_rules.json               # Reglas de negocio y parámetros ML desacoplados
 ├── src/
